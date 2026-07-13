@@ -340,7 +340,7 @@ public class DocumentService : IDocumentService
             DocumentRequestId = docRequest.Id,
             FileName = $"{docRequest.LetterNumber}.pdf",
             FilePath = $"/documents/{docRequest.Id}/{docRequest.LetterNumber}.pdf",
-            FileFormat = DocumentFormat.PDF,
+            FileFormat = Domain.Common.DocumentFormat.PDF,
             Version = 1,
             GeneratedAt = DateTime.UtcNow
         };

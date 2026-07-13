@@ -1,4 +1,5 @@
 using AIHelpdesk.Application.Interfaces;
+using AIHelpdesk.Application.Options;
 using AIHelpdesk.Domain.Entities;
 using AIHelpdesk.Infrastructure.Data;
 using AIHelpdesk.Infrastructure.Services;
@@ -48,6 +49,8 @@ public static class DependencyInjection
         services.AddScoped<ILeaveBalanceService, LeaveBalanceService>();
         services.AddScoped<ILeaveRequestService, LeaveRequestService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.Configure<AIOptions>(configuration.GetSection(AIOptions.SectionName));
+
         services.AddHttpClient<IAIService, AIService>(client =>
         {
             client.Timeout = TimeSpan.FromMinutes(2);

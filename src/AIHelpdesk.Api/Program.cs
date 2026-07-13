@@ -80,6 +80,7 @@ using (var scope = app.Services.CreateScope())
 await DbSeeder.SeedAsync(app.Services);
 
 app.UseMiddleware<ExceptionMiddleware>();
+app.UseMiddleware<RateLimitingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

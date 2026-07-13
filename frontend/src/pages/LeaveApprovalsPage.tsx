@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { ApprovalTimeline, type ApprovalStage } from '@/components/ApprovalTimeline';
 import { RefreshCw, CheckCircle, XCircle, Eye } from 'lucide-react';
 
 interface LeaveRequestResponse {
@@ -206,13 +207,16 @@ export function LeaveApprovalsPage() {
               </div>
               {detail.approvals.length > 0 && (
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Approval History</Label>
-                  {detail.approvals.map((a) => (
-                    <div key={a.id} className="flex items-center justify-between py-1 text-sm border-b last:border-0">
-                      <span>{a.approverName} ({a.approverRole})</span>
-                      <Badge variant="outline">{a.status}</Badge>
-                    </div>
-                  ))}
+                  <Label className="text-sm font-medium mb-3 block">Approval Timeline</Label>
+                  <ApprovalTimeline
+                    stages={detail.approvals.map((a): ApprovalStage => ({
+                      label: `${a.approverRole} Approval`,
+                      status: a.status === 'Approved' ? 'completed' : a.status === 'Rejected' ? 'completed' : 'current',
+                      approverName: a.approverName,
+                      note: a.note,
+                      date: a.approvedAt ? new Date(a.approvedAt).toLocaleDateString() : undefined,
+                    }))}
+                  />
                 </div>
               )}
             </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,7 +13,8 @@ import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, RefreshCw, Pencil, Trash2, UserPlus } from 'lucide-react';
+import { EmployeeTable, type EmployeeTableRow } from '@/components/EmployeeTable';
+import { Plus, Search, RefreshCw, Pencil, Trash2, UserPlus, Upload, Download } from 'lucide-react';
 
 interface EmployeeResponse {
   id: string;
@@ -81,6 +82,10 @@ export function EmployeesPage() {
   const [page, setPage] = useState(1);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeResponse | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importResult, setImportResult] = useState<{ totalRows: number; successCount: number; errorCount: number; errors: { row: number; message: string }[] } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useQuery<EmployeeListResponse>({
     queryKey: ['employees', page, search],
@@ -101,6 +106,38 @@ export function EmployeesPage() {
     mutationFn: (id: string) => api.delete(`/employees/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees'] }),
   });
+
+  const importMutation = useMutation({
+    mutationFn: (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return api.post('/employees/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
+    onSuccess: (response) => {
+      setImportResult(response.data);
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+
+  const handleExport = async () => {
+    const response = await api.get('/employees/export', { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `employees_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImportFile(file);
+      setImportResult(null);
+    }
+  };
 
   const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<EmployeeForm>({
     resolver: zodResolver(employeeSchema),
@@ -144,6 +181,12 @@ export function EmployeesPage() {
           <p className="text-muted-foreground">Manage employee records</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" /> Export
+          </Button>
+          <Button variant="outline" onClick={() => setShowImport(true)}>
+            <Upload className="mr-2 h-4 w-4" /> Import
+          </Button>
           <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ['employees'] })}>
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
@@ -167,54 +210,17 @@ export function EmployeesPage() {
 
       <Card>
         <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center py-12"><Spinner /></div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee No</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-24">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data?.items.map((emp) => (
-                  <TableRow key={emp.id}>
-                    <TableCell className="font-mono text-sm">{emp.employeeNo}</TableCell>
-                    <TableCell className="font-medium">{emp.fullName}</TableCell>
-                    <TableCell>{emp.email}</TableCell>
-                    <TableCell>{emp.departmentName || '-'}</TableCell>
-                    <TableCell>{emp.positionName || '-'}</TableCell>
-                    <TableCell>{statusBadge(emp.employmentStatus)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(emp)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => {
-                          if (confirm('Delete this employee?')) deleteMutation.mutate(emp.id);
-                        }}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {data?.items.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No employees found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
+          <EmployeeTable
+            data={data?.items}
+            isLoading={isLoading}
+            onEdit={(row) => {
+              const emp = data?.items.find((e) => e.id === row.id);
+              if (emp) openEdit(emp);
+            }}
+            onDelete={(row) => {
+              if (confirm('Delete this employee?')) deleteMutation.mutate(row.id);
+            }}
+          />
         </CardContent>
       </Card>
 
@@ -363,6 +369,64 @@ export function EmployeesPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Dialog */}
+      <Dialog open={showImport} onOpenChange={(open) => { setShowImport(open); if (!open) { setImportFile(null); setImportResult(null); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Import Employees</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Upload an Excel file (.xlsx) with columns: Employee No, Full Name, Email, Phone, Join Date, Department, Position, Work Location.
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx"
+                onChange={handleImportFile}
+                className="hidden"
+              />
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="mr-2 h-4 w-4" /> Select File
+              </Button>
+              {importFile && <span className="text-sm text-muted-foreground">{importFile.name}</span>}
+            </div>
+
+            {importResult && (
+              <div className="rounded-lg border p-4 space-y-2">
+                <div className="flex gap-4 text-sm">
+                  <span className="text-green-600">✓ {importResult.successCount} imported</span>
+                  {importResult.errorCount > 0 && (
+                    <span className="text-red-600">✗ {importResult.errorCount} errors</span>
+                  )}
+                </div>
+                {importResult.errors.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto space-y-1">
+                    {importResult.errors.map((err, idx) => (
+                      <p key={idx} className="text-xs text-red-600">
+                        Row {err.row}: {err.message}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setShowImport(false); setImportFile(null); setImportResult(null); }}>
+                Close
+              </Button>
+              <Button
+                onClick={() => importFile && importMutation.mutate(importFile)}
+                disabled={!importFile || importMutation.isPending}
+              >
+                {importMutation.isPending ? <Spinner className="mr-2" /> : null}
+                Upload & Import
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

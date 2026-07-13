@@ -2,30 +2,29 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AIHelpdesk.Application.Interfaces;
-using Microsoft.Extensions.Configuration;
+using AIHelpdesk.Application.Options;
+using Microsoft.Extensions.Options;
 
 namespace AIHelpdesk.Infrastructure.Services;
 
 public class AIService : IAIService
 {
     private readonly HttpClient _http;
-    private readonly string _apiKey;
-    private readonly string _embeddingModel;
-    private readonly string _chatModel;
+    private readonly AIOptions _options;
 
-    public AIService(HttpClient http, IConfiguration configuration)
+    public AIService(HttpClient http, IOptions<AIOptions> options)
     {
         _http = http;
-        _apiKey = configuration["AI:ApiKey"] ?? throw new InvalidOperationException("AI:ApiKey not configured");
-        _embeddingModel = configuration["AI:EmbeddingModel"] ?? "text-embedding-3-small";
-        _chatModel = configuration["AI:ChatModel"] ?? "gpt-4o-mini";
-        _http.BaseAddress = new Uri(configuration["AI:Endpoint"] ?? "https://api.openai.com/v1/");
-        _http.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+        _options = options.Value;
+        if (string.IsNullOrEmpty(_options.ApiKey))
+            throw new InvalidOperationException("AI:ApiKey not configured");
+        _http.BaseAddress = new Uri(_options.Endpoint);
+        _http.DefaultRequestHeaders.Add("Authorization", $"Bearer {_options.ApiKey}");
     }
 
     public async Task<IReadOnlyList<double>> GenerateEmbeddingAsync(string text)
     {
-        var body = new { input = text, model = _embeddingModel };
+        var body = new { input = text, model = _options.EmbeddingModel };
         var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
         var response = await _http.PostAsync("embeddings", content);
         response.EnsureSuccessStatusCode();
@@ -50,7 +49,7 @@ public class AIService : IAIService
 
         var body = new
         {
-            model = _chatModel,
+            model = _options.ChatModel,
             messages,
             stream = onToken != null,
             temperature = 0.3

@@ -12,11 +12,11 @@
 - [x] Create `IAIService` abstraction / interface
 - [x] Create OpenAI implementation
 - [ ] Create Azure OpenAI implementation
-- [ ] Create `AIOptions` configuration class
+- [x] Create `AIOptions` configuration class
 - [x] Implement embedding generation (`text-embedding-3-small`)
 - [x] Implement chat completion with streaming (SSE)
-- [ ] Implement rate limiting middleware for AI endpoints
-- [ ] Create health check for AI provider
+- [x] Implement rate limiting middleware for AI endpoints
+- [x] Create health check for AI provider
 
 ## Backend — RAG Pipeline
 
@@ -65,14 +65,14 @@
 - [x] Implement system prompt management
 - [x] Implement no-context fallback response
 - [ ] Implement prompt/response audit logging
-- [ ] Implement rate limiting (30 req/min/user)
+- [x] Implement rate limiting (30 req/min/user)
 
 ## Backend — Audit & Monitoring
 
 - [x] Create `AIUsageLog` entity
 - [x] Create usage tracking (auto-logged on each AI request)
 - [x] Implement token counting and cost estimation
-- [ ] Create admin usage stats endpoint
+- [x] Create admin usage stats endpoint
 - [ ] Set daily token budget check
 
 ## Database
@@ -90,21 +90,21 @@
 - [x] Create MessageBubble component (user/AI messages)
 - [x] Create SourceCard component (source citations with relevance %)
 - [x] Create AITypingIndicator component (animated dots)
-- [ ] Implement streaming SSE response rendering (token-by-token)
+- [x] Implement streaming SSE response rendering (token-by-token)
 - [x] Create FeedbackButtons component (thumbs up/down)
-- [ ] Create EscalateButton component
+- [x] Create EscalateButton component
 - [x] Create ConversationHistory component (sidebar)
 - [x] Implement Enter to send, Ctrl+Enter for newline
-- [ ] Implement abort/cancel in-progress request
-- [ ] Create ChatSessionPage (existing session)
-- [ ] Create ConversationListPage
+- [x] Implement abort/cancel in-progress request
+- [x] Create ChatSessionPage (existing session)
+- [x] Create ConversationListPage
 
 ## Frontend — Knowledge Base
 
 - [x] Create KnowledgeBaseListPage (documents with status badges)
 - [x] Create KnowledgeUploadForm (file upload, validation, progress)
 - [x] Create KnowledgeUploadPage (in dialog)
-- [ ] Create KnowledgeDocumentDetailPage
+- [x] Create KnowledgeDocumentDetailPage
 - [x] Create KnowledgeSearchBar (text search)
 - [ ] Create DocumentPreview component (inline PDF/TXT preview)
 - [ ] Create UsageStats component (admin token usage display)

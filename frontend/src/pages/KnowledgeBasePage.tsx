@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ function formatSize(bytes: number): string {
 
 export function KnowledgeBasePage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showUpload, setShowUpload] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -144,7 +146,12 @@ export function KnowledgeBasePage() {
                       <div className="flex items-center gap-2">
                         <span>{fileTypeIcons[d.fileType] || '📁'}</span>
                         <div>
-                          <p className="font-medium text-sm">{d.title}</p>
+                          <p
+                            className="font-medium text-sm hover:text-primary hover:underline cursor-pointer"
+                            onClick={() => navigate(`/knowledge-base/${d.id}`)}
+                          >
+                            {d.title}
+                          </p>
                           <p className="text-xs text-muted-foreground">{d.fileName}</p>
                         </div>
                       </div>

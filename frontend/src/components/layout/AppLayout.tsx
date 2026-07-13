@@ -1,6 +1,10 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
+import { NotificationBell } from '@/components/NotificationBell';
+import { ToastContainer } from '@/components/ToastContainer';
+import { useSignalR } from '@/lib/useSignalR';
+import { useToastStore } from '@/lib/useToast';
 import {
   LayoutDashboard,
   Users,
@@ -16,13 +20,14 @@ import {
   FileCode,
   Bot,
   BookOpen,
+  MessageSquare,
   UserCog,
   CalendarCheck,
   Clock,
   ClipboardCheck,
   Tags,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -34,18 +39,34 @@ const navItems = [
   { to: '/documents/requests', label: 'Documents', icon: FileText },
   { to: '/documents/templates', label: 'Templates', icon: FileCode },
   { to: '/ai/chat', label: 'AI Chat', icon: Bot },
+  { to: '/ai/conversations', label: 'Conversations', icon: MessageSquare },
   { to: '/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
   // HR Module
   { to: '/employees', label: 'Employees', icon: UserCog },
   { to: '/leave-types', label: 'Leave Types', icon: Tags },
   { to: '/leave-requests', label: 'Leave Requests', icon: Clock },
   { to: '/leave-approvals', label: 'Approvals', icon: ClipboardCheck },
+  { to: '/notifications', label: 'Notifications', icon: Bell },
 ];
 
 export function AppLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
+
+  // Listen for real-time notifications via SignalR
+  const { onNotification, onUnreadCount } = useSignalR();
+
+  useEffect(() => {
+    onNotification((notification) => {
+      addToast({
+        title: notification.title,
+        message: '',
+        type: 'info',
+      });
+    });
+  }, [onNotification, addToast]);
 
   const handleLogout = async () => {
     await logout();
@@ -122,9 +143,7 @@ export function AppLayout() {
 
           <div className="flex-1" />
 
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
+          <NotificationBell />
         </header>
 
         {/* Content */}
@@ -132,6 +151,8 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      <ToastContainer />
     </div>
   );
 }

@@ -137,7 +137,23 @@ npm run test:e2e
 npm run test:e2e:ui
 ```
 
-> See [`documentation/e2e-testing.md`](documentation/e2e-testing.md) for the full guide.
+> See [`documentation/e2e-testing.md`](documentation/e2e-testing.md) for the full E2E guide.
+> See [`tests/Summary.md`](tests/Summary.md) for the complete testing strategy across all disciplines.
+
+### Test Coverage
+
+> Full report: [`test-coverage-report.md`](test-coverage-report.md)
+
+| Phase | Backend (xUnit) | E2E Smoke | E2E Interaction | Status |
+|-------|-----------------|-----------|-----------------|--------|
+| Phase 1 — Foundation MVP | 22 | 13 | — | ✅ All passing |
+| Phase 2 — HR Administration | 47 | 4 | 26 | ✅ All passing |
+| Phase 3–7 | — | — | — | 📋 Not yet tested |
+| **Total** | **69** | **17** | **26** | — |
+
+**Backend (69 tests):** 8 service classes, 2 domain, 1 contract — xUnit + Moq + FluentAssertions + Bogus  
+**E2E (43 tests):** 17 smoke (screenshot + heading) across all pages + 26 interaction (dialog, form, search, CRUD) for Phase 2  
+**Grand total:** 112 tests
 
 ## API Endpoints (Phase 1 — Foundation MVP)
 

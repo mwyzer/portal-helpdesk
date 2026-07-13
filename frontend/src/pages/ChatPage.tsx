@@ -1,12 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
-import { Send, Plus, MessageSquare, Trash2, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react';
+import { Send, Plus, MessageSquare, Trash2, ThumbsUp, ThumbsDown, AlertCircle, Square, ArrowUpCircle } from 'lucide-react';
 
 interface ChatSession {
   id: string;
@@ -34,12 +34,24 @@ interface SessionDetail {
   updatedAt: string;
 }
 
+interface AIResponseMeta {
+  id: string;
+  modelUsed: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  latencyMs: number;
+}
+
 export function ChatPage() {
   const queryClient = useQueryClient();
+  const token = useAuthStore(s => s.accessToken);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [streamingMeta, setStreamingMeta] = useState<AIResponseMeta | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: sessions } = useQuery<{ items: ChatSession[] }>({
@@ -53,26 +65,107 @@ export function ChatPage() {
     enabled: !!activeSessionId,
   });
 
-  const sendMutation = useMutation({
-    mutationFn: async (data: { message: string; sessionId?: string }) => {
-      setIsStreaming(true);
-      setStreamingContent('');
-      const res = await api.post('/ai/chat', {
-        message: data.message,
-        sessionId: data.sessionId || undefined,
+  const handleSend = useCallback(async () => {
+    if (!input.trim() || isStreaming) return;
+
+    const message = input;
+    setInput('');
+    setIsStreaming(true);
+    setStreamingContent('');
+    setStreamingMeta(null);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const baseUrl = api.defaults.baseURL || '';
+      const res = await fetch(`${baseUrl}/ai/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message,
+          sessionId: activeSessionId || undefined,
+        }),
+        signal: controller.signal,
       });
-      return res.data as SessionDetail;
-    },
-    onSuccess: (data) => {
-      setActiveSessionId(data.id);
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `HTTP ${res.status}`);
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalSessionId = activeSessionId;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.substring(6);
+          if (data === '[DONE]') break;
+          if (data === '[CANCELLED]') break;
+
+          try {
+            const parsed = JSON.parse(data);
+            switch (parsed.type) {
+              case 'token':
+                setStreamingContent(prev => prev + parsed.content);
+                break;
+              case 'metadata':
+                setStreamingMeta(parsed.metadata);
+                break;
+              case 'complete':
+                finalSessionId = parsed.session?.id;
+                break;
+            }
+          } catch {
+            // skip malformed SSE lines
+          }
+        }
+      }
+
+      if (finalSessionId) {
+        setActiveSessionId(finalSessionId);
+        queryClient.invalidateQueries({ queryKey: ['chat-sessions'] });
+        queryClient.invalidateQueries({ queryKey: ['chat-session', finalSessionId] });
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        // User cancelled — keep streaming content as partial
+      } else {
+        console.error('Chat stream error:', err);
+      }
+    } finally {
       setIsStreaming(false);
-      setStreamingContent('');
-      setInput('');
+      abortRef.current = null;
+    }
+  }, [input, isStreaming, activeSessionId, token, queryClient]);
+
+  const handleCancel = () => {
+    abortRef.current?.abort();
+  };
+
+  const handleEscalate = useMutation({
+    mutationFn: async () => {
+      if (!activeSessionId) return;
+      return api.post(`/ai/conversations/${activeSessionId}/escalate`);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chat-sessions'] });
-    },
-    onError: () => {
-      setIsStreaming(false);
-      setStreamingContent('');
+      queryClient.invalidateQueries({ queryKey: ['chat-session', activeSessionId] });
     },
   });
 
@@ -91,16 +184,13 @@ export function ChatPage() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [sessionDetail?.messages, streamingContent]);
 
-  const handleSend = () => {
-    if (!input.trim() || isStreaming) return;
-    sendMutation.mutate({ message: input, sessionId: activeSessionId ?? undefined });
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   const messages = sessionDetail?.messages ?? [];
+  const currentStatus = sessionDetail?.status;
+  const isEscalated = currentStatus === 'Escalated';
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4">
@@ -108,7 +198,7 @@ export function ChatPage() {
       <div className="w-72 shrink-0 flex flex-col border rounded-lg bg-card">
         <div className="p-3 border-b flex items-center justify-between">
           <h2 className="font-semibold text-sm">Conversations</h2>
-          <Button variant="ghost" size="icon" onClick={() => { setActiveSessionId(null); setInput(''); }}>
+          <Button variant="ghost" size="icon" onClick={() => { setActiveSessionId(null); setInput(''); setStreamingContent(''); setStreamingMeta(null); }}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
@@ -124,6 +214,9 @@ export function ChatPage() {
               <div className="flex items-center gap-2 min-w-0">
                 <MessageSquare className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{s.title}</span>
+                {s.status === 'Escalated' && (
+                  <Badge variant="outline" className="text-[10px] px-1 py-0 text-orange-600 border-orange-300">Escalated</Badge>
+                )}
               </div>
               <Button variant="ghost" size="icon" className="h-6 w-6 opacity-50 hover:opacity-100"
                 onClick={(e) => { e.stopPropagation(); if (confirm('Delete?')) deleteMutation.mutate(s.id); }}>
@@ -204,23 +297,56 @@ export function ChatPage() {
                   </div>
                 </div>
               )}
+              {streamingMeta && !isStreaming && (
+                <div className="flex justify-start">
+                  <div className="text-xs text-muted-foreground px-4">
+                    ⚡ {streamingMeta.totalTokens} tokens · {(streamingMeta.latencyMs / 1000).toFixed(1)}s · {streamingMeta.modelUsed}
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
-            <div className="p-4 border-t">
+            {/* Input + Actions */}
+            <div className="p-4 border-t space-y-2">
+              {activeSessionId && !isEscalated && (
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 text-xs"
+                    onClick={() => { if (confirm('Escalate this conversation to a human agent?')) handleEscalate.mutate(); }}
+                    disabled={handleEscalate.isPending}
+                  >
+                    <ArrowUpCircle className="h-3.5 w-3.5 mr-1" />
+                    Escalate to Human
+                  </Button>
+                </div>
+              )}
+              {isEscalated && (
+                <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 rounded-md px-3 py-2">
+                  <AlertCircle className="h-4 w-4" />
+                  This conversation has been escalated. A human agent will follow up.
+                </div>
+              )}
               <div className="flex gap-2">
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask a question... (Enter to send, Shift+Enter for newline)"
-                  disabled={isStreaming}
+                  placeholder={isEscalated ? "Conversation escalated — start a new chat" : "Ask a question... (Enter to send, Shift+Enter for newline)"}
+                  disabled={isStreaming || isEscalated}
                   className="flex-1"
                 />
-                <Button onClick={handleSend} disabled={!input.trim() || isStreaming}>
-                  <Send className="h-4 w-4" />
-                </Button>
+                {isStreaming ? (
+                  <Button onClick={handleCancel} variant="destructive">
+                    <Square className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button onClick={handleSend} disabled={!input.trim() || isEscalated}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </>

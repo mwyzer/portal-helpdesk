@@ -13,11 +13,15 @@ import { ActionItemsPage } from '@/pages/ActionItemsPage';
 import { DocumentRequestsPage } from '@/pages/DocumentRequestsPage';
 import { DocumentTemplatesPage } from '@/pages/DocumentTemplatesPage';
 import { ChatPage } from '@/pages/ChatPage';
+import { ChatSessionPage } from '@/pages/ChatSessionPage';
+import { ConversationListPage } from '@/pages/ConversationListPage';
 import { KnowledgeBasePage } from '@/pages/KnowledgeBasePage';
+import { KnowledgeDocumentDetailPage } from '@/pages/KnowledgeDocumentDetailPage';
 import { EmployeesPage } from '@/pages/EmployeesPage';
 import { LeaveTypesPage } from '@/pages/LeaveTypesPage';
 import { LeaveRequestsPage } from '@/pages/LeaveRequestsPage';
 import { LeaveApprovalsPage } from '@/pages/LeaveApprovalsPage';
+import { NotificationCenterPage } from '@/pages/NotificationCenterPage';
 
 export default function App() {
   return (
@@ -46,11 +50,15 @@ export default function App() {
         <Route path="documents/requests" element={<DocumentRequestsPage />} />
         <Route path="documents/templates" element={<DocumentTemplatesPage />} />
         <Route path="ai/chat" element={<ChatPage />} />
+        <Route path="ai/chat/:sessionId" element={<ChatSessionPage />} />
+        <Route path="ai/conversations" element={<ConversationListPage />} />
         <Route path="knowledge-base" element={<KnowledgeBasePage />} />
+        <Route path="knowledge-base/:id" element={<KnowledgeDocumentDetailPage />} />
         <Route path="employees" element={<EmployeesPage />} />
         <Route path="leave-types" element={<LeaveTypesPage />} />
         <Route path="leave-requests" element={<LeaveRequestsPage />} />
         <Route path="leave-approvals" element={<LeaveApprovalsPage />} />
+        <Route path="notifications" element={<NotificationCenterPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
