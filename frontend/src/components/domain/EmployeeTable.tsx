@@ -16,10 +16,10 @@ export interface EmployeeTableRow {
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    Active: 'bg-green-100 text-green-800',
-    Inactive: 'bg-gray-100 text-gray-800',
-    Resigned: 'bg-red-100 text-red-800',
-    Terminated: 'bg-orange-100 text-orange-800',
+    Active: 'bg-success/10 text-success',
+    Inactive: 'bg-muted text-muted-foreground',
+    Resigned: 'bg-destructive/10 text-destructive',
+    Terminated: 'bg-warning/10 text-warning',
   };
   return <Badge className={map[status] || ''}>{status}</Badge>;
 };

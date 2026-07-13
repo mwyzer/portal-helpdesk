@@ -152,17 +152,18 @@ export function UsersPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => setEditingUser(user)}>
+                          <Button variant="ghost" size="icon" onClick={() => setEditingUser(user)} aria-label="Edit user">
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => toggleMutation.mutate({ id: user.id, activate: !user.isActive })}
+                            aria-label={user.isActive ? 'Deactivate user' : 'Activate user'}
                           >
                             {user.isActive ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(user.id)}>
+                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(user.id)} aria-label="Delete user">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>

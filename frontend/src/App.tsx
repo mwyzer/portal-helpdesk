@@ -9,6 +9,7 @@ import { UsersPage } from '@/pages/UsersPage';
 import { RolesPage } from '@/pages/RolesPage';
 import { DepartmentsPage } from '@/pages/DepartmentsPage';
 import { MeetingsPage } from '@/pages/MeetingsPage';
+import { MeetingDetailPage } from '@/pages/MeetingDetailPage';
 import { ActionItemsPage } from '@/pages/ActionItemsPage';
 import { DocumentRequestsPage } from '@/pages/DocumentRequestsPage';
 import { DocumentTemplatesPage } from '@/pages/DocumentTemplatesPage';
@@ -23,7 +24,7 @@ import { LeaveRequestsPage } from '@/pages/LeaveRequestsPage';
 import { LeaveApprovalsPage } from '@/pages/LeaveApprovalsPage';
 import { NotificationCenterPage } from '@/pages/NotificationCenterPage';
 
-export default function App() {
+export function App() {
   return (
     <Routes>
       {/* Public */}
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="roles" element={<RolesPage />} />
         <Route path="departments" element={<DepartmentsPage />} />
         <Route path="meetings" element={<MeetingsPage />} />
+        <Route path="meetings/:id" element={<MeetingDetailPage />} />
         <Route path="action-items" element={<ActionItemsPage />} />
         <Route path="documents/requests" element={<DocumentRequestsPage />} />
         <Route path="documents/templates" element={<DocumentTemplatesPage />} />

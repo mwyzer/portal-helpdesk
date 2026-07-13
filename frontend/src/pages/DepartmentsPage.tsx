@@ -111,7 +111,7 @@ export function DepartmentsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => setEditingDept(dept)}>
+                      <Button variant="ghost" size="icon" onClick={() => setEditingDept(dept)} aria-label="Edit department">
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TableCell>

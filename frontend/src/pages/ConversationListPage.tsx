@@ -104,7 +104,7 @@ export function ConversationListPage() {
                     <TableCell className="font-medium text-sm">{s.title}</TableCell>
                     <TableCell>
                       {s.status === 'Escalated' ? (
-                        <Badge className="bg-orange-100 text-orange-700 flex items-center gap-1 w-fit">
+                        <Badge className="bg-warning/10 text-warning flex items-center gap-1 w-fit">
                           <AlertCircle className="h-3 w-3" /> Escalated
                         </Badge>
                       ) : (
@@ -117,11 +117,11 @@ export function ConversationListPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/ai/chat/${s.id}`)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/ai/chat/${s.id}`)} aria-label="Open conversation">
                           <ExternalLink className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8"
-                          onClick={() => { if (confirm('Delete this conversation?')) deleteMutation.mutate(s.id); }}>
+                          onClick={() => { if (confirm('Delete this conversation?')) deleteMutation.mutate(s.id); }} aria-label="Delete conversation">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>

@@ -124,8 +124,8 @@ export function DocumentTemplatesPage() {
                             contentTemplate: t.contentTemplate, variables: t.variables,
                           });
                           setEditingTemplate(t);
-                        }}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => { if (confirm('Delete this template?')) deleteMutation.mutate(t.id); }}>
+                        }} aria-label="Edit template"><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => { if (confirm('Delete this template?')) deleteMutation.mutate(t.id); }} aria-label="Delete template">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>

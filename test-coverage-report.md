@@ -1,7 +1,7 @@
 # AIHelpdesk — Test Coverage Report
 
 **Generated:** 2026-07-14  
-**Total Tests:** 112  
+**Total Tests:** 162  
 **Overall Status:** ✅ All Passing
 
 ---
@@ -12,12 +12,12 @@
 |-------|-------------------|--------------------|--------------------------|-------|
 | Phase 1 — Foundation MVP | 22 | 13 | 0 | **35** |
 | Phase 2 — HR Administration | 47 | 4 | 26 | **77** |
-| Phase 3 — Secretary Module | 0 | 0 | 0 | **0** |
+| Phase 3 — Secretary Module | 44 | 6 | 0 | **50** |
 | Phase 4 — AI Helpdesk Chat | 0 | 0 | 0 | **0** |
 | Phase 5 — Ticketing | 0 | 0 | 0 | **0** |
 | Phase 6 — Recruitment | 0 | 0 | 0 | **0** |
 | Phase 7 — Hardening & Deployment | 0 | 0 | 0 | **0** |
-| **TOTAL** | **69** | **17** | **26** | **112** |
+| **TOTAL** | **113** | **23** | **26** | **162** |
 
 ---
 
@@ -100,11 +100,47 @@
 
 ---
 
-## Phase 3–7 — Not Yet Tested
+## Phase 3 — Secretary Module
+
+### Backend Unit Tests (44 tests)
+
+| Test Class | Tests | File |
+|------------|-------|------|
+| `MeetingServiceTests` | 15 | `tests/AIHelpdesk.Tests/Services/MeetingServiceTests.cs` |
+| `ActionItemServiceTests` | 12 | `tests/AIHelpdesk.Tests/Services/ActionItemServiceTests.cs` |
+| `DocumentServiceTests` | 17 | `tests/AIHelpdesk.Tests/Services/DocumentServiceTests.cs` |
+
+**Covered:**
+- Meeting CRUD, pagination, date-range & status filtering, soft delete
+- Meeting participants: add/remove, role & attendance tracking
+- Meeting notes: add, update, delete
+- Action items: create, update, complete (with assignee guard), cancel, overdue detection
+- Document templates: CRUD, category filtering, activate/deactivate
+- Document requests: full workflow (Draft → AI Draft Ready → Review → Approve → Generate Final → Download)
+- Document workflow state guards (invalid transitions throw)
+- Letter number auto-generation (format: `{counter}/{code}/MGR/{year}`)
+
+### Frontend E2E Smoke Tests (6 tests)
+
+| # | Page | Screenshot |
+|---|------|------------|
+| 18 | Meetings List | `phase3-01-meetings.png` |
+| 19 | Meeting Detail | `phase3-02-meeting-detail.png` |
+| 20 | Action Items | `phase3-03-action-items.png` |
+| 21 | Document Requests | `phase3-04-document-requests.png` |
+| 22 | Document Templates | `phase3-05-document-templates.png` |
+| 23 | Dashboard (Secretary) | `phase3-06-dashboard.png` |
+
+**Type:** Navigate → Screenshot → Assert heading
+
+**New frontend pages:** `MeetingDetailPage.tsx` (4 tabs: Info, Participants, Notes, Action Items)
+
+---
+
+## Phase 4–7 — Not Yet Tested
 
 | Phase | Status |
 |-------|--------|
-| Phase 3 — Secretary Module | ❌ No tests |
 | Phase 4 — AI Helpdesk Chat | ❌ No tests |
 | Phase 5 — Ticketing | ❌ No tests |
 | Phase 6 — Recruitment | ❌ No tests |
@@ -118,12 +154,15 @@
 tests/
 ├── AIHelpdesk.Tests/
 │   ├── Services/
+│   │   ├── ActionItemServiceTests.cs      (Phase 3 · 12 tests)
 │   │   ├── DepartmentServiceTests.cs     (Phase 1 · 4 tests)
+│   │   ├── DocumentServiceTests.cs        (Phase 3 · 17 tests)
 │   │   ├── EmployeeServiceTests.cs        (Phase 2 · 13 tests)
-│   │   ├── LeaveBalanceServiceTests.cs    (Phase 2 · 4 tests) — fix: actually 6
+│   │   ├── LeaveBalanceServiceTests.cs    (Phase 2 · 6 tests)
 │   │   ├── LeaveRequestServiceTests.cs    (Phase 2 · 16 tests)
 │   │   ├── LeaveTypeServiceTests.cs       (Phase 2 · 6 tests)
-│   │   ├── NotificationServiceTests.cs   (Phase 2 · 7 tests) — fix: actually 8
+│   │   ├── MeetingServiceTests.cs         (Phase 3 · 15 tests)
+│   │   ├── NotificationServiceTests.cs   (Phase 2 · 7 tests)
 │   │   ├── RoleServiceTests.cs           (Phase 1 · 4 tests)
 │   │   └── UserServiceTests.cs           (Phase 1 · 5 tests)
 │   ├── Domain/
@@ -131,8 +170,8 @@ tests/
 │   │   └── RefreshTokenTests.cs          (Phase 1 · 3 tests)
 │   ├── Contracts/
 │   │   └── AuthContractsTests.cs          (Phase 1 · 3 tests)
-│   ├── TestDataFactory.cs                (Phase 1+2 factories)
-│   └── UnitTest1.cs                       (Phase 1 · 1 test)
+│   ├── TestDataFactory.cs                (Phase 1+2+3 factories)
+│   └── UnitTest1.cs                       (Phase 1 · 1 test — placeholder)
 │
 └── frontend/
     └── tests/e2e/
@@ -175,9 +214,10 @@ npx playwright test tests/e2e/phase-2/
 
 | Priority | Action |
 |----------|--------|
-| 🔴 High | Write backend unit tests for Phase 3 services (Meeting, Document, KnowledgeBase) |
+| � Done | ~~Write backend unit tests for Phase 3 services~~ ✅ 44 tests written |
+| 🟢 Done | ~~E2E smoke tests for Phase 3 pages~~ ✅ 6 tests written |
 | 🔴 High | Write backend unit tests for Phase 4 AI Chat services |
+| 🟡 Medium | Add E2E interaction tests for Phase 3 pages (mirror Phase 2 pattern) |
 | 🟡 Medium | Write backend unit tests for Phase 5 Ticket & Phase 6 Recruitment |
-| 🟡 Medium | Add E2E interaction tests for Phase 3–6 pages (mirror Phase 2 pattern) |
 | 🟢 Low | Add Phase 7 k6 load tests, security scan config |
 | 🟢 Low | Remove `UnitTest1.cs` placeholder test |

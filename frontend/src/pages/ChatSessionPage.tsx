@@ -146,14 +146,14 @@ export function ChatSessionPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/ai/chat')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/ai/chat')} aria-label="Back to chat">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{sessionDetail?.title ?? 'Loading...'}</h1>
           <p className="text-sm text-muted-foreground">
             {sessionDetail?.messages.length ?? 0} messages
-            {isEscalated && <Badge className="ml-2 bg-orange-100 text-orange-700">Escalated</Badge>}
+            {isEscalated && <Badge className="ml-2 bg-warning/10 text-warning">Escalated</Badge>}
           </p>
         </div>
       </div>
@@ -186,11 +186,11 @@ export function ChatSessionPage() {
                 {m.role === 'assistant' && (
                   <div className="flex gap-1 mt-2 pt-1 border-t border-border/50">
                     <Button variant="ghost" size="icon" className="h-6 w-6"
-                      onClick={() => feedbackMutation.mutate({ messageId: m.id, score: 1 })}>
+                      onClick={() => feedbackMutation.mutate({ messageId: m.id, score: 1 })} aria-label="Helpful">
                       <ThumbsUp className="h-3 w-3" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-6 w-6"
-                      onClick={() => feedbackMutation.mutate({ messageId: m.id, score: 0 })}>
+                      onClick={() => feedbackMutation.mutate({ messageId: m.id, score: 0 })} aria-label="Not helpful">
                       <ThumbsDown className="h-3 w-3" />
                     </Button>
                   </div>
@@ -230,7 +230,7 @@ export function ChatSessionPage() {
             <div className="flex justify-end">
               <Button
                 variant="ghost" size="sm"
-                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 text-xs"
+                className="text-warning hover:text-warning hover:bg-warning/5 text-xs"
                 onClick={() => { if (confirm('Escalate to human agent?')) escalateMutation.mutate(); }}
                 disabled={escalateMutation.isPending}
               >
@@ -239,7 +239,7 @@ export function ChatSessionPage() {
             </div>
           )}
           {isEscalated && (
-            <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 rounded-md px-3 py-2">
+            <div className="flex items-center gap-2 text-sm text-warning bg-warning/5 rounded-md px-3 py-2">
               <AlertCircle className="h-4 w-4" /> This conversation has been escalated.
             </div>
           )}

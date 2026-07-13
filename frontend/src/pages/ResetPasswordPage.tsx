@@ -47,7 +47,7 @@ export function ResetPasswordPage() {
         <CardContent>
           {success ? (
             <div className="text-center space-y-4">
-              <CheckCircle className="mx-auto h-12 w-12 text-emerald-500" />
+              <CheckCircle className="mx-auto h-12 w-12 text-success" />
               <p className="text-sm text-muted-foreground">Password reset successful!</p>
               <Button onClick={() => navigate('/login')} className="w-full">Sign In</Button>
             </div>

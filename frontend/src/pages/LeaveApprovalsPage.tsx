@@ -8,7 +8,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { ApprovalTimeline, type ApprovalStage } from '@/components/ApprovalTimeline';
+import { ApprovalTimeline, type ApprovalStage } from '@/components/domain/ApprovalTimeline';
 import { RefreshCw, CheckCircle, XCircle, Eye } from 'lucide-react';
 
 interface LeaveRequestResponse {
@@ -38,13 +38,13 @@ interface LeaveRequestListResponse {
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    Draft: 'bg-gray-100 text-gray-800',
-    Submitted: 'bg-blue-100 text-blue-800',
-    WaitingForManager: 'bg-yellow-100 text-yellow-800',
-    WaitingForHR: 'bg-purple-100 text-purple-800',
-    Approved: 'bg-green-100 text-green-800',
-    Rejected: 'bg-red-100 text-red-800',
-    Cancelled: 'bg-orange-100 text-orange-800',
+    Draft: 'bg-muted text-muted-foreground',
+    Submitted: 'bg-info/10 text-info',
+    WaitingForManager: 'bg-warning/10 text-warning',
+    WaitingForHR: 'bg-primary/10 text-primary',
+    Approved: 'bg-success/10 text-success',
+    Rejected: 'bg-destructive/10 text-destructive',
+    Cancelled: 'bg-warning/10 text-warning',
   };
   return <Badge className={map[status] || ''}>{status}</Badge>;
 };
@@ -128,7 +128,7 @@ export function LeaveApprovalsPage() {
                     <TableCell>{statusBadge(lr.status)}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => setDetail(lr)} title="View detail">
+                        <Button variant="ghost" size="icon" onClick={() => setDetail(lr)} title="View detail" aria-label="View detail">
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
@@ -138,15 +138,17 @@ export function LeaveApprovalsPage() {
                             if (confirm('Approve this request?')) approveMutation.mutate(lr.id);
                           }}
                           title="Approve"
+                          aria-label="Approve request"
                           disabled={approveMutation.isPending}
                         >
-                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <CheckCircle className="h-4 w-4 text-success" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => setRejecting(lr.id)}
                           title="Reject"
+                          aria-label="Reject request"
                         >
                           <XCircle className="h-4 w-4 text-destructive" />
                         </Button>

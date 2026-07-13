@@ -17,4 +17,5 @@ public interface IMeetingService
     Task<MeetingNoteResponse> UpdateNoteAsync(Guid meetingId, Guid noteId, UpdateMeetingNoteRequest request);
     Task DeleteNoteAsync(Guid meetingId, Guid noteId);
     Task<IList<MeetingNoteResponse>> GetNotesAsync(Guid meetingId);
+    Task<MeetingNoteResponse> GenerateSummaryAsync(Guid meetingId, Guid userId);
 }

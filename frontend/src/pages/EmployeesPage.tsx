@@ -13,7 +13,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { EmployeeTable, type EmployeeTableRow } from '@/components/EmployeeTable';
+import { EmployeeTable, type EmployeeTableRow } from '@/components/domain/EmployeeTable';
 import { Plus, Search, RefreshCw, Pencil, Trash2, UserPlus, Upload, Download } from 'lucide-react';
 
 interface EmployeeResponse {
@@ -68,10 +68,10 @@ type EmployeeForm = z.infer<typeof employeeSchema>;
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    Active: 'bg-green-100 text-green-800',
-    Inactive: 'bg-gray-100 text-gray-800',
-    Resigned: 'bg-red-100 text-red-800',
-    Terminated: 'bg-orange-100 text-orange-800',
+    Active: 'bg-success/10 text-success',
+    Inactive: 'bg-muted text-muted-foreground',
+    Resigned: 'bg-destructive/10 text-destructive',
+    Terminated: 'bg-warning/10 text-warning',
   };
   return <Badge className={map[status] || ''}>{status}</Badge>;
 };
@@ -397,7 +397,7 @@ export function EmployeesPage() {
             {importResult && (
               <div className="rounded-lg border p-4 space-y-2">
                 <div className="flex gap-4 text-sm">
-                  <span className="text-green-600">✓ {importResult.successCount} imported</span>
+                  <span className="text-success">✓ {importResult.successCount} imported</span>
                   {importResult.errorCount > 0 && (
                     <span className="text-red-600">✗ {importResult.errorCount} errors</span>
                   )}

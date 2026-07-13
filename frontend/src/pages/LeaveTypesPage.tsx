@@ -174,15 +174,15 @@ export function LeaveTypesPage() {
                     <TableCell className="font-mono">{lt.code}</TableCell>
                     <TableCell>{lt.daysPerYear}</TableCell>
                     <TableCell>{lt.isPaid ? <Badge variant="outline">Paid</Badge> : <Badge variant="secondary">Unpaid</Badge>}</TableCell>
-                    <TableCell>{lt.isActive ? <Badge className="bg-green-100 text-green-800">Active</Badge> : <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>}</TableCell>
+                    <TableCell>{lt.isActive ? <Badge className="bg-success/10 text-success">Active</Badge> : <Badge className="bg-muted text-muted-foreground">Inactive</Badge>}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(lt)}>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(lt)} aria-label="Edit leave type">
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => {
                           if (confirm('Delete this leave type?')) deleteMutation.mutate(lt.id);
-                        }}>
+                        }} aria-label="Delete leave type">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>

@@ -26,10 +26,10 @@ interface KnowledgeDocument {
 }
 
 const statusColors: Record<string, string> = {
-  Pending: 'bg-gray-100 text-gray-700',
-  Indexing: 'bg-blue-100 text-blue-700',
-  Ready: 'bg-green-100 text-green-700',
-  Failed: 'bg-red-100 text-red-700',
+  Pending: 'bg-muted text-muted-foreground',
+  Indexing: 'bg-info/10 text-info',
+  Ready: 'bg-success/10 text-success',
+  Failed: 'bg-destructive/10 text-destructive',
 };
 
 const fileTypeIcons: Record<string, string> = {
@@ -172,7 +172,7 @@ export function KnowledgeBasePage() {
                             <RefreshCw className="h-4 w-4" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => { if (confirm('Delete?')) deleteMutation.mutate(d.id); }}>
+                        <Button variant="ghost" size="icon" onClick={() => { if (confirm('Delete?')) deleteMutation.mutate(d.id); }} aria-label="Delete document">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>

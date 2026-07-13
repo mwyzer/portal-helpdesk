@@ -148,12 +148,19 @@ npm run test:e2e:ui
 |-------|-----------------|-----------|-----------------|--------|
 | Phase 1 — Foundation MVP | 22 | 13 | — | ✅ All passing |
 | Phase 2 — HR Administration | 47 | 4 | 26 | ✅ All passing |
-| Phase 3–7 | — | — | — | 📋 Not yet tested |
-| **Total** | **69** | **17** | **26** | — |
+| Phase 3 — Secretary Module | 44 | 6 | — | ✅ All passing (4 partial gaps) |
+| Phase 4–7 | — | — | — | 📋 Not yet tested |
+| **Total** | **113** | **23** | **26** | — |
 
-**Backend (69 tests):** 8 service classes, 2 domain, 1 contract — xUnit + Moq + FluentAssertions + Bogus  
-**E2E (43 tests):** 17 smoke (screenshot + heading) across all pages + 26 interaction (dialog, form, search, CRUD) for Phase 2  
-**Grand total:** 112 tests
+**Backend (113 tests):** 11 service classes, 2 domain, 1 contract — xUnit + Moq + FluentAssertions + Bogus  
+**Phase 3 Code Coverage (coverlet):**
+- Services: MeetingService 93.6%, ActionItemService 97.8%, DocumentService 93.8%
+- Domain entities: Meeting, MeetingNote, MeetingParticipant, ActionItem, DocumentTemplate, DocumentRequest, GeneratedDocument — **all 100%**
+- Contracts: 21 request/response DTOs — 8 at 100%, remainder partial (no integration tests)
+- Controllers: 37 action methods — 0% (integration tests planned but not yet written)
+- 3 uncovered service methods: `GetNotesAsync`, `GenerateSummaryAsync`, `GetTeamActionItemsAsync`, `DownloadDocumentAsync`  
+**E2E (49 tests):** 23 smoke (screenshot + heading) across all pages + 26 interaction (dialog, form, search, CRUD) for Phase 2  
+**Grand total:** 162 tests
 
 ## API Endpoints (Phase 1 — Foundation MVP)
 
@@ -200,6 +207,111 @@ npm run test:e2e:ui
 | POST | `/api/positions` | Create position |
 | PUT | `/api/positions/{id}` | Update position |
 
+## API Endpoints (Phase 2 — HR Administration)
+
+### Employees
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/employees` | List employees (paginated, filterable by search, department, status) |
+| GET | `/api/employees/{id}` | Get employee detail |
+| POST | `/api/employees` | Create employee |
+| PUT | `/api/employees/{id}` | Update employee |
+| DELETE | `/api/employees/{id}` | Soft-delete employee |
+| POST | `/api/employees/import` | Import employees from Excel |
+| GET | `/api/employees/export` | Export employees to Excel |
+
+### Leave Types
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/leave-types` | List leave types |
+| GET | `/api/leave-types/{id}` | Get leave type detail |
+| POST | `/api/leave-types` | Create leave type |
+| PUT | `/api/leave-types/{id}` | Update leave type |
+| DELETE | `/api/leave-types/{id}` | Soft-delete leave type |
+
+### Leave Requests
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/leave-requests` | List leave requests (paginated, filterable) |
+| GET | `/api/leave-requests/{id}` | Get leave request detail with approval history |
+| POST | `/api/leave-requests` | Create leave request (Draft) |
+| PUT | `/api/leave-requests/{id}` | Update draft leave request |
+| POST | `/api/leave-requests/{id}/submit` | Submit for approval |
+| POST | `/api/leave-requests/{id}/approve` | Approve leave request |
+| POST | `/api/leave-requests/{id}/reject` | Reject leave request |
+| POST | `/api/leave-requests/{id}/cancel` | Cancel leave request |
+
+### Leave Approvals
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/leave-approvals` | List pending approvals for current user |
+| POST | `/api/leave-approvals/{id}/approve` | Approve a leave approval step |
+| POST | `/api/leave-approvals/{id}/reject` | Reject a leave approval step |
+
+### Notifications
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/notifications` | List notifications for current user |
+| GET | `/api/notifications/unread-count` | Get unread count |
+| PUT | `/api/notifications/{id}/read` | Mark notification as read |
+| PUT | `/api/notifications/read-all` | Mark all as read |
+| DELETE | `/api/notifications/{id}` | Delete notification |
+
+## API Endpoints (Phase 3 — Secretary Module)
+
+### Meetings
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/meetings` | List meetings (paginated, filterable by date range, status) |
+| GET | `/api/meetings/{id}` | Get meeting detail with participants, notes & action items |
+| POST | `/api/meetings` | Create meeting |
+| PUT | `/api/meetings/{id}` | Update meeting |
+| DELETE | `/api/meetings/{id}` | Soft-delete meeting |
+| GET | `/api/meetings/today` | Get today's meetings for current user |
+| GET | `/api/meetings/upcoming` | Get upcoming meetings (next 7 days) |
+| POST | `/api/meetings/{id}/participants` | Add participant |
+| DELETE | `/api/meetings/{id}/participants/{participantId}` | Remove participant |
+| POST | `/api/meetings/{id}/notes` | Add meeting note |
+| PUT | `/api/meetings/{id}/notes/{noteId}` | Update meeting note |
+| DELETE | `/api/meetings/{id}/notes/{noteId}` | Delete meeting note |
+| GET | `/api/meetings/{id}/notes` | Get all notes for a meeting |
+| POST | `/api/meetings/{id}/generate-summary` | Generate AI-powered meeting summary from notes |
+
+### Action Items
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/action-items` | List my action items (paginated, filterable by status) |
+| GET | `/api/action-items/{id}` | Get action item detail |
+| POST | `/api/action-items` | Create action item |
+| PUT | `/api/action-items/{id}` | Update action item |
+| POST | `/api/action-items/{id}/complete` | Mark action item as completed |
+| POST | `/api/action-items/{id}/cancel` | Cancel action item |
+| GET | `/api/action-items/overdue` | Get overdue action items |
+| GET | `/api/action-items/team` | Get team action items (manager) |
+
+### Document Templates
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/document-templates` | List templates (filterable by category) |
+| GET | `/api/document-templates/{id}` | Get template detail |
+| POST | `/api/document-templates` | Create template |
+| PUT | `/api/document-templates/{id}` | Update template |
+| DELETE | `/api/document-templates/{id}` | Soft-delete template |
+
+### Document Requests
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/document-requests` | List requests (paginated, filterable by status) |
+| GET | `/api/document-requests/{id}` | Get request detail with generated documents |
+| POST | `/api/document-requests` | Create document request (Draft) |
+| PUT | `/api/document-requests/{id}` | Update draft content |
+| POST | `/api/document-requests/{id}/generate-draft` | Generate AI draft from template |
+| POST | `/api/document-requests/{id}/submit-for-review` | Submit for review |
+| POST | `/api/document-requests/{id}/approve` | Approve document |
+| POST | `/api/document-requests/{id}/reject` | Reject with reason |
+| POST | `/api/document-requests/{id}/generate-final` | Generate final document with letter number |
+| GET | `/api/document-requests/{id}/download` | Download generated document |
+
 ## User Roles
 
 | Role | Description |
@@ -216,7 +328,7 @@ npm run test:e2e:ui
 |-------|-------|--------|
 | **Phase 1** | Foundation MVP — Auth, users, roles, departments, base layout | ✅ Done |
 | **Phase 2** | HR Administration — Employee data, leave management, notifications | ✅ Done |
-| **Phase 3** | Secretary Module — Meetings, agendas, documents, action items | 📋 Planned |
+| **Phase 3** | Secretary Module — Meetings, agendas, documents, action items | ✅ Done |
 | **Phase 4** | AI Helpdesk Chat — AI-powered RAG chat & knowledge base | 📋 Planned |
 | **Phase 5** | Ticketing System — Request tracking, SLA, agent workflows | 📋 Planned |
 | **Phase 6** | Recruitment — Job postings, candidate pipeline, AI CV parsing | 📋 Planned |
@@ -271,11 +383,15 @@ Detailed documentation for each phase is available in the [`documentation/`](doc
 | # | Deliverable | Description |
 |---|-------------|-------------|
 | 1 | Meeting & agenda management | Create, schedule, update meetings with participants |
-| 2 | Meeting notes & minutes | Record notes, AI-generated meeting summaries |
+| 2 | Meeting notes & minutes | Record notes, AI-generated meeting summaries (✅ backend + frontend done) |
 | 3 | Action items | Track follow-ups with assignee, priority, and deadline |
 | 4 | Document/surat request workflow | Request → AI draft → Review → Approve → Generate PDF/DOCX |
 | 5 | Document templates | Manage reusable letter templates with variable fields |
 | 6 | Secretary dashboard | Today's agenda, pending reviews, overdue action items |
+| 7 | AI summary button | One-click AI meeting summary generation from notes (Sparkles button) |
+| 8 | Participant selector | Searchable multi-select employee picker for meeting participants |
+
+**New frontend components:** `AISummaryButton`, `ParticipantSelector` (reusable)
 
 **New tables:** `Meetings`, `MeetingParticipants`, `MeetingNotes`, `ActionItems`, `DocumentTemplates`, `DocumentRequests`, `GeneratedDocuments`
 

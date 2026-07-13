@@ -1,10 +1,11 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
-import { NotificationBell } from '@/components/NotificationBell';
-import { ToastContainer } from '@/components/ToastContainer';
+import { NotificationBell } from '@/components/feedback/NotificationBell';
+import { ToastContainer } from '@/components/feedback/ToastContainer';
 import { useSignalR } from '@/lib/useSignalR';
 import { useToastStore } from '@/lib/useToast';
+import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
   Users,
@@ -82,16 +83,17 @@ export function AppLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-card border-r transition-transform lg:static lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-card border-r transition-transform lg:static lg:translate-x-0',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
       >
         <div className="flex h-16 items-center gap-2 border-b px-6">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <span className="text-sm font-bold text-primary-foreground">AI</span>
           </div>
           <span className="font-semibold">AI Helpdesk</span>
-          <Button variant="ghost" size="icon" className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
+          <Button variant="ghost" size="icon" className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -103,11 +105,12 @@ export function AppLayout() {
               to={item.to}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   isActive
                     ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                }`
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                )
               }
             >
               <item.icon className="h-4 w-4" />
@@ -137,7 +140,7 @@ export function AppLayout() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Topbar */}
         <header className="flex h-16 items-center gap-4 border-b bg-card px-6">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open sidebar">
             <Menu className="h-5 w-5" />
           </Button>
 

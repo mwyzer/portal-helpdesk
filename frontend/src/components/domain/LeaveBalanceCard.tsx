@@ -17,7 +17,7 @@ export function LeaveBalanceCard({
 }: LeaveBalanceCardProps) {
   const pct = totalDays > 0 ? (remainingDays / totalDays) * 100 : 0;
   const barColor =
-    pct >= 50 ? 'bg-green-500' : pct >= 25 ? 'bg-yellow-500' : 'bg-red-500';
+    pct >= 50 ? 'bg-success' : pct >= 25 ? 'bg-warning' : 'bg-destructive';
 
   return (
     <Card>

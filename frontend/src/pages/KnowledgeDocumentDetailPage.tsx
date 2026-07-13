@@ -36,10 +36,10 @@ interface DocumentDetail {
 }
 
 const statusColors: Record<string, string> = {
-  Pending: 'bg-gray-100 text-gray-700',
-  Indexing: 'bg-blue-100 text-blue-700',
-  Ready: 'bg-green-100 text-green-700',
-  Failed: 'bg-red-100 text-red-700',
+  Pending: 'bg-muted text-muted-foreground',
+  Indexing: 'bg-info/10 text-info',
+  Ready: 'bg-success/10 text-success',
+  Failed: 'bg-destructive/10 text-destructive',
 };
 
 function formatSize(bytes: number): string {
@@ -78,7 +78,7 @@ export function KnowledgeDocumentDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/knowledge-base')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/knowledge-base')} aria-label="Back to knowledge base">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -89,7 +89,7 @@ export function KnowledgeDocumentDetailPage() {
 
       {/* Status Banner */}
       {doc.status === 'Failed' && doc.errorMessage && (
-        <div className="flex items-center gap-2 p-4 rounded-lg bg-red-50 text-red-700 border border-red-200">
+        <div className="flex items-center gap-2 p-4 rounded-lg bg-destructive/5 text-destructive border border-destructive/30">
           <AlertTriangle className="h-5 w-5" />
           <div>
             <p className="font-medium">Indexing Failed</p>

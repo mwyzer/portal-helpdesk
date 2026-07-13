@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { LeaveBalanceCard } from '@/components/LeaveBalanceCard';
+import { LeaveBalanceCard } from '@/components/domain/LeaveBalanceCard';
 import {
   Users,
   Clock,
@@ -18,6 +18,10 @@ import {
   ArrowRight,
   TrendingUp,
   Bell,
+  Calendar,
+  FileText,
+  ClipboardList,
+  Clock3,
 } from 'lucide-react';
 import {
   BarChart,
@@ -65,19 +69,26 @@ interface LeaveBalanceResponse {
 
 // ── Helpers ────────────────────────────────────────
 
-const PIE_COLORS = ['#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'];
+const PIE_COLORS = [
+  'hsl(var(--success))',
+  'hsl(var(--destructive))',
+  'hsl(var(--warning))',
+  'hsl(var(--primary))',
+  'hsl(var(--info))',
+  'hsl(var(--accent))',
+];
 
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
-    Approved: 'bg-green-100 text-green-800',
-    Rejected: 'bg-red-100 text-red-800',
-    Submitted: 'bg-blue-100 text-blue-800',
-    WaitingForManager: 'bg-yellow-100 text-yellow-800',
-    WaitingForHR: 'bg-purple-100 text-purple-800',
-    Draft: 'bg-gray-100 text-gray-800',
-    Cancelled: 'bg-orange-100 text-orange-800',
+    Approved: 'bg-success/10 text-success',
+    Rejected: 'bg-destructive/10 text-destructive',
+    Submitted: 'bg-info/10 text-info',
+    WaitingForManager: 'bg-warning/10 text-warning',
+    WaitingForHR: 'bg-primary/10 text-primary',
+    Draft: 'bg-muted text-muted-foreground',
+    Cancelled: 'bg-warning/10 text-warning',
   };
-  return map[status] || 'bg-gray-100 text-gray-800';
+  return map[status] || 'bg-muted text-muted-foreground';
 };
 
 // ── Component ──────────────────────────────────────
@@ -88,6 +99,7 @@ export function DashboardPage() {
   const isHRD = user?.roles?.includes('HRD') || user?.roles?.includes('SuperAdmin');
   const isManager = user?.roles?.includes('Manager');
   const isAdmin = isHRD || isManager;
+  const isSecretary = user?.roles?.includes('Secretary') || user?.roles?.includes('SuperAdmin') || user?.roles?.includes('Manager');
 
   const { data: employeesData } = useQuery<EmployeeListResponse>({
     queryKey: ['employees', 'dashboard'],
@@ -124,6 +136,31 @@ export function DashboardPage() {
     queryFn: () => api.get('/notifications/unread-count').then((r) => r.data),
   });
 
+  // Secretary dashboard queries
+  const { data: todayMeetings } = useQuery<{ id: string }[]>({
+    queryKey: ['meetings', 'today'],
+    queryFn: () => api.get('/meetings/today').then((r) => r.data),
+    enabled: isSecretary,
+  });
+
+  const { data: upcomingMeetings } = useQuery<{ id: string; title: string; date: string; startTime: string }[]>({
+    queryKey: ['meetings', 'upcoming'],
+    queryFn: () => api.get('/meetings/upcoming').then((r) => r.data),
+    enabled: isSecretary,
+  });
+
+  const { data: overdueItems } = useQuery<{ id: string }[]>({
+    queryKey: ['action-items', 'overdue'],
+    queryFn: () => api.get('/action-items/overdue').then((r) => r.data),
+    enabled: isSecretary,
+  });
+
+  const { data: docReviewData } = useQuery<{ items: { id: string }[]; totalCount: number }>({
+    queryKey: ['document-requests', 'review'],
+    queryFn: () => api.get('/document-requests', { params: { pageSize: 1, status: 'Review' } }).then((r) => r.data),
+    enabled: isSecretary,
+  });
+
   const statusChart = useMemo(() => {
     if (!allLeaveData?.items) return [];
     const counts: Record<string, number> = {};
@@ -157,7 +194,7 @@ export function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-              <Users className="h-4 w-4 text-blue-600" />
+              <Users className="h-4 w-4 text-info" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{employeesData?.totalCount ?? '—'}</div>
@@ -166,7 +203,7 @@ export function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-              <Clock className="h-4 w-4 text-amber-600" />
+              <Clock className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{pendingData?.totalCount ?? '—'}</div>
@@ -175,7 +212,7 @@ export function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Approved This Month</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -189,11 +226,69 @@ export function DashboardPage() {
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Needs Your Action</CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertCircle className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{pendingData?.totalCount ?? '—'}</div>
               <p className="text-xs text-muted-foreground mt-1">Click to review →</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Secretary Dashboard Cards */}
+      {isSecretary && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => navigate('/meetings')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today's Meetings</CardTitle>
+              <Calendar className="h-4 w-4 text-info" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{todayMeetings?.length ?? '—'}</div>
+              <p className="text-xs text-muted-foreground mt-1">View agenda →</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => navigate('/documents/requests')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Document Reviews</CardTitle>
+              <FileText className="h-4 w-4 text-warning" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{docReviewData?.totalCount ?? '—'}</div>
+              <p className="text-xs text-muted-foreground mt-1">Review now →</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => navigate('/action-items')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Overdue Action Items</CardTitle>
+              <ClipboardList className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{overdueItems?.length ?? '—'}</div>
+              <p className="text-xs text-muted-foreground mt-1">Requires attention →</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => navigate('/meetings')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Upcoming (7 Days)</CardTitle>
+              <Clock3 className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{upcomingMeetings?.length ?? '—'}</div>
+              <p className="text-xs text-muted-foreground mt-1">View schedule →</p>
             </CardContent>
           </Card>
         </div>
@@ -258,7 +353,7 @@ export function DashboardPage() {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

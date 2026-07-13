@@ -44,10 +44,10 @@ const meetingSchema = z.object({
 type MeetingForm = z.infer<typeof meetingSchema>;
 
 const statusColors: Record<string, string> = {
-  Scheduled: 'bg-blue-100 text-blue-800',
-  InProgress: 'bg-green-100 text-green-800',
-  Completed: 'bg-gray-100 text-gray-800',
-  Cancelled: 'bg-red-100 text-red-800',
+  Scheduled: 'bg-info/10 text-info',
+  InProgress: 'bg-success/10 text-success',
+  Completed: 'bg-muted text-muted-foreground',
+  Cancelled: 'bg-destructive/10 text-destructive',
 };
 
 function formatTime(t: string) {
@@ -170,8 +170,8 @@ export function MeetingsPage() {
                             description: m.description || '',
                           });
                           setEditingMeeting(m);
-                        }}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => { if (confirm('Delete this meeting?')) deleteMutation.mutate(m.id); }}>
+                        }} aria-label="Edit meeting"><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => { if (confirm('Delete this meeting?')) deleteMutation.mutate(m.id); }} aria-label="Delete meeting">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>

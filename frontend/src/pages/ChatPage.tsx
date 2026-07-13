@@ -198,7 +198,7 @@ export function ChatPage() {
       <div className="w-72 shrink-0 flex flex-col border rounded-lg bg-card">
         <div className="p-3 border-b flex items-center justify-between">
           <h2 className="font-semibold text-sm">Conversations</h2>
-          <Button variant="ghost" size="icon" onClick={() => { setActiveSessionId(null); setInput(''); setStreamingContent(''); setStreamingMeta(null); }}>
+          <Button variant="ghost" size="icon" onClick={() => { setActiveSessionId(null); setInput(''); setStreamingContent(''); setStreamingMeta(null); }} aria-label="New chat">
             <Plus className="h-4 w-4" />
           </Button>
         </div>
@@ -215,11 +215,11 @@ export function ChatPage() {
                 <MessageSquare className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{s.title}</span>
                 {s.status === 'Escalated' && (
-                  <Badge variant="outline" className="text-[10px] px-1 py-0 text-orange-600 border-orange-300">Escalated</Badge>
+                  <Badge variant="outline" className="text-[10px] px-1 py-0 text-warning border-warning/40">Escalated</Badge>
                 )}
               </div>
               <Button variant="ghost" size="icon" className="h-6 w-6 opacity-50 hover:opacity-100"
-                onClick={(e) => { e.stopPropagation(); if (confirm('Delete?')) deleteMutation.mutate(s.id); }}>
+                onClick={(e) => { e.stopPropagation(); if (confirm('Delete?')) deleteMutation.mutate(s.id); }} aria-label="Delete conversation">
                 <Trash2 className="h-3 w-3" />
               </Button>
             </div>
@@ -268,11 +268,11 @@ export function ChatPage() {
                     {m.role === 'assistant' && (
                       <div className="flex gap-1 mt-2 pt-1 border-t border-border/50">
                         <Button variant="ghost" size="icon" className="h-6 w-6"
-                          onClick={() => feedbackMutation.mutate({ messageId: m.id, score: 1 })}>
+                          onClick={() => feedbackMutation.mutate({ messageId: m.id, score: 1 })} aria-label="Helpful">
                           <ThumbsUp className="h-3 w-3" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-6 w-6"
-                          onClick={() => feedbackMutation.mutate({ messageId: m.id, score: 0 })}>
+                          onClick={() => feedbackMutation.mutate({ messageId: m.id, score: 0 })} aria-label="Not helpful">
                           <ThumbsDown className="h-3 w-3" />
                         </Button>
                       </div>
@@ -314,7 +314,7 @@ export function ChatPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 text-xs"
+                    className="text-warning hover:text-warning hover:bg-warning/5 text-xs"
                     onClick={() => { if (confirm('Escalate this conversation to a human agent?')) handleEscalate.mutate(); }}
                     disabled={handleEscalate.isPending}
                   >
@@ -324,7 +324,7 @@ export function ChatPage() {
                 </div>
               )}
               {isEscalated && (
-                <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 rounded-md px-3 py-2">
+                <div className="flex items-center gap-2 text-sm text-warning bg-warning/5 rounded-md px-3 py-2">
                   <AlertCircle className="h-4 w-4" />
                   This conversation has been escalated. A human agent will follow up.
                 </div>

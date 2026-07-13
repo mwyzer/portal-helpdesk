@@ -21,9 +21,9 @@ const iconMap = {
 };
 
 const colorMap = {
-  completed: 'text-green-600',
-  current: 'text-blue-600',
-  pending: 'text-gray-300',
+  completed: 'text-success',
+  current: 'text-info',
+  pending: 'text-muted',
 };
 
 export function ApprovalTimeline({ stages, className }: ApprovalTimelineProps) {
@@ -42,7 +42,7 @@ export function ApprovalTimeline({ stages, className }: ApprovalTimelineProps) {
                 <div
                   className={cn(
                     'w-0.5 flex-1 min-h-[24px]',
-                    stage.status === 'completed' ? 'bg-green-300' : 'bg-gray-200',
+                    stage.status === 'completed' ? 'bg-success/50' : 'bg-muted',
                   )}
                 />
               )}

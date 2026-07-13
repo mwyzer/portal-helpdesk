@@ -123,4 +123,12 @@ public class MeetingsController : ControllerBase
         await _meetingService.DeleteNoteAsync(id, noteId);
         return NoContent();
     }
+
+    [HttpPost("{id}/generate-summary")]
+    [Authorize(Roles = "Secretary,Manager,Super Admin")]
+    public async Task<ActionResult<MeetingNoteResponse>> GenerateSummary(Guid id)
+    {
+        var result = await _meetingService.GenerateSummaryAsync(id, GetUserId());
+        return Ok(result);
+    }
 }

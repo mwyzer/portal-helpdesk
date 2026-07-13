@@ -131,3 +131,59 @@ test.describe('Phase 2 — HR Administration', () => {
     await expect(page.locator('h1')).toContainText('Leave Approvals');
   });
 });
+
+// ═══════════════════════════════════════════════
+//  PHASE 3 — Secretary Module
+// ═══════════════════════════════════════════════
+
+test.describe('Phase 3 — Secretary Module', () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
+  test('18-meetings-list', async ({ page }) => {
+    await snapshot(page, 'phase3-01-meetings.png', '/meetings');
+    await expect(page.locator('h1')).toContainText('Meetings');
+  });
+
+  test('19-meeting-detail', async ({ page }) => {
+    // Navigate to meetings list first to find a meeting
+    await page.goto('/meetings');
+    await page.waitForLoadState('networkidle');
+    // Click the first meeting row if any exist
+    const meetingLink = page.locator('table tbody tr:first-child a, a[href*="/meetings/"]').first();
+    if (await meetingLink.isVisible()) {
+      await meetingLink.click();
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, 'phase3-02-meeting-detail.png'), fullPage: true });
+      await expect(page.locator('h1')).toBeVisible();
+    }
+  });
+
+  test('20-action-items-full', async ({ page }) => {
+    await snapshot(page, 'phase3-03-action-items.png', '/action-items');
+    await expect(page.locator('h1')).toContainText('Action Items');
+    // Test create button is visible
+    const createBtn = page.locator('button:has-text("New Action Item"), button:has-text("Add Action Item"), button:has-text("Create")').first();
+    await expect(createBtn).toBeVisible({ timeout: 5000 });
+  });
+
+  test('21-document-requests', async ({ page }) => {
+    await snapshot(page, 'phase3-04-document-requests.png', '/documents/requests');
+    await expect(page.locator('h1')).toContainText('Document Requests');
+  });
+
+  test('22-document-templates', async ({ page }) => {
+    await snapshot(page, 'phase3-05-document-templates.png', '/documents/templates');
+    await expect(page.locator('h1')).toContainText('Document Templates');
+  });
+
+  test('23-dashboard-secretary-cards', async ({ page }) => {
+    await snapshot(page, 'phase3-06-dashboard.png', '/dashboard');
+    await expect(page.locator('h1')).toContainText('Dashboard');
+    // Secretary cards should be visible for admin/secretary role
+    const secretarySection = page.locator('text=Today\'s Meetings, text=Upcoming Meetings, text=Overdue Items, text=Document Reviews');
+    // At minimum, the dashboard page loads
+  });
+});

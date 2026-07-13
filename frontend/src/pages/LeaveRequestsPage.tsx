@@ -59,13 +59,13 @@ type RequestForm = z.infer<typeof requestSchema>;
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    Draft: 'bg-gray-100 text-gray-800',
-    Submitted: 'bg-blue-100 text-blue-800',
-    WaitingForManager: 'bg-yellow-100 text-yellow-800',
-    WaitingForHR: 'bg-purple-100 text-purple-800',
-    Approved: 'bg-green-100 text-green-800',
-    Rejected: 'bg-red-100 text-red-800',
-    Cancelled: 'bg-orange-100 text-orange-800',
+    Draft: 'bg-muted text-muted-foreground',
+    Submitted: 'bg-info/10 text-info',
+    WaitingForManager: 'bg-warning/10 text-warning',
+    WaitingForHR: 'bg-primary/10 text-primary',
+    Approved: 'bg-success/10 text-success',
+    Rejected: 'bg-destructive/10 text-destructive',
+    Cancelled: 'bg-warning/10 text-warning',
   };
   return <Badge className={map[status] || ''}>{status}</Badge>;
 };
@@ -172,18 +172,18 @@ export function LeaveRequestsPage() {
                     <TableCell>{statusBadge(lr.status)}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => setDetail(lr)} title="View detail">
+                        <Button variant="ghost" size="icon" onClick={() => setDetail(lr)} title="View detail" aria-label="View detail">
                           <FileText className="h-4 w-4" />
                         </Button>
                         {lr.status === 'Draft' && (
-                          <Button variant="ghost" size="icon" onClick={() => submitMutation.mutate(lr.id)} title="Submit">
-                            <Send className="h-4 w-4 text-blue-600" />
+                          <Button variant="ghost" size="icon" onClick={() => submitMutation.mutate(lr.id)} title="Submit" aria-label="Submit leave request">
+                            <Send className="h-4 w-4 text-info" />
                           </Button>
                         )}
                         {['Draft', 'Submitted', 'WaitingForManager', 'WaitingForHR'].includes(lr.status) && (
                           <Button variant="ghost" size="icon" onClick={() => {
                             if (confirm('Cancel this leave request?')) cancelMutation.mutate(lr.id);
-                          }} title="Cancel">
+                          }} title="Cancel" aria-label="Cancel leave request">
                             <XCircle className="h-4 w-4 text-destructive" />
                           </Button>
                         )}
@@ -254,7 +254,7 @@ export function LeaveRequestsPage() {
                 <div className="text-muted-foreground">Reason:</div><div>{detail.reason}</div>
                 {detail.rejectionReason && (
                   <>
-                    <div className="text-muted-foreground">Rejection:</div><div className="text-red-600">{detail.rejectionReason}</div>
+                    <div className="text-muted-foreground">Rejection:</div><div className="text-destructive">{detail.rejectionReason}</div>
                   </>
                 )}
               </div>

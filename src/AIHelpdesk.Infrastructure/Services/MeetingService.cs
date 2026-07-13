@@ -50,7 +50,7 @@ public class MeetingService : IMeetingService
         var meeting = await _context.Meetings
             .Include(m => m.Organizer)
             .Include(m => m.Participants).ThenInclude(p => p.Employee)
-            .Include(m => m.MeetingNotes).ThenInclude(n => n.CreatedBy)
+            .Include(m => m.MeetingNotes)
             .Include(m => m.ActionItems).ThenInclude(a => a.AssignedTo)
             .FirstOrDefaultAsync(m => m.Id == id);
 
@@ -281,5 +281,59 @@ public class MeetingService : IMeetingService
                 n.Id, n.Title, n.Content, n.IsAISummary,
                 n.CreatedBy.HasValue ? "" : "", n.CreatedAt))
             .ToListAsync();
+    }
+
+    public async Task<MeetingNoteResponse> GenerateSummaryAsync(Guid meetingId, Guid userId)
+    {
+        var meeting = await _context.Meetings
+            .Include(m => m.MeetingNotes)
+            .Include(m => m.Participants).ThenInclude(p => p.Employee)
+            .Include(m => m.ActionItems).ThenInclude(a => a.AssignedTo)
+            .Include(m => m.Organizer)
+            .FirstOrDefaultAsync(m => m.Id == meetingId);
+
+        if (meeting == null)
+            throw new KeyNotFoundException("Meeting not found");
+
+        // Collect all notes content
+        var notesContent = string.Join("\n\n", meeting.MeetingNotes.Select(n => $"{n.Title}:\n{n.Content}"));
+
+        // Build structured summary from meeting data
+        var participantList = string.Join(", ", meeting.Participants.Select(p => p.Employee.FullName));
+        var actionItemList = string.Join("\n", meeting.ActionItems.Select(a => $"- {a.Title} (Assigned to: {a.AssignedTo.FullName}, Due: {a.DueDate:yyyy-MM-dd}, Priority: {a.Priority})"));
+
+        var summaryContent = $@"## Meeting Summary: {meeting.Title}
+
+**Date:** {meeting.Date:yyyy-MM-dd}
+**Time:** {meeting.StartTime:hh\:mm} - {meeting.EndTime:hh\:mm}
+**Location:** {meeting.Location ?? "N/A"}
+**Organizer:** {meeting.Organizer.FullName}
+**Participants:** {participantList}
+
+### Discussion Notes
+{(!string.IsNullOrWhiteSpace(notesContent) ? notesContent : "No detailed notes recorded.")}
+
+### Action Items
+{(!string.IsNullOrWhiteSpace(actionItemList) ? actionItemList : "No action items recorded.")}
+
+### Summary
+This summary was auto-generated from meeting notes and data.";
+
+        var summary = new MeetingNote
+        {
+            MeetingId = meetingId,
+            Title = $"AI Summary - {meeting.Title}",
+            Content = summaryContent,
+            IsAISummary = true,
+            CreatedBy = userId
+        };
+
+        _context.MeetingNotes.Add(summary);
+        await _context.SaveChangesAsync();
+
+        var user = await _context.Users.FindAsync(userId);
+        return new MeetingNoteResponse(
+            summary.Id, summary.Title, summary.Content, summary.IsAISummary,
+            user?.FullName ?? "", summary.CreatedAt);
     }
 }
