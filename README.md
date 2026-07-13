@@ -30,6 +30,7 @@ AI Helpdesk centralizes administrative and HR services into a single application
 | **Validation** | FluentValidation |
 | **Logging** | Serilog |
 | **Testing** | xUnit, Moq, FluentAssertions, Bogus, Coverlet |
+| **E2E / Screenshots** | Playwright |
 | **Containerization** | Docker + Docker Compose |
 
 ## Architecture
@@ -114,10 +115,29 @@ dotnet ef database update
 
 ### Running Tests
 
+#### Unit Tests (Backend)
+
 ```bash
 cd tests/AIHelpdesk.Tests
 dotnet test
 ```
+
+#### E2E Tests (Playwright)
+
+```bash
+cd frontend
+
+# Install Playwright browsers (first time only)
+npx playwright install chromium
+
+# Run all 17 E2E tests (headless)
+npm run test:e2e
+
+# Interactive UI mode
+npm run test:e2e:ui
+```
+
+> See [`documentation/e2e-testing.md`](documentation/e2e-testing.md) for the full guide.
 
 ## API Endpoints (Phase 1 — Foundation MVP)
 
@@ -179,7 +199,7 @@ dotnet test
 | Phase | Focus | Status |
 |-------|-------|--------|
 | **Phase 1** | Foundation MVP — Auth, users, roles, departments, base layout | ✅ Done |
-| **Phase 2** | HR Administration — Employee data, leave management, notifications | 🚧 In Progress |
+| **Phase 2** | HR Administration — Employee data, leave management, notifications | ✅ Done |
 | **Phase 3** | Secretary Module — Meetings, agendas, documents, action items | 📋 Planned |
 | **Phase 4** | AI Helpdesk Chat — AI-powered RAG chat & knowledge base | 📋 Planned |
 | **Phase 5** | Ticketing System — Request tracking, SLA, agent workflows | 📋 Planned |

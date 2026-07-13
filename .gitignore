@@ -18,6 +18,9 @@ Thumbs.db
 # ── Docker volumes ──
 pgdata/
 
+# ── Screenshots ──
+screenshots/
+
 # ── Environment & secrets ──
 .env
 *.env.local
