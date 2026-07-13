@@ -14,6 +14,10 @@
 .idea/
 Thumbs.db
 *.swp
+*.orig
+
+# ── Frontend build ──
+frontend/dist/
 
 # ── Docker volumes ──
 pgdata/
@@ -21,9 +25,22 @@ pgdata/
 # ── Screenshots ──
 screenshots/
 
+# ── Test outputs ──
+**/TestResults/
+**/test-results/
+**/playwright-report/
+**/playwright/.cache/
+**/coverage/
+*.coverage
+*.coverage.cobertura.xml
+*.coverage.opencover.xml
+
+# ── TypeScript ──
+*.tsbuildinfo
+
 # ── Environment & secrets ──
-.env
-*.env.local
+.env*
+!.env.example
 appsettings.*.local.json
 
 # ── Logs ──
