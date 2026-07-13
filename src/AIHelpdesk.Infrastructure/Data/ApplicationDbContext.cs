@@ -28,6 +28,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<AIResponse> AIResponses => Set<AIResponse>();
     public DbSet<AIUsageLog> AIUsageLogs => Set<AIUsageLog>();
 
+    // ─────── Phase 2: HR Module ───────
+    public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
+    public DbSet<LeaveBalance> LeaveBalances => Set<LeaveBalance>();
+    public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
+    public DbSet<LeaveApproval> LeaveApprovals => Set<LeaveApproval>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -217,6 +225,75 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(e => e.Cost).HasColumnType("decimal(18,6)");
             entity.Property(e => e.Metadata).HasMaxLength(2000);
             entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        // ─────── Phase 2: HR Module ───────
+
+        builder.Entity<Employee>(entity =>
+        {
+            entity.Property(e => e.EmployeeNo).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.FullName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Email).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Phone).HasMaxLength(50);
+            entity.Property(e => e.EmploymentStatus).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.WorkLocation).HasMaxLength(200);
+            entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Department).WithMany().HasForeignKey(e => e.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Position).WithMany().HasForeignKey(e => e.PositionId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Manager).WithMany(e => e.Subordinates).HasForeignKey(e => e.ManagerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.EmployeeNo).IsUnique();
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<LeaveType>(entity =>
+        {
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Code).HasMaxLength(50).IsRequired();
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<LeaveBalance>(entity =>
+        {
+            entity.Property(e => e.TotalDays).HasColumnType("decimal(5,1)");
+            entity.Property(e => e.UsedDays).HasColumnType("decimal(5,1)");
+            entity.Property(e => e.PendingDays).HasColumnType("decimal(5,1)");
+            entity.HasOne(e => e.Employee).WithMany(e => e.LeaveBalances).HasForeignKey(e => e.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.LeaveType).WithMany().HasForeignKey(e => e.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.EmployeeId, e.LeaveTypeId, e.Year }).IsUnique();
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<LeaveRequest>(entity =>
+        {
+            entity.Property(e => e.Reason).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.AttachmentUrl).HasMaxLength(500);
+            entity.Property(e => e.RejectionReason).HasMaxLength(500);
+            entity.HasOne(e => e.Employee).WithMany(e => e.LeaveRequests).HasForeignKey(e => e.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.LeaveType).WithMany().HasForeignKey(e => e.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<LeaveApproval>(entity =>
+        {
+            entity.Property(e => e.ApproverRole).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.HasOne(e => e.LeaveRequest).WithMany(lr => lr.Approvals).HasForeignKey(e => e.LeaveRequestId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Approver).WithMany().HasForeignKey(e => e.ApproverId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<Notification>(entity =>
+        {
+            entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
+            entity.Property(e => e.Body).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.Type).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.ReferenceType).HasMaxLength(100);
+            entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.UserId, e.IsRead });
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 

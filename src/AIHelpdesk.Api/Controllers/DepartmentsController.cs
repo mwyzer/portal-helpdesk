@@ -7,7 +7,7 @@ namespace AIHelpdesk.Api.Controllers;
 
 [ApiController]
 [Route("api/departments")]
-[Authorize(Roles = "Super Admin")]
+[Authorize]
 public class DepartmentsController : ControllerBase
 {
     private readonly IDepartmentService _departmentService;
@@ -25,6 +25,7 @@ public class DepartmentsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Super Admin")]
     public async Task<ActionResult<DepartmentResponse>> CreateDepartment([FromBody] CreateDepartmentRequest request)
     {
         var result = await _departmentService.CreateDepartmentAsync(request);
@@ -32,6 +33,7 @@ public class DepartmentsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Super Admin")]
     public async Task<ActionResult<DepartmentResponse>> UpdateDepartment(Guid id, [FromBody] UpdateDepartmentRequest request)
     {
         var result = await _departmentService.UpdateDepartmentAsync(id, request);
@@ -41,7 +43,7 @@ public class DepartmentsController : ControllerBase
 
 [ApiController]
 [Route("api/positions")]
-[Authorize(Roles = "Super Admin")]
+[Authorize]
 public class PositionsController : ControllerBase
 {
     private readonly IDepartmentService _departmentService;
@@ -59,6 +61,7 @@ public class PositionsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Super Admin")]
     public async Task<ActionResult<PositionResponse>> CreatePosition([FromBody] CreatePositionRequest request)
     {
         var result = await _departmentService.CreatePositionAsync(request);
@@ -66,6 +69,7 @@ public class PositionsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Super Admin")]
     public async Task<ActionResult<PositionResponse>> UpdatePosition(Guid id, [FromBody] UpdatePositionRequest request)
     {
         var result = await _departmentService.UpdatePositionAsync(id, request);

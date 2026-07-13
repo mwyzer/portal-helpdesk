@@ -42,7 +42,12 @@ public static class DependencyInjection
         services.AddScoped<IAIService, AIService>();
         services.AddScoped<IKnowledgeBaseService, KnowledgeBaseService>();
         services.AddScoped<IChatService, ChatService>();
-
+        // Phase 2: HR Module
+        services.AddScoped<IEmployeeService, EmployeeService>();
+        services.AddScoped<ILeaveTypeService, LeaveTypeService>();
+        services.AddScoped<ILeaveBalanceService, LeaveBalanceService>();
+        services.AddScoped<ILeaveRequestService, LeaveRequestService>();
+        services.AddScoped<INotificationService, NotificationService>();
         services.AddHttpClient<IAIService, AIService>(client =>
         {
             client.Timeout = TimeSpan.FromMinutes(2);

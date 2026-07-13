@@ -73,5 +73,38 @@ public static class DbSeeder
                 Console.WriteLine($"Failed to create user {email}: {errors}");
             }
         }
+
+        // ── Seed Leave Types ──
+        var leaveTypes = new[]
+        {
+            ("Annual Leave", "AL", 12, true, 0, false, false),
+            ("Sick Leave", "SL", 14, true, 0, true, true),
+            ("Special Leave", "SPL", 5, true, 0, false, false),
+            ("Maternity Leave", "ML", 90, true, 12, false, false),
+            ("Paternity Leave", "PL", 5, true, 6, false, false),
+            ("Lateness", "LT", 0, false, 0, false, false),
+            ("Early Leave", "EL", 0, false, 0, false, false),
+            ("Work From Home", "WFH", 0, true, 0, false, false),
+        };
+
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        foreach (var (name, code, daysPerYear, isPaid, minServiceMonths, requiresAttachment, skipManagerApproval) in leaveTypes)
+        {
+            if (!await context.LeaveTypes.AnyAsync(lt => lt.Code == code))
+            {
+                context.LeaveTypes.Add(new LeaveType
+                {
+                    Name = name,
+                    Code = code,
+                    DaysPerYear = daysPerYear,
+                    IsPaid = isPaid,
+                    MinServiceMonths = minServiceMonths,
+                    RequiresAttachment = requiresAttachment,
+                    SkipManagerApproval = skipManagerApproval,
+                    IsActive = true
+                });
+            }
+        }
+        await context.SaveChangesAsync();
     }
 }

@@ -14,6 +14,10 @@ import { DocumentRequestsPage } from '@/pages/DocumentRequestsPage';
 import { DocumentTemplatesPage } from '@/pages/DocumentTemplatesPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { KnowledgeBasePage } from '@/pages/KnowledgeBasePage';
+import { EmployeesPage } from '@/pages/EmployeesPage';
+import { LeaveTypesPage } from '@/pages/LeaveTypesPage';
+import { LeaveRequestsPage } from '@/pages/LeaveRequestsPage';
+import { LeaveApprovalsPage } from '@/pages/LeaveApprovalsPage';
 
 export default function App() {
   return (
@@ -43,6 +47,10 @@ export default function App() {
         <Route path="documents/templates" element={<DocumentTemplatesPage />} />
         <Route path="ai/chat" element={<ChatPage />} />
         <Route path="knowledge-base" element={<KnowledgeBasePage />} />
+        <Route path="employees" element={<EmployeesPage />} />
+        <Route path="leave-types" element={<LeaveTypesPage />} />
+        <Route path="leave-requests" element={<LeaveRequestsPage />} />
+        <Route path="leave-approvals" element={<LeaveApprovalsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

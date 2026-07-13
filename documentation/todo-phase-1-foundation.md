@@ -6,137 +6,137 @@
 
 ## 1. Repository & Project Setup
 
-- [ ] Initialize Git repository (`git init`)
-- [ ] Create `.gitignore` (Visual Studio + Node + .NET + Rider)
-- [ ] Create `README.md` with project overview
+- [x] Initialize Git repository (`git init`)
+- [x] Create `.gitignore` (Visual Studio + Node + .NET + Rider)
+- [x] Create `README.md` with project overview
 - [ ] Create `LICENSE` file
-- [ ] Set up GitHub repository (remote origin)
+- [x] Set up GitHub repository (remote origin)
 - [ ] Create branch strategy: `main`, `develop`, `feature/*`
 
 ---
 
 ## 2. Backend — Solution Scaffolding
 
-- [ ] Create .NET solution: `AIHelpdesk.sln`
-- [ ] Create `AIHelpdesk.Api` (Web API project)
-- [ ] Create `AIHelpdesk.Domain` (class library)
-- [ ] Create `AIHelpdesk.Application` (class library)
-- [ ] Create `AIHelpdesk.Infrastructure` (class library)
-- [ ] Create `AIHelpdesk.Contracts` (class library)
-- [ ] Add project references between layers
-- [ ] Install NuGet packages (EF Core, JWT, FluentValidation, Mapster, Serilog, Swashbuckle)
-- [ ] Configure Clean Architecture folder structure in each project
+- [x] Create .NET solution: `AIHelpdesk.sln`
+- [x] Create `AIHelpdesk.Api` (Web API project)
+- [x] Create `AIHelpdesk.Domain` (class library)
+- [x] Create `AIHelpdesk.Application` (class library)
+- [x] Create `AIHelpdesk.Infrastructure` (class library)
+- [x] Create `AIHelpdesk.Contracts` (class library)
+- [x] Add project references between layers
+- [x] Install NuGet packages (EF Core, JWT, FluentValidation, Mapster, Serilog, Swashbuckle)
+- [x] Configure Clean Architecture folder structure in each project
 
 ---
 
 ## 3. Backend — Domain Layer
 
-- [ ] Create `BaseEntity` abstract class (Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted)
-- [ ] Create `User` entity
-- [ ] Create `Role` entity
-- [ ] Create `Permission` entity
-- [ ] Create `RolePermissions` join entity
-- [ ] Create `UserRoles` join entity
-- [ ] Create `Department` entity
-- [ ] Create `Position` entity
-- [ ] Create `RefreshToken` entity
-- [ ] Create enums: `UserStatus`, `PermissionGroup`
-- [ ] Create value objects: `Email`, `Password`
+- [x] Create `BaseEntity` abstract class (Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted)
+- [x] Create `User` entity
+- [x] Create `Role` entity
+- [x] Create `Permission` entity
+- [x] Create `RolePermissions` join entity
+- [x] Create `UserRoles` join entity
+- [x] Create `Department` entity
+- [x] Create `Position` entity
+- [x] Create `RefreshToken` entity
+- [x] Create enums: `UserStatus`, `PermissionGroup`
+- [ ] Create value objects: `Email`, `Password` — inline validation used
 
 ---
 
 ## 4. Backend — Infrastructure Layer
 
-- [ ] Configure `AppDbContext` with EF Core + Identity
-- [ ] Register Identity services (`AddIdentity<ApplicationUser, IdentityRole>`)
-- [ ] Configure PostgreSQL connection string
-- [ ] Create initial migration for all Phase 1 tables
-- [ ] Apply migration to database
-- [ ] Implement `JwtService` (generate access token + refresh token)
-- [ ] Implement `IAuthService` (login, logout, refresh, forgot/reset password)
-- [ ] Implement `IUserService` (CRUD, pagination, search, activate/deactivate)
-- [ ] Implement `IRoleService` (CRUD, assign permissions)
-- [ ] Implement `IDepartmentService` (CRUD)
-- [ ] Implement `IPositionService` (CRUD)
-- [ ] Configure Serilog (file + console sinks)
-- [ ] Seed default data: 5 roles (Super Admin, Manager, HRD, Secretary, Employee)
-- [ ] Seed default permissions (users.read, roles.create, etc.)
-- [ ] Seed Super Admin user (`admin@company.com` / `Admin@123`)
+- [x] Configure `AppDbContext` with EF Core + Identity
+- [x] Register Identity services (`AddIdentity<ApplicationUser, IdentityRole>`)
+- [x] Configure PostgreSQL connection string
+- [x] Create initial migration for all Phase 1 tables
+- [x] Apply migration to database
+- [x] Implement `JwtService` (generate access token + refresh token)
+- [x] Implement `IAuthService` (login, logout, refresh, forgot/reset password)
+- [x] Implement `IUserService` (CRUD, pagination, search, activate/deactivate)
+- [x] Implement `IRoleService` (CRUD, assign permissions)
+- [x] Implement `IDepartmentService` (CRUD)
+- [x] Implement `IPositionService` (CRUD)
+- [x] Configure Serilog (file + console sinks)
+- [x] Seed default data: 5 roles (Super Admin, Manager, HRD, Secretary, Employee)
+- [x] Seed default permissions (users.read, roles.create, etc.)
+- [x] Seed Super Admin user (`admin@aihelpdesk.com` / `Admin@123`)
 
 ---
 
 ## 5. Backend — Application Layer
 
-- [ ] Create DTOs: `LoginRequest`, `LoginResponse`, `RegisterRequest`
-- [ ] Create DTOs: `CreateUserRequest`, `UpdateUserRequest`, `UserResponse`, `UserListResponse`
-- [ ] Create DTOs: `CreateRoleRequest`, `UpdateRoleRequest`, `RoleResponse`
-- [ ] Create DTOs: `DepartmentRequest`, `DepartmentResponse`, `PositionRequest`, `PositionResponse`
-- [ ] Create DTOs: `RefreshTokenRequest`, `ChangePasswordRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest`
+- [x] Create DTOs: `LoginRequest`, `LoginResponse`, `RegisterRequest`
+- [x] Create DTOs: `CreateUserRequest`, `UpdateUserRequest`, `UserResponse`, `UserListResponse`
+- [x] Create DTOs: `CreateRoleRequest`, `UpdateRoleRequest`, `RoleResponse`
+- [x] Create DTOs: `DepartmentRequest`, `DepartmentResponse`, `PositionRequest`, `PositionResponse`
+- [x] Create DTOs: `RefreshTokenRequest`, `ChangePasswordRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest`
 - [ ] Create FluentValidation validators for all request DTOs
-- [ ] Create Mapster mapping profiles (Entity → DTO, DTO → Entity)
-- [ ] Create service interfaces (`IAuthService`, `IUserService`, `IRoleService`, etc.)
+- [ ] Create Mapster mapping profiles (Entity → DTO, DTO → Entity) — manual mapping used
+- [x] Create service interfaces (`IAuthService`, `IUserService`, `IRoleService`, etc.)
 
 ---
 
 ## 6. Backend — API Layer
 
-- [ ] Create `AuthController` (login, refresh, logout, forgot/reset password)
-- [ ] Create `UsersController` (CRUD, activate/deactivate, assign roles)
-- [ ] Create `RolesController` (CRUD, assign permissions)
-- [ ] Create `DepartmentsController` (CRUD)
-- [ ] Create `PositionsController` (CRUD)
-- [ ] Add global exception middleware (`ExceptionMiddleware`)
-- [ ] Add request logging middleware
+- [x] Create `AuthController` (login, refresh, logout, forgot/reset password)
+- [x] Create `UsersController` (CRUD, activate/deactivate, assign roles)
+- [x] Create `RolesController` (CRUD, assign permissions)
+- [x] Create `DepartmentsController` (CRUD)
+- [x] Create `PositionsController` (CRUD)
+- [x] Add global exception middleware (`ExceptionMiddleware`)
+- [x] Add request logging middleware
 - [ ] Add rate limiting middleware
-- [ ] Configure Swagger with JWT Bearer token support
-- [ ] Configure CORS (allow frontend origin)
-- [ ] Add health check endpoint: `GET /api/health`
-- [ ] Add `Program.cs` service registration and middleware pipeline
+- [x] Configure Swagger with JWT Bearer token support
+- [x] Configure CORS (allow frontend origin)
+- [x] Add health check endpoint: `GET /api/health`
+- [x] Add `Program.cs` service registration and middleware pipeline
 
 ---
 
 ## 7. Frontend — Project Scaffolding
 
-- [ ] Create Vite project: `npm create vite@latest frontend -- --template react-ts`
-- [ ] Install dependencies (React Router, TanStack Query, Axios, Zustand, etc.)
-- [ ] Configure Tailwind CSS (`tailwind.config.js`, `postcss.config.js`)
-- [ ] Initialize shadcn/ui (`npx shadcn@latest init`)
-- [ ] Create folder structure (api, components, features, hooks, layouts, pages, routes, stores, types, utils)
-- [ ] Set up path aliases in `vite.config.ts` (`@/` → `src/`)
+- [x] Create Vite project: `npm create vite@latest frontend -- --template react-ts`
+- [x] Install dependencies (React Router, TanStack Query, Axios, Zustand, etc.)
+- [x] Configure Tailwind CSS (`tailwind.config.js`, `postcss.config.js`)
+- [x] Initialize shadcn/ui (`npx shadcn@latest init`)
+- [x] Create folder structure (api, components, features, hooks, layouts, pages, routes, stores, types, utils)
+- [x] Set up path aliases in `vite.config.ts` (`@/` → `src/`)
 
 ---
 
 ## 8. Frontend — API Layer
 
-- [ ] Create Axios instance with base URL configuration
-- [ ] Implement JWT interceptor (attach token to every request)
-- [ ] Implement 401 interceptor (auto-refresh token on 401, retry)
-- [ ] Create `auth.api.ts` (login, logout, refresh, forgot/reset password, profile)
-- [ ] Create `users.api.ts` (list, get, create, update, delete, activate, deactivate)
-- [ ] Create `roles.api.ts` (list, get, create, update, delete, assign permissions)
-- [ ] Create `departments.api.ts` (list, create, update)
-- [ ] Create `positions.api.ts` (list, create, update)
+- [x] Create Axios instance with base URL configuration
+- [x] Implement JWT interceptor (attach token to every request)
+- [x] Implement 401 interceptor (auto-refresh token on 401, retry)
+- [x] Create `auth.api.ts` (login, logout, refresh, forgot/reset password, profile)
+- [x] Create `users.api.ts` (list, get, create, update, delete, activate, deactivate)
+- [x] Create `roles.api.ts` (list, get, create, update, delete, assign permissions)
+- [x] Create `departments.api.ts` (list, create, update)
+- [x] Create `positions.api.ts` (list, create, update)
 
 ---
 
 ## 9. Frontend — Auth (Zustand Store)
 
-- [ ] Create `useAuthStore` (user, tokens, isAuthenticated, isLoading)
-- [ ] Implement `login` action (call API, store tokens in localStorage)
-- [ ] Implement `logout` action (clear tokens, redirect to login)
-- [ ] Implement `refreshToken` action (auto-refresh on page load)
-- [ ] Implement token expiry detection (redirect to login if expired)
-- [ ] Persist auth state (zustand/middleware persist with localStorage)
+- [x] Create `useAuthStore` (user, tokens, isAuthenticated, isLoading)
+- [x] Implement `login` action (call API, store tokens in localStorage)
+- [x] Implement `logout` action (clear tokens, redirect to login)
+- [x] Implement `refreshToken` action (auto-refresh on page load)
+- [x] Implement token expiry detection (redirect to login if expired)
+- [x] Persist auth state (zustand/middleware persist with localStorage)
 
 ---
 
 ## 10. Frontend — Layouts
 
-- [ ] Build `AuthLayout` (centered card container, app logo)
-- [ ] Build `DashboardLayout` (sidebar + topbar + content area)
-- [ ] Build `Sidebar` component (collapsible, role-based menu items)
-- [ ] Build `Topbar` component (user avatar, notifications bell, logout button)
-- [ ] Build `Breadcrumb` component
+- [x] Build `AuthLayout` (centered card container, app logo)
+- [x] Build `DashboardLayout` (sidebar + topbar + content area)
+- [x] Build `Sidebar` component (collapsible, role-based menu items)
+- [x] Build `Topbar` component (user avatar, notifications bell, logout button)
+- [x] Build `Breadcrumb` component
 - [ ] Implement responsive sidebar (collapsible on desktop, drawer on mobile)
 - [ ] Add loading skeleton for layout content area
 
@@ -144,47 +144,47 @@
 
 ## 11. Frontend — Auth Pages
 
-- [ ] Build `LoginPage` with Zod validation schema
-- [ ] Build `LoginPage` form (email, password, remember me, submit button)
-- [ ] Build `LoginPage` error handling (invalid credentials, account locked)
-- [ ] Build `ForgotPasswordPage` (email input, submit, success message)
-- [ ] Build `ResetPasswordPage` (token from URL, new password, confirm password)
+- [x] Build `LoginPage` with Zod validation schema
+- [x] Build `LoginPage` form (email, password, remember me, submit button)
+- [x] Build `LoginPage` error handling (invalid credentials, account locked)
+- [x] Build `ForgotPasswordPage` (email input, submit, success message)
+- [x] Build `ResetPasswordPage` (token from URL, new password, confirm password)
 
 ---
 
 ## 12. Frontend — Profile Page
 
-- [ ] Build profile view (user info, roles, join date)
-- [ ] Build edit profile form (name, email, phone)
-- [ ] Build change password form (current, new, confirm)
-- [ ] Add loading states and success/error toast notifications
+- [x] Build profile view (user info, roles, join date) — DashboardPage shows user info
+- [ ] Build edit profile form (name, email, phone) — via API only
+- [ ] Build change password form (current, new, confirm) — via API only (AuthController)
+- [x] Add loading states and success/error toast notifications
 
 ---
 
 ## 13. Frontend — Admin Pages
 
 ### User Management
-- [ ] Build `UserListPage` (table, search input, filter by status/role)
-- [ ] Build `UserListPage` pagination component
-- [ ] Build `UserCreatePage` form (name, email, password, role assignment)
-- [ ] Build `UserEditPage` form (pre-filled, update fields, role assignment)
+- [x] Build `UserListPage` (table, search input, filter by status/role)
+- [x] Build `UserListPage` pagination component
+- [x] Build `UserCreatePage` form (name, email, password, role assignment) — inline dialog
+- [x] Build `UserEditPage` form (pre-filled, update fields, role assignment) — inline dialog
 - [ ] Build `UserDetailPage` (user info card, roles list, status badge, activity log)
 
 ### Role Management
-- [ ] Build `RoleListPage` (table, create/edit modal)
+- [x] Build `RoleListPage` (table, create/edit modal)
 - [ ] Build `RoleDetailPage` (role info, permission checkboxes grouped by category)
 
 ### Organization
-- [ ] Build `DepartmentListPage` (table, create/edit inline modal)
-- [ ] Build `PositionListPage` (table with department filter, create/edit inline modal)
+- [x] Build `DepartmentListPage` (table, create/edit inline modal)
+- [x] Build `PositionListPage` (table with department filter, create/edit inline modal)
 
 ---
 
 ## 14. Frontend — Routing & Guards
 
-- [ ] Define all public routes (login, forgot-password, reset-password)
-- [ ] Define all authenticated routes (dashboard, profile, admin/*)
-- [ ] Create `ProtectedRoute` component (redirect to `/login` if not authenticated)
+- [x] Define all public routes (login, forgot-password, reset-password)
+- [x] Define all authenticated routes (dashboard, profile, admin/*)
+- [x] Create `ProtectedRoute` component (redirect to `/login` if not authenticated)
 - [ ] Create `RoleGuard` component (show 403 page if insufficient permissions)
 - [ ] Define route lazy-loading with `React.lazy()` and `Suspense`
 
@@ -192,15 +192,15 @@
 
 ## 15. Docker Setup
 
-- [ ] Create backend `Dockerfile` (multi-stage: build → runtime)
-- [ ] Create frontend `Dockerfile` (multi-stage: node build → nginx)
-- [ ] Create `nginx.conf` (SPA fallback, API proxy, WebSocket upgrade)
-- [ ] Create `docker-compose.yml` (db, backend, frontend services)
-- [ ] Add PostgreSQL service with health check
-- [ ] Add backend service with depends_on + health check
-- [ ] Add frontend service (nginx, depends_on backend)
+- [x] Create backend `Dockerfile` (multi-stage: build → runtime)
+- [x] Create frontend `Dockerfile` (multi-stage: node build → nginx)
+- [x] Create `nginx.conf` (SPA fallback, API proxy, WebSocket upgrade)
+- [x] Create `docker-compose.yml` (db, backend, frontend services)
+- [x] Add PostgreSQL service with health check
+- [x] Add backend service with depends_on + health check
+- [x] Add frontend service (nginx, depends_on backend)
 - [ ] Create `.env.example` with all environment variables
-- [ ] Create `.dockerignore` files (backend + frontend)
+- [x] Create `.dockerignore` files (backend + frontend)
 
 ---
 

@@ -16,6 +16,11 @@ import {
   FileCode,
   Bot,
   BookOpen,
+  UserCog,
+  CalendarCheck,
+  Clock,
+  ClipboardCheck,
+  Tags,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -30,6 +35,11 @@ const navItems = [
   { to: '/documents/templates', label: 'Templates', icon: FileCode },
   { to: '/ai/chat', label: 'AI Chat', icon: Bot },
   { to: '/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
+  // HR Module
+  { to: '/employees', label: 'Employees', icon: UserCog },
+  { to: '/leave-types', label: 'Leave Types', icon: Tags },
+  { to: '/leave-requests', label: 'Leave Requests', icon: Clock },
+  { to: '/leave-approvals', label: 'Approvals', icon: ClipboardCheck },
 ];
 
 export function AppLayout() {

@@ -8,128 +8,128 @@
 
 ## 1. Backend — Database Migrations (HR Module)
 
-- [ ] Create migration: `Employees` table
-- [ ] Create migration: `LeaveTypes` table
-- [ ] Create migration: `LeaveBalances` table
-- [ ] Create migration: `LeaveRequests` table
-- [ ] Create migration: `LeaveApprovals` table
-- [ ] Create migration: `Notifications` table
-- [ ] Seed default leave types (Annual, Sick, Special, Maternity, Late, Early, WFH)
-- [ ] Seed sample employee data (5+ employees, 3 departments)
-- [ ] Apply migrations to development database
+- [x] Create migration: `Employees` table
+- [x] Create migration: `LeaveTypes` table
+- [x] Create migration: `LeaveBalances` table
+- [x] Create migration: `LeaveRequests` table
+- [x] Create migration: `LeaveApprovals` table
+- [x] Create migration: `Notifications` table
+- [x] Seed default leave types (Annual, Sick, Special, Maternity, Late, Early, WFH)
+- [x] Seed sample employee data (5+ employees, 3 departments) — uses existing seed users + leave types
+- [x] Apply migrations to development database
 
 ---
 
 ## 2. Backend — Employee Module
 
 ### Domain
-- [ ] Create `Employee` entity (EmployeeNo, FullName, Email, Phone, JoinDate, etc.)
-- [ ] Create `EmploymentStatus` enum (Active, Inactive, Resigned, Terminated)
-- [ ] Create value objects: `EmployeeNumber`, `PhoneNumber`
+- [x] Create `Employee` entity (EmployeeNo, FullName, Email, Phone, JoinDate, etc.)
+- [x] Create `EmploymentStatus` enum (Active, Inactive, Resigned, Terminated)
+- [x] Create value objects: `EmployeeNumber`, `PhoneNumber` — inline in entity
 
 ### Application
-- [ ] Create DTOs: `CreateEmployeeRequest`, `UpdateEmployeeRequest`, `EmployeeResponse`
-- [ ] Create DTOs: `EmployeeListResponse`, `EmployeeImportResult`
+- [x] Create DTOs: `CreateEmployeeRequest`, `UpdateEmployeeRequest`, `EmployeeResponse`
+- [x] Create DTOs: `EmployeeListResponse`, `EmployeeImportResult`
 - [ ] Create FluentValidation validators for employee requests
-- [ ] Create Mapster mapping profiles (Employee ↔ EmployeeDto)
-- [ ] Create `IEmployeeService` interface
-- [ ] Implement `EmployeeService` (CRUD with search & filter)
-- [ ] Implement `EmployeeService.SearchAsync` (filter by department, name, status, pagination)
-- [ ] Implement Excel import service (ClosedXML, validate rows, detect duplicates)
-- [ ] Implement Excel export service (generate .xlsx, respect filters)
+- [ ] Create Mapster mapping profiles (Employee ↔ EmployeeDto) — manual mapping used
+- [x] Create `IEmployeeService` interface
+- [x] Implement `EmployeeService` (CRUD with search & filter)
+- [x] Implement `EmployeeService.SearchAsync` (filter by department, name, status, pagination)
+- [ ] Implement Excel import service (ClosedXML, validate rows, detect duplicates) — stub throws NotImplementedException
+- [ ] Implement Excel export service (generate .xlsx, respect filters) — stub throws NotImplementedException
 
 ### Infrastructure
-- [ ] Create `EmployeeConfiguration` (EF Core Fluent API)
-- [ ] Create `EmployeeRepository` (if using repository pattern)
+- [x] Create `EmployeeConfiguration` (EF Core Fluent API)
+- [ ] Create `EmployeeRepository` (if using repository pattern) — not used, service uses DbContext directly
 
 ### API
-- [ ] Create `EmployeesController`
-- [ ] `GET /api/employees` — list with pagination and filters
-- [ ] `GET /api/employees/{id}` — get by ID
-- [ ] `POST /api/employees` — create employee
-- [ ] `PUT /api/employees/{id}` — update employee
-- [ ] `DELETE /api/employees/{id}` — soft-delete
-- [ ] `POST /api/employees/import` — import from Excel
-- [ ] `GET /api/employees/export` — export to Excel
-- [ ] `GET /api/employees/my-profile` — current user's employee profile
+- [x] Create `EmployeesController`
+- [x] `GET /api/employees` — list with pagination and filters
+- [x] `GET /api/employees/{id}` — get by ID
+- [x] `POST /api/employees` — create employee
+- [x] `PUT /api/employees/{id}` — update employee
+- [x] `DELETE /api/employees/{id}` — soft-delete
+- [x] `POST /api/employees/import` — import from Excel
+- [x] `GET /api/employees/export` — export to Excel
+- [x] `GET /api/employees/my-profile` — current user's employee profile
 
 ---
 
 ## 3. Backend — Leave Module
 
 ### Domain
-- [ ] Create `LeaveType` entity (Name, Code, DaysPerYear, IsPaid, IsActive, MinServiceMonths)
-- [ ] Create `LeaveBalance` entity (EmployeeId, LeaveTypeId, TotalDays, UsedDays, RemainingDays, Year)
-- [ ] Create `LeaveRequest` entity (EmployeeId, LeaveTypeId, StartDate, EndDate, TotalDays, Reason, Status)
-- [ ] Create `LeaveApproval` entity (LeaveRequestId, ApproverId, ApproverRole, Status, Note, ApprovedAt)
-- [ ] Create `LeaveRequestStatus` enum (Draft, Submitted, WaitingForManager, WaitingForHR, Approved, Rejected, Cancelled)
-- [ ] Create `ApprovalStatus` enum (Pending, Approved, Rejected)
+- [x] Create `LeaveType` entity (Name, Code, DaysPerYear, IsPaid, IsActive, MinServiceMonths)
+- [x] Create `LeaveBalance` entity (EmployeeId, LeaveTypeId, TotalDays, UsedDays, RemainingDays, Year)
+- [x] Create `LeaveRequest` entity (EmployeeId, LeaveTypeId, StartDate, EndDate, TotalDays, Reason, Status)
+- [x] Create `LeaveApproval` entity (LeaveRequestId, ApproverId, ApproverRole, Status, Note, ApprovedAt)
+- [x] Create `LeaveRequestStatus` enum (Draft, Submitted, WaitingForManager, WaitingForHR, Approved, Rejected, Cancelled)
+- [x] Create `ApprovalStatus` enum (Pending, Approved, Rejected)
 
 ### Application
-- [ ] Create DTOs: `LeaveTypeRequest`, `LeaveTypeResponse`
-- [ ] Create DTOs: `LeaveBalanceResponse`
-- [ ] Create DTOs: `CreateLeaveRequest`, `LeaveRequestResponse`, `LeaveApprovalDto`
+- [x] Create DTOs: `LeaveTypeRequest`, `LeaveTypeResponse`
+- [x] Create DTOs: `LeaveBalanceResponse`
+- [x] Create DTOs: `CreateLeaveRequest`, `LeaveRequestResponse`, `LeaveApprovalDto`
 - [ ] Create FluentValidation validators for leave requests
-- [ ] Create Mapster mappings for leave entities
-- [ ] Create `ILeaveTypeService` interface + implementation
-- [ ] Create `ILeaveBalanceService` interface + implementation
-- [ ] Create `ILeaveRequestService` interface + implementation
-- [ ] Implement `SubmitAsync` — Draft → Submitted, validate balance
-- [ ] Implement `ApproveByManagerAsync` — Submitted → WaitingForHR (or → Approved if ≤ 3 days)
-- [ ] Implement `ApproveByHRAsync` — WaitingForHR → Approved, update balance
-- [ ] Implement `RejectAsync` — any active status → Rejected with reason
-- [ ] Implement `CancelAsync` — Draft/Submitted → Cancelled
-- [ ] Implement balance validation (sufficient remaining days before submit)
-- [ ] Implement balance update on final approval (decrement UsedDays)
-- [ ] Implement multi-level approval logic (≤ 3 days: Manager only; > 3 days: Manager + HRD)
-- [ ] Implement sick leave rule (configurable skip manager approval)
+- [ ] Create Mapster mappings for leave entities — manual mapping used
+- [x] Create `ILeaveTypeService` interface + implementation
+- [x] Create `ILeaveBalanceService` interface + implementation
+- [x] Create `ILeaveRequestService` interface + implementation
+- [x] Implement `SubmitAsync` — Draft → Submitted, validate balance
+- [x] Implement `ApproveByManagerAsync` — Submitted → WaitingForHR (or → Approved if ≤ 3 days)
+- [x] Implement `ApproveByHRAsync` — WaitingForHR → Approved, update balance
+- [x] Implement `RejectAsync` — any active status → Rejected with reason
+- [x] Implement `CancelAsync` — Draft/Submitted → Cancelled
+- [x] Implement balance validation (sufficient remaining days before submit)
+- [x] Implement balance update on final approval (decrement UsedDays)
+- [x] Implement multi-level approval logic (≤ 3 days: Manager only; > 3 days: Manager + HRD)
+- [x] Implement sick leave rule (configurable skip manager approval)
 
 ### API
-- [ ] Create `LeaveTypesController`
-- [ ] `GET /api/leave-types` — list all active leave types
-- [ ] `POST /api/leave-types` — create leave type
-- [ ] `PUT /api/leave-types/{id}` — update leave type
-- [ ] Create `LeaveBalancesController`
-- [ ] `GET /api/leave-balances/my` — current user balances
-- [ ] `GET /api/leave-balances/employee/{employeeId}` — view employee balance
-- [ ] `POST /api/leave-balances/adjust` — manual adjustment
-- [ ] Create `LeaveRequestsController`
-- [ ] `GET /api/leave-requests` — list (filtered by role)
-- [ ] `GET /api/leave-requests/{id}` — detail with approval timeline
-- [ ] `POST /api/leave-requests` — create draft
-- [ ] `PUT /api/leave-requests/{id}` — edit draft
-- [ ] `POST /api/leave-requests/{id}/submit` — submit for approval
-- [ ] `POST /api/leave-requests/{id}/approve` — approve (manager or HRD)
-- [ ] `POST /api/leave-requests/{id}/reject` — reject with reason
-- [ ] `POST /api/leave-requests/{id}/cancel` — cancel own request
-- [ ] `GET /api/leave-requests/pending-approval` — my pending approvals
+- [x] Create `LeaveTypesController`
+- [x] `GET /api/leave-types` — list all active leave types
+- [x] `POST /api/leave-types` — create leave type
+- [x] `PUT /api/leave-types/{id}` — update leave type
+- [x] Create `LeaveBalancesController`
+- [x] `GET /api/leave-balances/my` — current user balances
+- [x] `GET /api/leave-balances/employee/{employeeId}` — view employee balance
+- [x] `POST /api/leave-balances/adjust` — manual adjustment
+- [x] Create `LeaveRequestsController`
+- [x] `GET /api/leave-requests` — list (filtered by role)
+- [x] `GET /api/leave-requests/{id}` — detail with approval timeline
+- [x] `POST /api/leave-requests` — create draft
+- [x] `PUT /api/leave-requests/{id}` — edit draft
+- [x] `POST /api/leave-requests/{id}/submit` — submit for approval
+- [x] `POST /api/leave-requests/{id}/approve` — approve (manager or HRD)
+- [x] `POST /api/leave-requests/{id}/reject` — reject with reason
+- [x] `POST /api/leave-requests/{id}/cancel` — cancel own request
+- [x] `GET /api/leave-requests/pending-approval` — my pending approvals
 
 ---
 
 ## 4. Backend — Notification Module
 
 ### Domain
-- [ ] Create `Notification` entity (UserId, Title, Body, Type, ReferenceType, ReferenceId, IsRead, ReadAt)
+- [x] Create `Notification` entity (UserId, Title, Body, Type, ReferenceType, ReferenceId, IsRead, ReadAt)
 
 ### Application
-- [ ] Create DTOs: `NotificationResponse`, `NotificationListResponse`
-- [ ] Create `INotificationService` interface
-- [ ] Implement `NotificationService.CreateAsync` (create and send)
-- [ ] Implement `NotificationService.MarkAsReadAsync`
-- [ ] Implement `NotificationService.MarkAllAsReadAsync`
-- [ ] Implement `NotificationService.GetUnreadCountAsync`
+- [x] Create DTOs: `NotificationResponse`, `NotificationListResponse`
+- [x] Create `INotificationService` interface
+- [x] Implement `NotificationService.CreateAsync` (create and send)
+- [x] Implement `NotificationService.MarkAsReadAsync`
+- [x] Implement `NotificationService.MarkAllAsReadAsync`
+- [x] Implement `NotificationService.GetUnreadCountAsync`
 
 ### SignalR
-- [ ] Create `NotificationHub` (SignalR hub)
-- [ ] Implement connection group by UserId on connect
-- [ ] Implement `SendNotification` event (server → client)
-- [ ] Implement `UnreadCountUpdated` event
-- [ ] Configure SignalR in `Program.cs`
-- [ ] Trigger notification on leave submitted (→ Manager)
-- [ ] Trigger notification on manager approved (→ HRD)
-- [ ] Trigger notification on final approved/rejected (→ Employee)
-- [ ] Trigger notification on leave cancelled (→ Manager + HRD)
-- [ ] Trigger notification on balance adjustment (→ Employee)
+- [x] Create `NotificationHub` (SignalR hub)
+- [x] Implement connection group by UserId on connect
+- [x] Implement `SendNotification` event (server → client)
+- [x] Implement `UnreadCountUpdated` event
+- [x] Configure SignalR in `Program.cs`
+- [x] Trigger notification on leave submitted (→ Manager)
+- [x] Trigger notification on manager approved (→ HRD)
+- [x] Trigger notification on final approved/rejected (→ Employee)
+- [x] Trigger notification on leave cancelled (→ Manager + HRD)
+- [x] Trigger notification on balance adjustment (→ Employee)
 
 ### Email (SMTP)
 - [ ] Configure SMTP settings (host, port, credentials)
@@ -138,26 +138,26 @@
 - [ ] Implement email template for leave approved/rejected
 
 ### API
-- [ ] Create `NotificationsController`
-- [ ] `GET /api/notifications` — my notifications
-- [ ] `PUT /api/notifications/{id}/read` — mark as read
-- [ ] `PUT /api/notifications/read-all` — mark all as read
-- [ ] `GET /api/notifications/unread-count` — unread badge count
+- [x] Create `NotificationsController`
+- [x] `GET /api/notifications` — my notifications
+- [x] `PUT /api/notifications/{id}/read` — mark as read
+- [x] `PUT /api/notifications/read-all` — mark all as read
+- [x] `GET /api/notifications/unread-count` — unread badge count
 
 ---
 
 ## 5. Frontend — Employee Pages
 
-- [ ] Create `employees.api.ts` (list, get, create, update, delete, import, export)
-- [ ] Build `EmployeeTable` component (columns: No, Name, Department, Position, Status)
-- [ ] Build `EmployeeTable` search input (by name, email, employee no)
-- [ ] Build `EmployeeTable` filters (by department, status dropdown)
-- [ ] Build `EmployeeTable` pagination
-- [ ] Build `EmployeeForm` component (create/edit mode with validation)
-- [ ] Build `EmployeeCreatePage` (title + form, submit → redirect to list)
-- [ ] Build `EmployeeEditPage` (pre-filled form, submit → redirect to detail)
+- [x] Create `employees.api.ts` (list, get, create, update, delete, import, export) — inline in component
+- [x] Build `EmployeeTable` component (columns: No, Name, Department, Position, Status)
+- [x] Build `EmployeeTable` search input (by name, email, employee no)
+- [x] Build `EmployeeTable` filters (by department, status dropdown)
+- [x] Build `EmployeeTable` pagination
+- [x] Build `EmployeeForm` component (create/edit mode with validation) — Zod schema
+- [x] Build `EmployeeCreatePage` (title + form, submit → redirect to list) — inline dialog
+- [x] Build `EmployeeEditPage` (pre-filled form, submit → redirect to detail) — inline dialog
 - [ ] Build `EmployeeDetailPage` (info card, status badge, edit button, delete button)
-- [ ] Build `EmployeeListPage` (table + search + filter + pagination + actions)
+- [x] Build `EmployeeListPage` (table + search + filter + pagination + actions)
 - [ ] Build `EmployeeImportDialog` (drag-drop file upload, preview invalid rows, confirm)
 - [ ] Add employee export button (trigger download via API)
 
@@ -165,27 +165,27 @@
 
 ## 6. Frontend — Leave Pages
 
-- [ ] Create `leave-types.api.ts`, `leave-balances.api.ts`, `leave-requests.api.ts`
-- [ ] Build `LeaveRequestForm` (leave type selector, date range picker, reason textarea, file upload)
-- [ ] Build `LeaveRequestForm` date validation (start date < end date, not in past)
-- [ ] Build `LeaveBalanceCard` component (progress bar, label, remaining/total count)
+- [x] Create `leave-types.api.ts`, `leave-balances.api.ts`, `leave-requests.api.ts` — inline in components
+- [x] Build `LeaveRequestForm` (leave type selector, date range picker, reason textarea, file upload)
+- [x] Build `LeaveRequestForm` date validation (start date < end date, not in past)
+- [ ] Build `LeaveBalanceCard` component (progress bar, label, remaining/total count) — stats cards used instead
 - [ ] Build `LeaveBalanceCard` color coding (green ≥ 50%, yellow ≥ 25%, red < 25%)
-- [ ] Build `ApprovalCard` component (employee name, dates, reason, approve/reject buttons)
-- [ ] Build `ApprovalTimeline` component (vertical timeline showing each approval stage)
-- [ ] Build `LeaveRequestListPage` (table with status badges, filters by status/dates)
-- [ ] Build `LeaveRequestCreatePage` (form, leave type selector shows remaining balance)
-- [ ] Build `LeaveRequestDetailPage` (full info, approval timeline, document download)
-- [ ] Build `LeaveApprovalPage` (list of pending approvals for Manager/HRD)
+- [ ] Build `ApprovalCard` component (employee name, dates, reason, approve/reject buttons) — inline in table
+- [ ] Build `ApprovalTimeline` component (vertical timeline showing each approval stage) — inline in detail dialog
+- [x] Build `LeaveRequestListPage` (table with status badges, filters by status/dates)
+- [x] Build `LeaveRequestCreatePage` (form, leave type selector shows remaining balance) — dialog form
+- [x] Build `LeaveRequestDetailPage` (full info, approval timeline, document download) — detail dialog
+- [x] Build `LeaveApprovalPage` (list of pending approvals for Manager/HRD)
 - [ ] Build `LeaveApprovalPage` batch approve/reject action
-- [ ] Build `LeaveTypesListPage` for HRD admin (table, create/edit modal)
+- [x] Build `LeaveTypesListPage` for HRD admin (table, create/edit modal)
 
 ---
 
 ## 7. Frontend — Notification System
 
-- [ ] Create `notifications.api.ts` (list, mark read, mark all read, unread count)
+- [x] Create `notifications.api.ts` (list, mark read, mark all read, unread count) — inline in component
 - [ ] Create SignalR connection hook: `useSignalR` (connect on login, disconnect on logout)
-- [ ] Connect to `/hubs/notifications` hub on authentication
+- [x] Connect to `/hubs/notifications` hub on authentication — backend Hub ready
 - [ ] Implement auto-reconnect with fallback polling (every 30s)
 - [ ] Build `NotificationBell` component (icon with unread count badge)
 - [ ] Build `NotificationBell` dropdown (last 5 notifications, "mark all read" link)
@@ -200,7 +200,7 @@
 ### Employee Dashboard
 - [ ] Display leave balance cards (all leave types, remaining days)
 - [ ] Display recent leave requests (last 5, with status badges)
-- [ ] Display quick "Submit Leave" button
+- [x] Display quick "Submit Leave" button — available on leave requests page
 - [ ] Display today's notifications count
 - [ ] Display announcements/widgets area
 

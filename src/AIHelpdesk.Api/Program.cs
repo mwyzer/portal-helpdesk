@@ -52,6 +52,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
 
 builder.Services.AddCors(options =>
 {
@@ -91,6 +92,7 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<AIHelpdesk.Api.Hubs.NotificationHub>("/hubs/notifications");
 
 app.Run();
 
