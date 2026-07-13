@@ -76,7 +76,7 @@ export function DocumentRequestsPage() {
 
   const inv = () => queryClient.invalidateQueries({ queryKey: ['document-requests'] });
 
-  const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm<z.infer<typeof requestSchema>>({
+  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
   });
 
@@ -241,18 +241,19 @@ export function DocumentRequestsPage() {
           <DialogHeader><DialogTitle>New Document Request</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
             <div className="space-y-2">
-              <Label>Template *</Label>
+              <Label htmlFor="templateId">Template *</Label>
               <Select onValueChange={(v: string) => setValue('templateId', v)}>
-                <SelectTrigger><SelectValue placeholder="Select a template" /></SelectTrigger>
+                <SelectTrigger id="templateId" aria-invalid={!!errors.templateId} aria-describedby={errors.templateId ? 'templateId-error' : undefined}><SelectValue placeholder="Select a template" /></SelectTrigger>
                 <SelectContent>
                   {templates?.map((t) => (
                     <SelectItem key={t.id} value={t.id}>{t.name} ({t.code})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {errors.templateId && <p id="templateId-error" role="alert" className="text-sm text-destructive mt-1">{errors.templateId.message}</p>}
             </div>
-            <div className="space-y-2"><Label>Title *</Label><Input {...register('title')} placeholder="e.g., Employment Certificate for John" /></div>
-            <div className="space-y-2"><Label>Notes</Label><Input {...register('notes')} placeholder="Additional information..." /></div>
+            <div className="space-y-2"><Label htmlFor="title">Title *</Label><Input id="title" {...register('title')} placeholder="e.g., Employment Certificate for John" aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-error' : undefined} />{errors.title && <p id="title-error" role="alert" className="text-sm text-destructive mt-1">{errors.title.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="notes">Notes</Label><Input id="notes" {...register('notes')} placeholder="Additional information..." /></div>
             <DialogFooter><Button type="submit" disabled={isSubmitting}>Submit Request</Button></DialogFooter>
           </form>
         </DialogContent>

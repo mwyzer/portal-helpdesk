@@ -236,24 +236,25 @@ export function ActionItemsPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>New Action Item</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onCreate)} className="space-y-4">
-            <div className="space-y-2"><Label>Title *</Label><Input {...register('title')} placeholder="Follow up on Q3 report" /></div>
-            <div className="space-y-2"><Label>Description</Label><Textarea {...register('description')} placeholder="Details..." rows={3} /></div>
+            <div className="space-y-2"><Label htmlFor="title">Title *</Label><Input id="title" {...register('title')} placeholder="Follow up on Q3 report" aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-error' : undefined} />{errors.title && <p id="title-error" role="alert" className="text-sm text-destructive mt-1">{errors.title.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="description">Description</Label><Textarea id="description" {...register('description')} placeholder="Details..." rows={3} /></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Assigned To *</Label>
+                <Label htmlFor="assignedToId">Assigned To *</Label>
                 <Select onValueChange={(v: string) => setValue('assignedToId', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+                  <SelectTrigger id="assignedToId" aria-invalid={!!errors.assignedToId} aria-describedby={errors.assignedToId ? 'assignedToId-error' : undefined}><SelectValue placeholder="Select employee" /></SelectTrigger>
                   <SelectContent>
                     {employees?.items?.map((e) => (
                       <SelectItem key={e.id} value={e.id}>{e.fullName}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.assignedToId && <p id="assignedToId-error" role="alert" className="text-sm text-destructive mt-1">{errors.assignedToId.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Priority *</Label>
+                <Label htmlFor="priority">Priority *</Label>
                 <Select onValueChange={(v: string) => setValue('priority', v)} defaultValue="Medium">
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger id="priority"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Low">Low</SelectItem>
                     <SelectItem value="Medium">Medium</SelectItem>
@@ -264,11 +265,11 @@ export function ActionItemsPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Due Date *</Label><Input type="date" {...register('dueDate')} /></div>
+              <div className="space-y-2"><Label htmlFor="dueDate">Due Date *</Label><Input id="dueDate" type="date" {...register('dueDate')} aria-invalid={!!errors.dueDate} aria-describedby={errors.dueDate ? 'dueDate-error' : undefined} />{errors.dueDate && <p id="dueDate-error" role="alert" className="text-sm text-destructive mt-1">{errors.dueDate.message}</p>}</div>
               <div className="space-y-2">
-                <Label>Meeting (optional)</Label>
+                <Label htmlFor="meetingId">Meeting (optional)</Label>
                 <Select onValueChange={(v: string) => setValue('meetingId', v)}>
-                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectTrigger id="meetingId"><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {meetingsData?.items?.map((m) => (
@@ -288,24 +289,25 @@ export function ActionItemsPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>Edit Action Item</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onUpdate)} className="space-y-4">
-            <div className="space-y-2"><Label>Title *</Label><Input {...register('title')} /></div>
-            <div className="space-y-2"><Label>Description</Label><Textarea {...register('description')} rows={3} /></div>
+            <div className="space-y-2"><Label htmlFor="title-edit">Title *</Label><Input id="title-edit" {...register('title')} aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-edit-error' : undefined} />{errors.title && <p id="title-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.title.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="description-edit">Description</Label><Textarea id="description-edit" {...register('description')} rows={3} /></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Assigned To *</Label>
+                <Label htmlFor="assignedToId-edit">Assigned To *</Label>
                 <Select value={editingItem?.assignedToId} onValueChange={(v: string) => setValue('assignedToId', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+                  <SelectTrigger id="assignedToId-edit" aria-invalid={!!errors.assignedToId} aria-describedby={errors.assignedToId ? 'assignedToId-edit-error' : undefined}><SelectValue placeholder="Select employee" /></SelectTrigger>
                   <SelectContent>
                     {employees?.items?.map((e) => (
                       <SelectItem key={e.id} value={e.id}>{e.fullName}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.assignedToId && <p id="assignedToId-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.assignedToId.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Priority *</Label>
+                <Label htmlFor="priority-edit">Priority *</Label>
                 <Select onValueChange={(v: string) => setValue('priority', v)} defaultValue={editingItem?.priority}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger id="priority-edit"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Low">Low</SelectItem>
                     <SelectItem value="Medium">Medium</SelectItem>
@@ -316,11 +318,11 @@ export function ActionItemsPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Due Date *</Label><Input type="date" {...register('dueDate')} /></div>
+              <div className="space-y-2"><Label htmlFor="dueDate-edit">Due Date *</Label><Input id="dueDate-edit" type="date" {...register('dueDate')} aria-invalid={!!errors.dueDate} aria-describedby={errors.dueDate ? 'dueDate-edit-error' : undefined} />{errors.dueDate && <p id="dueDate-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.dueDate.message}</p>}</div>
               <div className="space-y-2">
-                <Label>Meeting (optional)</Label>
+                <Label htmlFor="meetingId-edit">Meeting (optional)</Label>
                 <Select value={editingItem?.meetingId || 'none'} onValueChange={(v: string) => setValue('meetingId', v)}>
-                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectTrigger id="meetingId-edit"><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {meetingsData?.items?.map((m) => (

@@ -56,20 +56,23 @@ export function ResetPasswordPage() {
               {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...register('email')} />
+                <Input id="email" type="email" {...register('email')} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'email-error' : undefined} />
+                {errors.email && <p id="email-error" role="alert" className="text-xs text-destructive">{String(errors.email.message)}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="token">Reset Token</Label>
-                <Input id="token" {...register('token')} />
+                <Input id="token" {...register('token')} aria-invalid={!!errors.token} aria-describedby={errors.token ? 'token-error' : undefined} />
+                {errors.token && <p id="token-error" role="alert" className="text-xs text-destructive">{String(errors.token.message)}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="newPassword">New Password</Label>
-                <Input id="newPassword" type="password" {...register('newPassword')} />
+                <Input id="newPassword" type="password" {...register('newPassword')} aria-invalid={!!errors.newPassword} aria-describedby={errors.newPassword ? 'newPassword-error' : undefined} />
+                {errors.newPassword && <p id="newPassword-error" role="alert" className="text-xs text-destructive">{String(errors.newPassword.message)}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input id="confirmPassword" type="password" {...register('confirmPassword')} />
-                {errors.confirmPassword && <p className="text-xs text-destructive">{String(errors.confirmPassword.message)}</p>}
+                <Input id="confirmPassword" type="password" {...register('confirmPassword')} aria-invalid={!!errors.confirmPassword} aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined} />
+                {errors.confirmPassword && <p id="confirmPassword-error" role="alert" className="text-xs text-destructive">{String(errors.confirmPassword.message)}</p>}
               </div>
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? <Spinner className="mr-2" /> : null} Reset Password

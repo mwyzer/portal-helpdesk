@@ -42,7 +42,7 @@ export function RolesPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
   });
 
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<z.infer<typeof roleSchema>>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<z.infer<typeof roleSchema>>({
     resolver: zodResolver(roleSchema),
   });
 
@@ -130,8 +130,8 @@ export function RolesPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Create Role</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onCreate)} className="space-y-4">
-            <div className="space-y-2"><Label>Name</Label><Input {...register('name')} placeholder="Super Admin" /></div>
-            <div className="space-y-2"><Label>Description</Label><Input {...register('description')} /></div>
+            <div className="space-y-2"><Label htmlFor="name">Name</Label><Input id="name" {...register('name')} placeholder="Super Admin" aria-invalid={!!errors.name} aria-describedby={errors.name ? 'name-error' : undefined} />{errors.name && <p id="name-error" role="alert" className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="description">Description</Label><Input id="description" {...register('description')} /></div>
             <DialogFooter><Button type="submit" disabled={isSubmitting}>Create</Button></DialogFooter>
           </form>
         </DialogContent>
@@ -141,8 +141,8 @@ export function RolesPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Edit Role</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onUpdate)} className="space-y-4">
-            <div className="space-y-2"><Label>Name</Label><Input {...register('name')} defaultValue={editingRole?.name} /></div>
-            <div className="space-y-2"><Label>Description</Label><Input {...register('description')} defaultValue={editingRole?.description} /></div>
+            <div className="space-y-2"><Label htmlFor="name-edit">Name</Label><Input id="name-edit" {...register('name')} defaultValue={editingRole?.name} aria-invalid={!!errors.name} aria-describedby={errors.name ? 'name-edit-error' : undefined} />{errors.name && <p id="name-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="description-edit">Description</Label><Input id="description-edit" {...register('description')} defaultValue={editingRole?.description} /></div>
             <DialogFooter><Button type="submit" disabled={isSubmitting}>Save</Button></DialogFooter>
           </form>
         </DialogContent>

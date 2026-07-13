@@ -231,36 +231,36 @@ export function EmployeesPage() {
           <form onSubmit={handleSubmit(onCreate)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Employee No</Label>
-                <Input {...register('employeeNo')} placeholder="EMP-001" />
-                {errors.employeeNo && <p className="text-sm text-destructive mt-1">{errors.employeeNo.message}</p>}
+                <Label htmlFor="employeeNo">Employee No</Label>
+                <Input id="employeeNo" {...register('employeeNo')} placeholder="EMP-001" aria-invalid={!!errors.employeeNo} aria-describedby={errors.employeeNo ? 'employeeNo-error' : undefined} />
+                {errors.employeeNo && <p id="employeeNo-error" role="alert" className="text-sm text-destructive mt-1">{errors.employeeNo.message}</p>}
               </div>
               <div>
-                <Label>Full Name</Label>
-                <Input {...register('fullName')} placeholder="John Doe" />
-                {errors.fullName && <p className="text-sm text-destructive mt-1">{errors.fullName.message}</p>}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Email</Label>
-                <Input {...register('email')} type="email" placeholder="john@company.com" />
-                {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
-              </div>
-              <div>
-                <Label>Phone</Label>
-                <Input {...register('phone')} placeholder="+62..." />
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input id="fullName" {...register('fullName')} placeholder="John Doe" aria-invalid={!!errors.fullName} aria-describedby={errors.fullName ? 'fullName-error' : undefined} />
+                {errors.fullName && <p id="fullName-error" role="alert" className="text-sm text-destructive mt-1">{errors.fullName.message}</p>}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Join Date</Label>
-                <Input {...register('joinDate')} type="date" />
-                {errors.joinDate && <p className="text-sm text-destructive mt-1">{errors.joinDate.message}</p>}
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" {...register('email')} type="email" placeholder="john@company.com" aria-invalid={!!errors.email} aria-describedby={errors.email ? 'email-error' : undefined} />
+                {errors.email && <p id="email-error" role="alert" className="text-sm text-destructive mt-1">{errors.email.message}</p>}
               </div>
               <div>
-                <Label>Status</Label>
-                <select {...register('employmentStatus')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" {...register('phone')} placeholder="+62..." />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="joinDate">Join Date</Label>
+                <Input id="joinDate" {...register('joinDate')} type="date" aria-invalid={!!errors.joinDate} aria-describedby={errors.joinDate ? 'joinDate-error' : undefined} />
+                {errors.joinDate && <p id="joinDate-error" role="alert" className="text-sm text-destructive mt-1">{errors.joinDate.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="employmentStatus">Status</Label>
+                <select id="employmentStatus" {...register('employmentStatus')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                   <option value="Resigned">Resigned</option>
@@ -270,23 +270,23 @@ export function EmployeesPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Department</Label>
-                <select {...register('departmentId')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <Label htmlFor="departmentId">Department</Label>
+                <select id="departmentId" {...register('departmentId')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">-- Select --</option>
                   {departments?.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label>Position</Label>
-                <select {...register('positionId')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <Label htmlFor="positionId">Position</Label>
+                <select id="positionId" {...register('positionId')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">-- Select --</option>
                   {positions?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
             </div>
             <div>
-              <Label>Work Location</Label>
-              <Input {...register('workLocation')} placeholder="Jakarta Office" />
+              <Label htmlFor="workLocation">Work Location</Label>
+              <Input id="workLocation" {...register('workLocation')} placeholder="Jakarta Office" />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>

@@ -37,7 +37,7 @@ export function DepartmentsPage() {
     queryFn: () => api.get('/departments').then((r) => r.data),
   });
 
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<z.infer<typeof deptSchema>>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<z.infer<typeof deptSchema>>({
     resolver: zodResolver(deptSchema),
   });
 
@@ -130,8 +130,8 @@ export function DepartmentsPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Create Department</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onCreate)} className="space-y-4">
-            <div className="space-y-2"><Label>Name</Label><Input {...register('name')} placeholder="Human Resources" /></div>
-            <div className="space-y-2"><Label>Code</Label><Input {...register('code')} placeholder="HR" maxLength={10} /></div>
+            <div className="space-y-2"><Label htmlFor="name">Name</Label><Input id="name" {...register('name')} placeholder="Human Resources" aria-invalid={!!errors.name} aria-describedby={errors.name ? 'name-error' : undefined} />{errors.name && <p id="name-error" role="alert" className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="code">Code</Label><Input id="code" {...register('code')} placeholder="HR" maxLength={10} aria-invalid={!!errors.code} aria-describedby={errors.code ? 'code-error' : undefined} />{errors.code && <p id="code-error" role="alert" className="text-sm text-destructive mt-1">{errors.code.message}</p>}</div>
             <DialogFooter><Button type="submit" disabled={isSubmitting}>Create</Button></DialogFooter>
           </form>
         </DialogContent>
@@ -141,8 +141,8 @@ export function DepartmentsPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Edit Department</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onUpdate)} className="space-y-4">
-            <div className="space-y-2"><Label>Name</Label><Input {...register('name')} defaultValue={editingDept?.name} /></div>
-            <div className="space-y-2"><Label>Code</Label><Input {...register('code')} defaultValue={editingDept?.code} maxLength={10} /></div>
+            <div className="space-y-2"><Label htmlFor="name-edit">Name</Label><Input id="name-edit" {...register('name')} defaultValue={editingDept?.name} aria-invalid={!!errors.name} aria-describedby={errors.name ? 'name-edit-error' : undefined} />{errors.name && <p id="name-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="code-edit">Code</Label><Input id="code-edit" {...register('code')} defaultValue={editingDept?.code} maxLength={10} aria-invalid={!!errors.code} aria-describedby={errors.code ? 'code-edit-error' : undefined} />{errors.code && <p id="code-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.code.message}</p>}</div>
             <DialogFooter><Button type="submit" disabled={isSubmitting}>Save</Button></DialogFooter>
           </form>
         </DialogContent>

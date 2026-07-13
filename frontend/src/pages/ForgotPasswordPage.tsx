@@ -48,8 +48,8 @@ export function ForgotPasswordPage() {
               {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@company.com" {...register('email')} />
-                {errors.email && <p className="text-xs text-destructive">{String(errors.email.message)}</p>}
+                <Input id="email" type="email" placeholder="you@company.com" {...register('email')} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'email-error' : undefined} />
+                {errors.email && <p id="email-error" role="alert" className="text-xs text-destructive">{String(errors.email.message)}</p>}
               </div>
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? <Spinner className="mr-2" /> : null}

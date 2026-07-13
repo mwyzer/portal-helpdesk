@@ -48,7 +48,7 @@ export function DocumentTemplatesPage() {
     queryFn: () => api.get('/document-templates').then((r) => r.data),
   });
 
-  const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm<TemplateForm>({
+  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<TemplateForm>({
     resolver: zodResolver(templateSchema),
   });
 
@@ -146,23 +146,25 @@ export function DocumentTemplatesPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>Create Template</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onCreate)} className="space-y-4">
-            <div className="space-y-2"><Label>Name *</Label><Input {...register('name')} placeholder="Surat Keterangan Kerja" /></div>
+            <div className="space-y-2"><Label htmlFor="name">Name *</Label><Input id="name" {...register('name')} placeholder="Surat Keterangan Kerja" aria-invalid={!!errors.name} aria-describedby={errors.name ? 'name-error' : undefined} />{errors.name && <p id="name-error" role="alert" className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Code *</Label><Input {...register('code')} placeholder="SKK" maxLength={10} /></div>
+              <div className="space-y-2"><Label htmlFor="code">Code *</Label><Input id="code" {...register('code')} placeholder="SKK" maxLength={10} aria-invalid={!!errors.code} aria-describedby={errors.code ? 'code-error' : undefined} />{errors.code && <p id="code-error" role="alert" className="text-sm text-destructive mt-1">{errors.code.message}</p>}</div>
               <div className="space-y-2">
-                <Label>Category *</Label>
+                <Label htmlFor="category">Category *</Label>
                 <Select onValueChange={(v: string) => setValue('category', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger id="category" aria-invalid={!!errors.category} aria-describedby={errors.category ? 'category-error' : undefined}><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                {errors.category && <p id="category-error" role="alert" className="text-sm text-destructive mt-1">{errors.category.message}</p>}
               </div>
             </div>
-            <div className="space-y-2"><Label>Template Content *</Label>
-              <textarea {...register('contentTemplate')} rows={6} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Use {variable_name} for placeholders..." />
+            <div className="space-y-2"><Label htmlFor="contentTemplate">Template Content *</Label>
+              <textarea id="contentTemplate" {...register('contentTemplate')} rows={6} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Use {variable_name} for placeholders..." aria-invalid={!!errors.contentTemplate} aria-describedby={errors.contentTemplate ? 'contentTemplate-error' : undefined} />
+              {errors.contentTemplate && <p id="contentTemplate-error" role="alert" className="text-sm text-destructive mt-1">{errors.contentTemplate.message}</p>}
             </div>
-            <div className="space-y-2"><Label>Variables (JSON)</Label><Input {...register('variables')} placeholder='["employee_name","date"]' /></div>
+            <div className="space-y-2"><Label htmlFor="variables">Variables (JSON)</Label><Input id="variables" {...register('variables')} placeholder='["employee_name","date"]' /></div>
             <DialogFooter><Button type="submit" disabled={isSubmitting}>Create Template</Button></DialogFooter>
           </form>
         </DialogContent>
@@ -173,23 +175,25 @@ export function DocumentTemplatesPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>Edit Template</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onUpdate)} className="space-y-4">
-            <div className="space-y-2"><Label>Name *</Label><Input {...register('name')} /></div>
+            <div className="space-y-2"><Label htmlFor="name-edit">Name *</Label><Input id="name-edit" {...register('name')} aria-invalid={!!errors.name} aria-describedby={errors.name ? 'name-edit-error' : undefined} />{errors.name && <p id="name-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Code *</Label><Input {...register('code')} /></div>
+              <div className="space-y-2"><Label htmlFor="code-edit">Code *</Label><Input id="code-edit" {...register('code')} aria-invalid={!!errors.code} aria-describedby={errors.code ? 'code-edit-error' : undefined} />{errors.code && <p id="code-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.code.message}</p>}</div>
               <div className="space-y-2">
-                <Label>Category *</Label>
+                <Label htmlFor="category-edit">Category *</Label>
                 <Select onValueChange={(v: string) => setValue('category', v)} defaultValue={editingTemplate?.category}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="category-edit" aria-invalid={!!errors.category} aria-describedby={errors.category ? 'category-edit-error' : undefined}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                {errors.category && <p id="category-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.category.message}</p>}
               </div>
             </div>
-            <div className="space-y-2"><Label>Template Content *</Label>
-              <textarea {...register('contentTemplate')} rows={6} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+            <div className="space-y-2"><Label htmlFor="contentTemplate-edit">Template Content *</Label>
+              <textarea id="contentTemplate-edit" {...register('contentTemplate')} rows={6} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" aria-invalid={!!errors.contentTemplate} aria-describedby={errors.contentTemplate ? 'contentTemplate-edit-error' : undefined} />
+              {errors.contentTemplate && <p id="contentTemplate-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.contentTemplate.message}</p>}
             </div>
-            <div className="space-y-2"><Label>Variables (JSON)</Label><Input {...register('variables')} /></div>
+            <div className="space-y-2"><Label htmlFor="variables-edit">Variables (JSON)</Label><Input id="variables-edit" {...register('variables')} /></div>
             <DialogFooter><Button type="submit" disabled={isSubmitting}>Save Changes</Button></DialogFooter>
           </form>
         </DialogContent>

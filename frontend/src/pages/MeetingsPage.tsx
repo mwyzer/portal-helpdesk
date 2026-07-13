@@ -192,17 +192,17 @@ export function MeetingsPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>Schedule Meeting</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onCreate)} className="space-y-4">
-            <div className="space-y-2"><Label>Title *</Label><Input {...register('title')} placeholder="Weekly sync" /></div>
+            <div className="space-y-2"><Label htmlFor="title">Title *</Label><Input id="title" {...register('title')} placeholder="Weekly sync" aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-error' : undefined} />{errors.title && <p id="title-error" role="alert" className="text-sm text-destructive mt-1">{errors.title.message}</p>}</div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Date *</Label><Input type="date" {...register('date')} /></div>
+              <div className="space-y-2"><Label htmlFor="date">Date *</Label><Input id="date" type="date" {...register('date')} aria-invalid={!!errors.date} aria-describedby={errors.date ? 'date-error' : undefined} />{errors.date && <p id="date-error" role="alert" className="text-sm text-destructive mt-1">{errors.date.message}</p>}</div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Start Time *</Label><Input type="time" {...register('startTime')} /></div>
-              <div className="space-y-2"><Label>End Time *</Label><Input type="time" {...register('endTime')} /></div>
+              <div className="space-y-2"><Label htmlFor="startTime">Start Time *</Label><Input id="startTime" type="time" {...register('startTime')} aria-invalid={!!errors.startTime} aria-describedby={errors.startTime ? 'startTime-error' : undefined} />{errors.startTime && <p id="startTime-error" role="alert" className="text-sm text-destructive mt-1">{errors.startTime.message}</p>}</div>
+              <div className="space-y-2"><Label htmlFor="endTime">End Time *</Label><Input id="endTime" type="time" {...register('endTime')} aria-invalid={!!errors.endTime} aria-describedby={errors.endTime ? 'endTime-error' : undefined} />{errors.endTime && <p id="endTime-error" role="alert" className="text-sm text-destructive mt-1">{errors.endTime.message}</p>}</div>
             </div>
-            <div className="space-y-2"><Label>Location</Label><Input {...register('location')} placeholder="Room 301" /></div>
-            <div className="space-y-2"><Label>Meeting Link</Label><Input {...register('meetingLink')} placeholder="https://..." /></div>
-            <div className="space-y-2"><Label>Description</Label><Input {...register('description')} placeholder="Agenda..." /></div>
+            <div className="space-y-2"><Label htmlFor="location">Location</Label><Input id="location" {...register('location')} placeholder="Room 301" /></div>
+            <div className="space-y-2"><Label htmlFor="meetingLink">Meeting Link</Label><Input id="meetingLink" {...register('meetingLink')} placeholder="https://..." /></div>
+            <div className="space-y-2"><Label htmlFor="description">Description</Label><Input id="description" {...register('description')} placeholder="Agenda..." /></div>
             <DialogFooter><Button type="submit" disabled={isSubmitting}>Create Meeting</Button></DialogFooter>
           </form>
         </DialogContent>
@@ -213,15 +213,15 @@ export function MeetingsPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>Edit Meeting</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onUpdate)} className="space-y-4">
-            <div className="space-y-2"><Label>Title *</Label><Input {...register('title')} /></div>
-            <div className="space-y-2"><Label>Date *</Label><Input type="date" {...register('date')} /></div>
+            <div className="space-y-2"><Label htmlFor="title-edit">Title *</Label><Input id="title-edit" {...register('title')} aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-edit-error' : undefined} />{errors.title && <p id="title-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.title.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="date-edit">Date *</Label><Input id="date-edit" type="date" {...register('date')} aria-invalid={!!errors.date} aria-describedby={errors.date ? 'date-edit-error' : undefined} />{errors.date && <p id="date-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.date.message}</p>}</div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Start Time *</Label><Input type="time" {...register('startTime')} /></div>
-              <div className="space-y-2"><Label>End Time *</Label><Input type="time" {...register('endTime')} /></div>
+              <div className="space-y-2"><Label htmlFor="startTime-edit">Start Time *</Label><Input id="startTime-edit" type="time" {...register('startTime')} aria-invalid={!!errors.startTime} aria-describedby={errors.startTime ? 'startTime-edit-error' : undefined} />{errors.startTime && <p id="startTime-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.startTime.message}</p>}</div>
+              <div className="space-y-2"><Label htmlFor="endTime-edit">End Time *</Label><Input id="endTime-edit" type="time" {...register('endTime')} aria-invalid={!!errors.endTime} aria-describedby={errors.endTime ? 'endTime-edit-error' : undefined} />{errors.endTime && <p id="endTime-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.endTime.message}</p>}</div>
             </div>
-            <div className="space-y-2"><Label>Location</Label><Input {...register('location')} /></div>
-            <div className="space-y-2"><Label>Meeting Link</Label><Input {...register('meetingLink')} /></div>
-            <div className="space-y-2"><Label>Description</Label><Input {...register('description')} /></div>
+            <div className="space-y-2"><Label htmlFor="location-edit">Location</Label><Input id="location-edit" {...register('location')} /></div>
+            <div className="space-y-2"><Label htmlFor="meetingLink-edit">Meeting Link</Label><Input id="meetingLink-edit" {...register('meetingLink')} /></div>
+            <div className="space-y-2"><Label htmlFor="description-edit">Description</Label><Input id="description-edit" {...register('description')} /></div>
             <DialogFooter><Button type="submit" disabled={isSubmitting}>Save Changes</Button></DialogFooter>
           </form>
         </DialogContent>

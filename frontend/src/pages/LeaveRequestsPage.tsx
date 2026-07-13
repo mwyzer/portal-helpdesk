@@ -206,29 +206,29 @@ export function LeaveRequestsPage() {
           <DialogHeader><DialogTitle>Apply for Leave</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onApply)} className="space-y-4">
             <div>
-              <Label>Leave Type</Label>
-              <select {...register('leaveTypeId')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <Label htmlFor="leaveTypeId">Leave Type</Label>
+              <select id="leaveTypeId" {...register('leaveTypeId')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" aria-invalid={!!errors.leaveTypeId} aria-describedby={errors.leaveTypeId ? 'leaveTypeId-error' : undefined}>
                 <option value="">-- Select --</option>
                 {leaveTypes?.map((lt) => <option key={lt.id} value={lt.id}>{lt.name} ({lt.code})</option>)}
               </select>
-              {errors.leaveTypeId && <p className="text-sm text-destructive mt-1">{errors.leaveTypeId.message}</p>}
+              {errors.leaveTypeId && <p id="leaveTypeId-error" role="alert" className="text-sm text-destructive mt-1">{errors.leaveTypeId.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Start Date</Label>
-                <Input {...register('startDate')} type="date" />
-                {errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input id="startDate" {...register('startDate')} type="date" aria-invalid={!!errors.startDate} aria-describedby={errors.startDate ? 'startDate-error' : undefined} />
+                {errors.startDate && <p id="startDate-error" role="alert" className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}
               </div>
               <div>
-                <Label>End Date</Label>
-                <Input {...register('endDate')} type="date" />
-                {errors.endDate && <p className="text-sm text-destructive mt-1">{errors.endDate.message}</p>}
+                <Label htmlFor="endDate">End Date</Label>
+                <Input id="endDate" {...register('endDate')} type="date" aria-invalid={!!errors.endDate} aria-describedby={errors.endDate ? 'endDate-error' : undefined} />
+                {errors.endDate && <p id="endDate-error" role="alert" className="text-sm text-destructive mt-1">{errors.endDate.message}</p>}
               </div>
             </div>
             <div>
-              <Label>Reason</Label>
-              <textarea {...register('reason')} className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Describe your reason..." />
-              {errors.reason && <p className="text-sm text-destructive mt-1">{errors.reason.message}</p>}
+              <Label htmlFor="reason">Reason</Label>
+              <textarea id="reason" {...register('reason')} className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Describe your reason..." aria-invalid={!!errors.reason} aria-describedby={errors.reason ? 'reason-error' : undefined} />
+              {errors.reason && <p id="reason-error" role="alert" className="text-sm text-destructive mt-1">{errors.reason.message}</p>}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowApply(false)}>Cancel</Button>

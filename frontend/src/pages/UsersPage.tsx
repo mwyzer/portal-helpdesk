@@ -194,10 +194,10 @@ export function UsersPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Create User</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onCreate)} className="space-y-4">
-            <div className="space-y-2"><Label>Full Name</Label><Input {...register('fullName')} /></div>
-            <div className="space-y-2"><Label>Email</Label><Input type="email" {...register('email')} /></div>
-            <div className="space-y-2"><Label>NIK</Label><Input {...register('nik')} /></div>
-            <div className="space-y-2"><Label>Password</Label><Input type="password" {...register('password')} /></div>
+            <div className="space-y-2"><Label htmlFor="fullName">Full Name</Label><Input id="fullName" {...register('fullName')} aria-invalid={!!errors.fullName} aria-describedby={errors.fullName ? 'fullName-error' : undefined} />{errors.fullName && <p id="fullName-error" role="alert" className="text-sm text-destructive mt-1">{errors.fullName.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" {...register('email')} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'email-error' : undefined} />{errors.email && <p id="email-error" role="alert" className="text-sm text-destructive mt-1">{errors.email.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="nik">NIK</Label><Input id="nik" {...register('nik')} /></div>
+            <div className="space-y-2"><Label htmlFor="password">Password</Label><Input id="password" type="password" {...register('password')} aria-invalid={!!errors.password} aria-describedby={errors.password ? 'password-error' : undefined} />{errors.password && <p id="password-error" role="alert" className="text-sm text-destructive mt-1">{errors.password.message}</p>}</div>
             <DialogFooter><Button type="submit" disabled={isSubmitting}>Create</Button></DialogFooter>
           </form>
         </DialogContent>
@@ -208,9 +208,9 @@ export function UsersPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onUpdate)} className="space-y-4">
-            <div className="space-y-2"><Label>Full Name</Label><Input {...register('fullName')} defaultValue={editingUser?.fullName} /></div>
-            <div className="space-y-2"><Label>Email</Label><Input type="email" {...register('email')} defaultValue={editingUser?.email} /></div>
-            <div className="space-y-2"><Label>NIK</Label><Input {...register('nik')} defaultValue={editingUser?.nik} /></div>
+            <div className="space-y-2"><Label htmlFor="fullName-edit">Full Name</Label><Input id="fullName-edit" {...register('fullName')} defaultValue={editingUser?.fullName} aria-invalid={!!errors.fullName} aria-describedby={errors.fullName ? 'fullName-edit-error' : undefined} />{errors.fullName && <p id="fullName-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.fullName.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="email-edit">Email</Label><Input id="email-edit" type="email" {...register('email')} defaultValue={editingUser?.email} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'email-edit-error' : undefined} />{errors.email && <p id="email-edit-error" role="alert" className="text-sm text-destructive mt-1">{errors.email.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="nik-edit">NIK</Label><Input id="nik-edit" {...register('nik')} defaultValue={editingUser?.nik} /></div>
             <DialogFooter><Button type="submit" disabled={isSubmitting}>Save</Button></DialogFooter>
           </form>
         </DialogContent>

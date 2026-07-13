@@ -91,26 +91,26 @@ export function LeaveTypesPage() {
     <>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Name</Label>
-          <Input {...register('name')} placeholder="Annual Leave" />
-          {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+          <Label htmlFor="name">Name</Label>
+          <Input id="name" {...register('name')} placeholder="Annual Leave" aria-invalid={!!errors.name} aria-describedby={errors.name ? 'name-error' : undefined} />
+          {errors.name && <p id="name-error" role="alert" className="text-sm text-destructive mt-1">{errors.name.message}</p>}
         </div>
         <div>
-          <Label>Code</Label>
-          <Input {...register('code')} placeholder="AL" />
-          {errors.code && <p className="text-sm text-destructive mt-1">{errors.code.message}</p>}
+          <Label htmlFor="code">Code</Label>
+          <Input id="code" {...register('code')} placeholder="AL" aria-invalid={!!errors.code} aria-describedby={errors.code ? 'code-error' : undefined} />
+          {errors.code && <p id="code-error" role="alert" className="text-sm text-destructive mt-1">{errors.code.message}</p>}
         </div>
       </div>
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <Label>Days / Year</Label>
-          <Input {...register('daysPerYear')} type="number" min="0" />
-          {errors.daysPerYear && <p className="text-sm text-destructive mt-1">{errors.daysPerYear.message}</p>}
+          <Label htmlFor="daysPerYear">Days / Year</Label>
+          <Input id="daysPerYear" {...register('daysPerYear')} type="number" min="0" aria-invalid={!!errors.daysPerYear} aria-describedby={errors.daysPerYear ? 'daysPerYear-error' : undefined} />
+          {errors.daysPerYear && <p id="daysPerYear-error" role="alert" className="text-sm text-destructive mt-1">{errors.daysPerYear.message}</p>}
         </div>
         <div>
-          <Label>Min Service (months)</Label>
-          <Input {...register('minServiceMonths')} type="number" min="0" />
-          {errors.minServiceMonths && <p className="text-sm text-destructive mt-1">{errors.minServiceMonths.message}</p>}
+          <Label htmlFor="minServiceMonths">Min Service (months)</Label>
+          <Input id="minServiceMonths" {...register('minServiceMonths')} type="number" min="0" aria-invalid={!!errors.minServiceMonths} aria-describedby={errors.minServiceMonths ? 'minServiceMonths-error' : undefined} />
+          {errors.minServiceMonths && <p id="minServiceMonths-error" role="alert" className="text-sm text-destructive mt-1">{errors.minServiceMonths.message}</p>}
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
