@@ -1,0 +1,32 @@
+# ── Node modules ──
+**/node_modules/
+
+# ── .NET build outputs ──
+**/bin/
+**/obj/
+*.user
+*.suo
+*.DotSettings.user
+
+# ── IDE & OS ──
+.vs/
+.vscode/
+.idea/
+Thumbs.db
+*.swp
+
+# ── Docker volumes ──
+pgdata/
+
+# ── Environment & secrets ──
+.env
+*.env.local
+appsettings.*.local.json
+
+# ── Logs ──
+*.log
+logs/
+
+# ── Misc ──
+*.bak
+*.tmp

@@ -1,0 +1,50 @@
+services:
+  postgres:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+    environment:
+      POSTGRES_DB: aihelpdesk
+      POSTGRES_USER: helpdesk
+      POSTGRES_PASSWORD: helpdesk123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U helpdesk -d aihelpdesk"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: src/AIHelpdesk.Api/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=aihelpdesk;Username=helpdesk;Password=helpdesk123
+      - Jwt__Key=ThisIsASuperSecretKeyForDevOnly1234567890!
+      - Jwt__Issuer=AIHelpdesk
+      - Jwt__Audience=AIHelpdesk
+      - Cors__Origins__0=http://localhost:5173
+    ports:
+      - "5192:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    restart: unless-stopped
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

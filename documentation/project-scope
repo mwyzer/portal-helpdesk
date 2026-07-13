@@ -1,0 +1,1115 @@
+# PROJECT SCOPE
+
+## AI Helpdesk – Digital Secretary & HR Assistant
+
+## 1. Ringkasan Proyek
+
+AI Helpdesk adalah aplikasi internal perusahaan yang berfungsi sebagai:
+
+1. **Sekretaris digital**
+
+   * Mengelola agenda.
+   * Mencatat dan merangkum rapat.
+   * Membuat surat dan dokumen.
+   * Mengelola permintaan internal.
+   * Memberikan pengingat pekerjaan.
+
+2. **Asisten HRD**
+
+   * Mengelola data karyawan.
+   * Menangani cuti dan izin.
+   * Membantu proses rekrutmen.
+   * Menjawab pertanyaan terkait kebijakan perusahaan.
+   * Membantu pembuatan dokumen HR.
+
+Sistem dibangun menggunakan:
+
+* **Frontend:** React.js
+* **Backend:** ASP.NET Core Web API
+* **Database:** PostgreSQL atau SQL Server
+* **AI Integration:** OpenAI API, Azure OpenAI, atau LLM lain
+* **Deployment:** Docker dan cloud/VPS
+
+---
+
+# 2. Tujuan Proyek
+
+Tujuan utama AI Helpdesk adalah:
+
+* Mengurangi pekerjaan administratif berulang.
+* Memusatkan layanan sekretariat dan HR dalam satu aplikasi.
+* Mempercepat respons terhadap kebutuhan karyawan.
+* Membantu HRD membuat dokumen dan laporan.
+* Menyediakan pencarian informasi internal menggunakan AI.
+* Menyediakan riwayat permintaan yang dapat dilacak.
+* Meningkatkan efisiensi komunikasi antara karyawan, HRD, dan manajemen.
+
+---
+
+# 3. Target Pengguna
+
+## 3.1 Karyawan
+
+Karyawan dapat:
+
+* Mengajukan cuti.
+* Mengajukan izin.
+* Mengirim permintaan surat.
+* Melihat status permintaan.
+* Menanyakan kebijakan perusahaan.
+* Melihat agenda dan pengumuman.
+* Berkomunikasi dengan AI Helpdesk.
+
+## 3.2 HRD
+
+HRD dapat:
+
+* Mengelola data karyawan.
+* Memproses cuti dan izin.
+* Membuat surat HR.
+* Mengelola kandidat rekrutmen.
+* Mengunggah kebijakan perusahaan.
+* Melihat laporan HR.
+* Mengoreksi jawaban yang diberikan AI.
+
+## 3.3 Sekretaris atau Admin
+
+Sekretaris dapat:
+
+* Mengelola agenda pimpinan.
+* Membuat notulen rapat.
+* Mengelola surat masuk dan keluar.
+* Menjadwalkan rapat.
+* Mengirim pengumuman.
+* Memantau permintaan internal.
+
+## 3.4 Pimpinan atau Manager
+
+Pimpinan dapat:
+
+* Melihat dashboard ringkasan.
+* Menyetujui cuti.
+* Menyetujui dokumen.
+* Melihat agenda.
+* Membaca laporan HR.
+* Melihat aktivitas dan permintaan penting.
+
+## 3.5 Super Admin
+
+Super Admin dapat:
+
+* Mengelola pengguna.
+* Mengatur role dan permission.
+* Mengatur konfigurasi AI.
+* Mengelola unit kerja.
+* Melihat audit log.
+* Mengatur integrasi sistem.
+
+---
+
+# 4. Ruang Lingkup MVP
+
+## 4.1 Authentication dan User Management
+
+Fitur:
+
+* Login dan logout.
+* Refresh token.
+* Lupa password.
+* Ubah password.
+* Aktivasi dan nonaktifkan pengguna.
+* Pengelolaan profil pengguna.
+* Pengelolaan departemen.
+* Pengelolaan jabatan.
+* Role-based access control.
+
+Role awal:
+
+* Employee
+* HRD
+* Secretary
+* Manager
+* Super Admin
+
+---
+
+# 4.2 AI Helpdesk Chat
+
+Karyawan dapat berkomunikasi dengan AI melalui halaman chat.
+
+Contoh pertanyaan:
+
+* Bagaimana prosedur pengajuan cuti?
+* Berapa sisa cuti saya?
+* Buatkan surat izin tidak masuk kerja.
+* Apa aturan kerja lembur?
+* Kapan rapat divisi berikutnya?
+* Buatkan rangkuman hasil rapat.
+* Bagaimana status pengajuan surat saya?
+
+Fitur:
+
+* Percakapan dengan AI.
+* Riwayat percakapan.
+* Pengelompokan percakapan.
+* Sumber jawaban atau referensi dokumen.
+* Tombol memberikan penilaian jawaban.
+* Eskalasi ke staf HRD atau sekretaris.
+* Penyimpanan konteks percakapan.
+* Pembatasan jawaban berdasarkan role pengguna.
+
+AI tidak boleh langsung mengambil keputusan administratif. AI hanya membantu memberikan informasi, membuat draft, dan meneruskan permintaan kepada petugas yang berwenang.
+
+---
+
+# 4.3 Knowledge Base Perusahaan
+
+Knowledge base menjadi sumber informasi AI.
+
+Dokumen yang dapat dimasukkan:
+
+* SOP perusahaan.
+* Peraturan perusahaan.
+* Employee handbook.
+* Kebijakan cuti.
+* Kebijakan lembur.
+* Struktur organisasi.
+* Template surat.
+* Panduan pekerjaan.
+* FAQ perusahaan.
+
+Fitur:
+
+* Upload PDF, DOCX, dan TXT.
+* Kategori dokumen.
+* Versi dokumen.
+* Status aktif dan arsip.
+* Pencarian dokumen.
+* Ekstraksi isi dokumen.
+* Indexing untuk AI.
+* Pembatasan akses berdasarkan departemen atau role.
+* Menampilkan sumber jawaban AI.
+
+Pendekatan AI dapat menggunakan RAG atau Retrieval-Augmented Generation.
+
+Alur RAG:
+
+1. Admin mengunggah dokumen.
+2. Backend mengekstrak isi dokumen.
+3. Dokumen dibagi menjadi beberapa bagian.
+4. Setiap bagian dibuat menjadi embedding.
+5. Embedding disimpan dalam vector database.
+6. Pertanyaan pengguna dicocokkan dengan dokumen.
+7. LLM menghasilkan jawaban berdasarkan dokumen perusahaan.
+
+---
+
+# 4.4 Employee Management
+
+Data karyawan meliputi:
+
+* Nomor induk karyawan.
+* Nama lengkap.
+* Email.
+* Nomor telepon.
+* Tanggal bergabung.
+* Departemen.
+* Jabatan.
+* Manager.
+* Status kepegawaian.
+* Lokasi kerja.
+* Sisa cuti.
+* Status aktif atau nonaktif.
+
+Fitur:
+
+* Tambah data karyawan.
+* Edit data karyawan.
+* Impor karyawan dari Excel.
+* Ekspor data karyawan.
+* Pencarian dan filter.
+* Riwayat perubahan data.
+* Tampilan struktur organisasi sederhana.
+
+Data sensitif seperti informasi gaji dapat ditempatkan pada modul terpisah dengan hak akses khusus.
+
+---
+
+# 4.5 Cuti dan Izin
+
+Jenis pengajuan:
+
+* Cuti tahunan.
+* Cuti sakit.
+* Cuti khusus.
+* Izin terlambat.
+* Izin pulang lebih awal.
+* Izin tidak masuk.
+* Work from home.
+
+Fitur:
+
+* Form pengajuan.
+* Upload dokumen pendukung.
+* Perhitungan jumlah hari.
+* Validasi saldo cuti.
+* Approval oleh manager.
+* Verifikasi HRD.
+* Riwayat pengajuan.
+* Penolakan dengan alasan.
+* Pembatalan pengajuan.
+* Notifikasi perubahan status.
+
+Status:
+
+* Draft
+* Submitted
+* Waiting for Manager
+* Waiting for HR
+* Approved
+* Rejected
+* Cancelled
+
+Contoh workflow:
+
+1. Karyawan mengajukan cuti.
+2. Manager menerima notifikasi.
+3. Manager menyetujui atau menolak.
+4. HRD melakukan verifikasi.
+5. Saldo cuti diperbarui.
+6. Karyawan menerima notifikasi hasil.
+
+---
+
+# 4.6 Permintaan Surat dan Dokumen
+
+Jenis dokumen:
+
+* Surat keterangan kerja.
+* Surat rekomendasi.
+* Surat tugas.
+* Surat izin.
+* Surat perjalanan dinas.
+* Memo internal.
+* Undangan rapat.
+* Pengumuman perusahaan.
+* Surat pengalaman kerja.
+
+Fitur:
+
+* Form permintaan surat.
+* Pembuatan draft oleh AI.
+* Pemilihan template.
+* Nomor surat otomatis.
+* Review oleh HRD atau sekretaris.
+* Approval oleh pejabat terkait.
+* Ekspor PDF atau DOCX.
+* Riwayat dokumen.
+* Status dokumen.
+* Download dokumen final.
+
+AI hanya menghasilkan draft. Dokumen resmi harus melalui proses pemeriksaan dan persetujuan.
+
+---
+
+# 4.7 Agenda dan Meeting Management
+
+Fitur:
+
+* Membuat agenda.
+* Membuat jadwal rapat.
+* Menambahkan peserta.
+* Menentukan lokasi atau meeting link.
+* Mengirim undangan.
+* Membuat reminder.
+* Mencatat hasil rapat.
+* Upload rekaman atau transkrip.
+* Membuat rangkuman rapat menggunakan AI.
+* Membuat daftar tindak lanjut.
+* Menentukan PIC dan deadline.
+
+Data meeting:
+
+* Judul rapat.
+* Tanggal dan waktu.
+* Penyelenggara.
+* Peserta.
+* Lokasi.
+* Meeting link.
+* Agenda pembahasan.
+* Catatan.
+* Keputusan.
+* Action items.
+
+Integrasi Google Calendar atau Microsoft Outlook dapat dikembangkan setelah MVP.
+
+---
+
+# 4.8 Internal Helpdesk Ticket
+
+Kategori tiket:
+
+* HRD.
+* Sekretariat.
+* IT Support.
+* Finance.
+* General Affair.
+* Legal.
+* Operasional.
+
+Fitur:
+
+* Membuat tiket.
+* Memilih kategori.
+* Menentukan prioritas.
+* Menambahkan lampiran.
+* Menugaskan tiket ke petugas.
+* Memberikan komentar.
+* Mengubah status.
+* Eskalasi tiket.
+* Riwayat aktivitas.
+* SLA sederhana.
+* Filter berdasarkan status, kategori, dan petugas.
+
+Status tiket:
+
+* Open
+* Assigned
+* In Progress
+* Waiting for User
+* Resolved
+* Closed
+* Rejected
+
+Prioritas:
+
+* Low
+* Normal
+* High
+* Urgent
+
+AI dapat memberikan jawaban awal sebelum tiket diteruskan kepada petugas.
+
+---
+
+# 4.9 Recruitment Assistant
+
+Untuk MVP, modul rekrutmen dibuat dalam bentuk sederhana.
+
+Fitur:
+
+* Membuat lowongan.
+* Menyimpan data kandidat.
+* Upload CV.
+* Mengubah status kandidat.
+* Menambahkan catatan interview.
+* Membuat pertanyaan interview menggunakan AI.
+* Membuat rangkuman CV.
+* Membandingkan CV dengan kebutuhan posisi.
+* Menjadwalkan interview.
+* Membuat email atau pesan undangan interview.
+
+Pipeline kandidat:
+
+* Applied
+* Screening
+* Test
+* Interview
+* Offering
+* Hired
+* Rejected
+
+AI hanya memberikan rekomendasi. Keputusan penerimaan kandidat tetap dilakukan oleh HRD dan hiring manager.
+
+---
+
+# 4.10 Notification
+
+Jenis notifikasi:
+
+* Pengajuan baru.
+* Permintaan approval.
+* Pengajuan disetujui.
+* Pengajuan ditolak.
+* Tiket mendapatkan balasan.
+* Jadwal rapat mendekati waktu.
+* Deadline action item.
+* Dokumen telah selesai.
+* Kandidat memasuki tahapan baru.
+
+Channel MVP:
+
+* Notifikasi dalam aplikasi.
+* Email.
+
+Pengembangan berikutnya:
+
+* WhatsApp.
+* Telegram.
+* Microsoft Teams.
+* Slack.
+
+---
+
+# 4.11 Dashboard
+
+## Dashboard Karyawan
+
+Menampilkan:
+
+* Sisa cuti.
+* Pengajuan terbaru.
+* Tiket aktif.
+* Agenda hari ini.
+* Dokumen terbaru.
+* Notifikasi.
+* Akses cepat ke AI Helpdesk.
+
+## Dashboard HRD
+
+Menampilkan:
+
+* Jumlah karyawan aktif.
+* Pengajuan cuti menunggu verifikasi.
+* Kandidat aktif.
+* Permintaan dokumen.
+* Statistik kehadiran sederhana.
+* Tiket HR yang belum selesai.
+* Aktivitas terbaru.
+
+## Dashboard Sekretaris
+
+Menampilkan:
+
+* Agenda hari ini.
+* Jadwal pimpinan.
+* Surat menunggu review.
+* Rapat mendatang.
+* Action item yang terlambat.
+* Tiket sekretariat.
+
+## Dashboard Manager
+
+Menampilkan:
+
+* Approval yang menunggu.
+* Karyawan yang sedang cuti.
+* Jadwal rapat.
+* Action item tim.
+* Ringkasan aktivitas departemen.
+
+---
+
+# 5. Ruang Lingkup Frontend React.js
+
+## 5.1 Teknologi Frontend
+
+Rekomendasi:
+
+* React.js dengan TypeScript.
+* Vite.
+* React Router.
+* TanStack Query.
+* React Hook Form.
+* Zod.
+* Tailwind CSS.
+* shadcn/ui atau Material UI.
+* Axios.
+* Zustand atau Redux Toolkit jika diperlukan.
+* Recharts untuk dashboard.
+
+## 5.2 Halaman Frontend
+
+Halaman awal:
+
+1. Login.
+2. Dashboard.
+3. AI Helpdesk Chat.
+4. Profil pengguna.
+5. Daftar karyawan.
+6. Detail karyawan.
+7. Cuti dan izin.
+8. Approval cuti.
+9. Permintaan surat.
+10. Agenda dan meeting.
+11. Meeting notes.
+12. Helpdesk ticket.
+13. Recruitment pipeline.
+14. Knowledge base.
+15. Notification center.
+16. User management.
+17. Role management.
+18. System settings.
+19. Audit log.
+
+## 5.3 Struktur Frontend
+
+```text
+src/
+├── api/
+├── assets/
+├── components/
+├── features/
+│   ├── auth/
+│   ├── chat/
+│   ├── employees/
+│   ├── leave/
+│   ├── documents/
+│   ├── meetings/
+│   ├── tickets/
+│   ├── recruitment/
+│   └── knowledge-base/
+├── hooks/
+├── layouts/
+├── pages/
+├── routes/
+├── schemas/
+├── stores/
+├── types/
+└── utils/
+```
+
+---
+
+# 6. Ruang Lingkup Backend ASP.NET Core
+
+## 6.1 Teknologi Backend
+
+Rekomendasi:
+
+* ASP.NET Core Web API.
+* C#.
+* Entity Framework Core.
+* PostgreSQL atau SQL Server.
+* ASP.NET Core Identity.
+* JWT access token.
+* Refresh token.
+* FluentValidation.
+* AutoMapper atau Mapster.
+* MediatR untuk CQRS sederhana.
+* Serilog.
+* Swagger/OpenAPI.
+* Hangfire atau Quartz.NET untuk background job.
+* Redis untuk cache dan session opsional.
+* SignalR untuk notifikasi real-time.
+* Docker.
+
+## 6.2 Backend Modules
+
+```text
+Modules/
+├── Authentication
+├── Users
+├── Roles
+├── Employees
+├── Departments
+├── LeaveRequests
+├── DocumentRequests
+├── Meetings
+├── ActionItems
+├── Tickets
+├── Recruitment
+├── KnowledgeBase
+├── AIChat
+├── Notifications
+├── AuditLogs
+└── Settings
+```
+
+## 6.3 Arsitektur Backend
+
+Gunakan modular monolith untuk MVP.
+
+```text
+API Layer
+    ↓
+Application Layer
+    ↓
+Domain Layer
+    ↓
+Infrastructure Layer
+    ↓
+Database dan External Services
+```
+
+Struktur project:
+
+```text
+src/
+├── AIHelpdesk.Api
+├── AIHelpdesk.Application
+├── AIHelpdesk.Domain
+├── AIHelpdesk.Infrastructure
+└── AIHelpdesk.Contracts
+
+tests/
+├── AIHelpdesk.UnitTests
+└── AIHelpdesk.IntegrationTests
+```
+
+Modular monolith dipilih karena:
+
+* Lebih cepat dikembangkan.
+* Lebih mudah di-deploy.
+* Lebih sederhana dibandingkan microservices.
+* Tetap dapat dipisahkan menjadi microservices pada tahap berikutnya.
+
+---
+
+# 7. Entitas Database Utama
+
+Entitas utama:
+
+* Users
+* Roles
+* Permissions
+* UserRoles
+* Employees
+* Departments
+* Positions
+* LeaveTypes
+* LeaveBalances
+* LeaveRequests
+* LeaveApprovals
+* DocumentTemplates
+* DocumentRequests
+* GeneratedDocuments
+* Meetings
+* MeetingParticipants
+* MeetingNotes
+* ActionItems
+* Tickets
+* TicketComments
+* TicketAttachments
+* JobVacancies
+* Candidates
+* CandidateStages
+* Interviews
+* KnowledgeDocuments
+* KnowledgeChunks
+* ChatSessions
+* ChatMessages
+* AIResponses
+* Notifications
+* AuditLogs
+* SystemSettings
+
+Semua tabel utama sebaiknya memiliki:
+
+* Id.
+* CreatedAt.
+* CreatedBy.
+* UpdatedAt.
+* UpdatedBy.
+* IsDeleted atau DeletedAt.
+* RowVersion untuk optimistic concurrency jika dibutuhkan.
+
+---
+
+# 8. Contoh Endpoint API
+
+## Authentication
+
+```http
+POST /api/auth/login
+POST /api/auth/refresh-token
+POST /api/auth/logout
+POST /api/auth/forgot-password
+POST /api/auth/reset-password
+GET  /api/auth/profile
+```
+
+## Employees
+
+```http
+GET    /api/employees
+GET    /api/employees/{id}
+POST   /api/employees
+PUT    /api/employees/{id}
+DELETE /api/employees/{id}
+POST   /api/employees/import
+GET    /api/employees/export
+```
+
+## Leave Requests
+
+```http
+GET  /api/leave-requests
+POST /api/leave-requests
+GET  /api/leave-requests/{id}
+PUT  /api/leave-requests/{id}
+POST /api/leave-requests/{id}/submit
+POST /api/leave-requests/{id}/approve
+POST /api/leave-requests/{id}/reject
+POST /api/leave-requests/{id}/cancel
+```
+
+## AI Chat
+
+```http
+POST /api/ai/chat
+GET  /api/ai/conversations
+GET  /api/ai/conversations/{id}
+POST /api/ai/responses/{id}/feedback
+POST /api/ai/conversations/{id}/escalate
+```
+
+## Knowledge Base
+
+```http
+GET    /api/knowledge-documents
+POST   /api/knowledge-documents
+GET    /api/knowledge-documents/{id}
+DELETE /api/knowledge-documents/{id}
+POST   /api/knowledge-documents/{id}/index
+POST   /api/knowledge-documents/search
+```
+
+## Tickets
+
+```http
+GET  /api/tickets
+POST /api/tickets
+GET  /api/tickets/{id}
+POST /api/tickets/{id}/assign
+POST /api/tickets/{id}/comments
+POST /api/tickets/{id}/resolve
+POST /api/tickets/{id}/close
+```
+
+## Meetings
+
+```http
+GET  /api/meetings
+POST /api/meetings
+GET  /api/meetings/{id}
+PUT  /api/meetings/{id}
+POST /api/meetings/{id}/participants
+POST /api/meetings/{id}/notes
+POST /api/meetings/{id}/generate-summary
+```
+
+---
+
+# 9. Integrasi AI
+
+## 9.1 Kemampuan AI
+
+AI digunakan untuk:
+
+* Menjawab FAQ internal.
+* Mencari informasi dari dokumen perusahaan.
+* Membuat draft surat.
+* Membuat draft email.
+* Merangkum rapat.
+* Membuat action items.
+* Merangkum CV.
+* Membuat pertanyaan interview.
+* Mengategorikan tiket.
+* Menyarankan prioritas tiket.
+* Membuat ringkasan laporan.
+
+## 9.2 AI Guardrails
+
+Sistem harus menerapkan:
+
+* AI tidak dapat mengubah data tanpa persetujuan pengguna.
+* AI tidak dapat menyetujui cuti.
+* AI tidak dapat menerima atau menolak kandidat.
+* AI tidak dapat mengirim dokumen resmi tanpa approval.
+* Jawaban AI harus mengikuti hak akses pengguna.
+* Informasi sensitif tidak boleh ditampilkan kepada pengguna tanpa izin.
+* Prompt dan respons AI dicatat untuk audit.
+* Dokumen sumber jawaban ditampilkan.
+* Jawaban yang tidak memiliki sumber harus diberi peringatan.
+* Data pribadi tidak digunakan untuk training eksternal tanpa izin.
+
+---
+
+# 10. Security Requirements
+
+Keamanan minimum:
+
+* HTTPS.
+* Password hashing.
+* JWT dengan masa berlaku singkat.
+* Refresh token rotation.
+* Role-based authorization.
+* Permission-based authorization.
+* Rate limiting.
+* Input validation.
+* SQL injection protection melalui ORM.
+* CORS terbatas.
+* File upload validation.
+* Antivirus atau malware scanning untuk file.
+* Audit log.
+* Data encryption.
+* Secrets disimpan pada environment variable atau secret manager.
+* Backup database.
+* Session revocation.
+* Logging tanpa menyimpan password atau token.
+* Masking data sensitif.
+
+Contoh permission:
+
+* `employee.read`
+* `employee.create`
+* `employee.update`
+* `leave.submit`
+* `leave.approve`
+* `document.review`
+* `meeting.manage`
+* `ticket.assign`
+* `knowledge.upload`
+* `recruitment.manage`
+* `audit.read`
+
+---
+
+# 11. Non-Functional Requirements
+
+## Performance
+
+* Respons API normal maksimal sekitar 2 detik.
+* AI response dapat ditampilkan secara streaming.
+* Pagination untuk data besar.
+* Caching untuk data referensi.
+* Background processing untuk indexing dokumen.
+* Sistem mendukung minimal 100–500 pengguna pada tahap awal.
+
+## Reliability
+
+* Health check endpoint.
+* Database backup.
+* Retry untuk layanan eksternal.
+* Error handling terpusat.
+* Monitoring aplikasi.
+* Logging terstruktur.
+
+## Usability
+
+* Responsive untuk desktop, tablet, dan mobile.
+* Navigasi berdasarkan role.
+* Form mudah digunakan.
+* Status proses ditampilkan dengan jelas.
+* Mendukung bahasa Indonesia.
+* Bahasa Inggris dapat ditambahkan sebagai opsi.
+
+## Maintainability
+
+* Clean architecture.
+* Modular monolith.
+* Unit testing.
+* Integration testing.
+* Dokumentasi API.
+* Standard coding convention.
+* CI/CD pipeline.
+
+---
+
+# 12. Infrastruktur Awal
+
+Arsitektur deployment:
+
+```text
+User Browser
+     ↓
+React Frontend
+     ↓
+ASP.NET Core API
+     ↓
+PostgreSQL / SQL Server
+     ↓
+Redis
+     ↓
+AI Provider / Vector Database
+```
+
+Docker services:
+
+```text
+ai-helpdesk-frontend
+ai-helpdesk-backend
+ai-helpdesk-database
+ai-helpdesk-redis
+ai-helpdesk-vector-db
+ai-helpdesk-worker
+```
+
+Pilihan vector database:
+
+* PostgreSQL dengan pgvector.
+* Qdrant.
+* Azure AI Search.
+* Elasticsearch.
+* Pinecone.
+
+Untuk MVP, PostgreSQL dengan pgvector menjadi pilihan yang sederhana karena database transaksi dan vector dapat dikelola dalam satu platform.
+
+---
+
+# 13. Scope Tahap Pertama
+
+Fitur yang diprioritaskan untuk versi awal:
+
+1. Authentication dan RBAC.
+2. User dan employee management.
+3. AI Helpdesk Chat.
+4. Knowledge base.
+5. Pengajuan cuti dan approval.
+6. Permintaan surat.
+7. Internal helpdesk ticket.
+8. Agenda dan meeting.
+9. Notifikasi dalam aplikasi.
+10. Dashboard sederhana.
+11. Audit log.
+12. Docker deployment.
+
+Modul recruitment dapat dimasukkan sebagai fitur tambahan setelah fungsi sekretariat dan HR dasar stabil.
+
+---
+
+# 14. Di Luar Scope MVP
+
+Fitur berikut belum menjadi bagian MVP:
+
+* Payroll lengkap.
+* Perhitungan pajak.
+* Integrasi BPJS.
+* Mesin absensi biometrik.
+* Performance appraisal lengkap.
+* Learning management system.
+* Employee benefit management.
+* Video interview otomatis.
+* WhatsApp chatbot resmi.
+* Voice assistant.
+* Mobile application native.
+* Multi-company atau multi-tenant.
+* Analisis sentimen karyawan.
+* Prediksi pengunduran diri.
+* Integrasi enterprise ERP.
+
+Fitur tersebut dapat dikembangkan pada fase berikutnya.
+
+---
+
+# 15. Tahapan Pengembangan
+
+## Phase 1 – Foundation
+
+* Setup repository.
+* Setup backend ASP.NET Core.
+* Setup React.js.
+* Setup database.
+* Docker Compose.
+* Authentication.
+* User management.
+* Role dan permission.
+* Base layout frontend.
+
+## Phase 2 – Employee dan HR Administration
+
+* Employee management.
+* Department dan position.
+* Leave balance.
+* Leave request.
+* Approval workflow.
+* Notification.
+
+## Phase 3 – Secretary Module
+
+* Agenda.
+* Meeting.
+* Meeting participant.
+* Meeting notes.
+* Action items.
+* Document request.
+* Document template.
+
+## Phase 4 – AI Helpdesk
+
+* AI chat interface.
+* Chat history.
+* Integrasi LLM.
+* Knowledge base upload.
+* Document extraction.
+* Embedding dan vector search.
+* Sumber jawaban.
+* Feedback AI.
+* Eskalasi ke petugas.
+
+## Phase 5 – Ticketing
+
+* Create ticket.
+* Assignment.
+* Comment.
+* Attachment.
+* Status workflow.
+* SLA sederhana.
+* AI ticket classification.
+
+## Phase 6 – Recruitment
+
+* Job vacancy.
+* Candidate.
+* CV upload.
+* Candidate pipeline.
+* AI CV summary.
+* Interview schedule.
+* Interview notes.
+
+## Phase 7 – Hardening dan Deployment
+
+* Unit testing.
+* Integration testing.
+* Security testing.
+* Performance testing.
+* Logging dan monitoring.
+* CI/CD.
+* Production deployment.
+* User acceptance testing.
+
+---
+
+# 16. Deliverables
+
+Hasil proyek meliputi:
+
+* Source code React.js.
+* Source code ASP.NET Core.
+* Database schema.
+* Migration dan seed data.
+* Dockerfile.
+* Docker Compose.
+* API documentation.
+* Swagger/OpenAPI.
+* ERD.
+* User flow.
+* Role and permission matrix.
+* Test plan.
+* Deployment guide.
+* Security checklist.
+* User manual.
+* Administrator manual.
+* Environment configuration template.
+* CI/CD configuration.
+* MVP production build.
+
+---
+
+# 17. Kriteria Keberhasilan MVP
+
+MVP dianggap berhasil ketika:
+
+* Pengguna dapat login sesuai role.
+* Karyawan dapat mengajukan cuti.
+* Manager dan HRD dapat memproses approval.
+* Pengguna dapat meminta pembuatan surat.
+* Sekretaris dapat mengelola agenda dan meeting.
+* Pengguna dapat membuat dan memantau tiket.
+* Admin dapat mengunggah dokumen knowledge base.
+* AI dapat menjawab pertanyaan berdasarkan dokumen internal.
+* Jawaban AI menampilkan sumber.
+* Pengguna dapat mengeskalasi percakapan ke petugas.
+* Seluruh aktivitas penting tercatat dalam audit log.
+* Aplikasi dapat dijalankan melalui Docker.

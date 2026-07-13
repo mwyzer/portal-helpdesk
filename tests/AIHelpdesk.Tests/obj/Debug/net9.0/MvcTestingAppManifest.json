@@ -1,0 +1,7 @@
+{
+  "AIHelpdesk.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\mysites\\portal-helpdesk\\src\\AIHelpdesk.Api",
+  "AIHelpdesk.Application, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\mysites\\portal-helpdesk\\src\\AIHelpdesk.Application",
+  "AIHelpdesk.Contracts, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\mysites\\portal-helpdesk\\src\\AIHelpdesk.Contracts",
+  "AIHelpdesk.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\mysites\\portal-helpdesk\\src\\AIHelpdesk.Domain",
+  "AIHelpdesk.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\mysites\\portal-helpdesk\\src\\AIHelpdesk.Infrastructure"
+}
