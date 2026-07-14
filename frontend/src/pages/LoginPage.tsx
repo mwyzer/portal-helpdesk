@@ -36,9 +36,8 @@ export function LoginPage() {
       await login(data.email, data.password);
       navigate('/dashboard');
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Login failed. Please check your credentials.';
+      const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+      const msg = resp?.message ?? resp?.error ?? 'Login failed. Please check your credentials.';
       setError(msg);
     }
   };
