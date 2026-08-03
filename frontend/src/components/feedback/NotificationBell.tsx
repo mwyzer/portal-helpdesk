@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import api from '@/lib/axios';
 import { useSignalR } from '@/lib/useSignalR';
-import { useToastStore } from '@/lib/useToast';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -41,7 +40,6 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const addToast = useToastStore((s) => s.addToast);
 
   const { data: unreadCount = 0 } = useQuery<number>({
     queryKey: ['notifications', 'unread-count'],
@@ -56,16 +54,13 @@ export function NotificationBell() {
     enabled: open,
   });
 
-  // Listen for real-time notifications via SignalR
+  // Listen for real-time notifications via SignalR. Toasting is handled globally by
+  // AppLayout — this only needs to refresh the dropdown/unread badge, not show its own toast
+  // (registering a second onNotification handler here would double-toast every notification).
   const { onNotification, onUnreadCount } = useSignalR();
 
   useEffect(() => {
-    onNotification((notification) => {
-      addToast({
-        title: notification.title,
-        message: '',
-        type: 'info',
-      });
+    onNotification(() => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     });
 
