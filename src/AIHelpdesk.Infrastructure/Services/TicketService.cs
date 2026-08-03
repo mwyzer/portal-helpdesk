@@ -363,10 +363,23 @@ public class TicketService : ITicketService
         return await GetByIdAsync(id);
     }
 
+    private static readonly HashSet<string> AllowedAttachmentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".png", ".jpg", ".jpeg", ".gif", ".txt", ".csv", ".zip"
+    };
+    private const long MaxAttachmentSizeBytes = 10 * 1024 * 1024; // 10 MB — matches [RequestSizeLimit] on the controller action
+
     public async Task<TicketAttachmentResponse> UploadAttachmentAsync(Guid ticketId, Guid userId, string fileName, string contentType, Stream fileStream)
     {
         var ticket = await _context.Tickets.FindAsync(ticketId)
             ?? throw new KeyNotFoundException("Ticket not found");
+
+        var extension = Path.GetExtension(fileName);
+        if (string.IsNullOrEmpty(extension) || !AllowedAttachmentExtensions.Contains(extension))
+            throw new InvalidOperationException($"File type '{extension}' is not allowed.");
+
+        if (fileStream.CanSeek && fileStream.Length > MaxAttachmentSizeBytes)
+            throw new InvalidOperationException("File exceeds the maximum allowed size of 10 MB.");
 
         var uploadsDir = _configuration.GetValue<string>("Uploads:Path") ?? Path.Combine(Directory.GetCurrentDirectory(), "uploads");
         Directory.CreateDirectory(uploadsDir);
@@ -406,6 +419,44 @@ public class TicketService : ITicketService
             attachment.FileSize, attachment.ContentType,
             attachment.UploadedById, uploader?.FullName ?? "Unknown",
             attachment.CreatedAt);
+    }
+
+    public async Task<(Stream FileStream, string ContentType, string FileName)> DownloadAttachmentAsync(Guid ticketId, Guid attachmentId)
+    {
+        var attachment = await _context.TicketAttachments
+            .FirstOrDefaultAsync(a => a.Id == attachmentId && a.TicketId == ticketId)
+            ?? throw new KeyNotFoundException("Attachment not found");
+
+        if (!File.Exists(attachment.FilePath))
+            throw new KeyNotFoundException("Attachment file is missing from storage");
+
+        Stream stream = File.OpenRead(attachment.FilePath);
+        return (stream, attachment.ContentType, attachment.FileName);
+    }
+
+    public async Task DeleteAttachmentAsync(Guid ticketId, Guid attachmentId, Guid userId)
+    {
+        var attachment = await _context.TicketAttachments
+            .FirstOrDefaultAsync(a => a.Id == attachmentId && a.TicketId == ticketId)
+            ?? throw new KeyNotFoundException("Attachment not found");
+
+        _context.TicketAttachments.Remove(attachment);
+        _context.TicketHistories.Add(new TicketHistory
+        {
+            TicketId = ticketId,
+            Field = "Attachment",
+            OldValue = attachment.FileName,
+            NewValue = null,
+            ChangedById = userId,
+        });
+
+        await _context.SaveChangesAsync();
+
+        if (File.Exists(attachment.FilePath))
+        {
+            try { File.Delete(attachment.FilePath); }
+            catch (IOException ex) { _logger.LogWarning(ex, "Failed to delete attachment file {FilePath}", attachment.FilePath); }
+        }
     }
 
     public async Task<TicketStatsResponse> GetStatsAsync(Guid? userId, Guid? departmentId)
