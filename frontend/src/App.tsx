@@ -29,6 +29,10 @@ import { TicketDetailPage } from '@/pages/TicketDetailPage';
 import { TicketCategoriesPage } from '@/pages/TicketCategoriesPage';
 import { EscalationsPage } from '@/pages/EscalationsPage';
 import { AgentAssignmentsPage } from '@/pages/AgentAssignmentsPage';
+import { VacanciesPage } from '@/pages/VacanciesPage';
+import { CandidatesPage } from '@/pages/CandidatesPage';
+import { CandidateDetailPage } from '@/pages/CandidateDetailPage';
+import { InterviewsPage } from '@/pages/InterviewsPage';
 
 // ── Role aliases for route guards ─────────────────
 
@@ -89,6 +93,12 @@ export function App() {
         <Route path="action-items" element={<RoleGuard allowedRoles={Secretary}><ActionItemsPage /></RoleGuard>} />
         <Route path="documents/requests" element={<RoleGuard allowedRoles={Secretary}><DocumentRequestsPage /></RoleGuard>} />
         <Route path="documents/templates" element={<RoleGuard allowedRoles={Secretary}><DocumentTemplatesPage /></RoleGuard>} />
+
+        {/* ── Admin + Manager (Recruitment) ── */}
+        <Route path="recruitment/vacancies" element={<RoleGuard allowedRoles={Manager}><VacanciesPage /></RoleGuard>} />
+        <Route path="recruitment/candidates" element={<RoleGuard allowedRoles={Manager}><CandidatesPage /></RoleGuard>} />
+        <Route path="recruitment/candidates/:id" element={<RoleGuard allowedRoles={Manager}><CandidateDetailPage /></RoleGuard>} />
+        <Route path="recruitment/interviews" element={<RoleGuard allowedRoles={Manager}><InterviewsPage /></RoleGuard>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -30,6 +30,9 @@ import {
   LayoutList,
   UserCheck,
   AlertTriangle,
+  Briefcase,
+  Users2,
+  CalendarClock,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import type { LucideIcon } from 'lucide-react';
@@ -68,6 +71,9 @@ const allNavItems = {
   ticketCategories: { to: '/tickets/categories',  label: 'Categories',       icon: LayoutList },
   agentWorkload:    { to: '/tickets/agents',      label: 'Agent Workload',   icon: UserCheck },
   escalations:      { to: '/tickets/escalations', label: 'Escalations',      icon: AlertTriangle },
+  vacancies:        { to: '/recruitment/vacancies',  label: 'Vacancies',     icon: Briefcase },
+  candidates:       { to: '/recruitment/candidates', label: 'Candidates',    icon: Users2 },
+  interviews:       { to: '/recruitment/interviews', label: 'Interviews',    icon: CalendarClock },
 } as const;
 
 // ── Role-based navigation groups ──────────────────
@@ -93,6 +99,9 @@ const adminNav: NavItem[] = [
   allNavItems.ticketCategories,
   allNavItems.agentWorkload,
   allNavItems.escalations,
+  allNavItems.vacancies,
+  allNavItems.candidates,
+  allNavItems.interviews,
 ];
 
 const managerNav: NavItem[] = [
@@ -107,6 +116,9 @@ const managerNav: NavItem[] = [
   allNavItems.notifications,
   allNavItems.tickets,
   allNavItems.escalations,
+  allNavItems.vacancies,
+  allNavItems.candidates,
+  allNavItems.interviews,
 ];
 
 const secretaryNav: NavItem[] = [
