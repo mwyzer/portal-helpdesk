@@ -113,6 +113,12 @@ export function DashboardPage() {
     enabled: isAdmin,
   });
 
+  const { data: teamActionItems } = useQuery<{ items: { id: string }[]; totalCount: number }>({
+    queryKey: ['action-items', 'team'],
+    queryFn: () => api.get('/action-items/team?page=1&pageSize=1').then((r) => r.data),
+    enabled: isManager,
+  });
+
   const { data: allLeaveData } = useQuery<LeaveRequestListResponse>({
     queryKey: ['leave-requests', 'all', 'dashboard'],
     queryFn: () => api.get('/leave-requests?page=1&pageSize=100').then((r) => r.data),
@@ -233,6 +239,21 @@ export function DashboardPage() {
               <p className="text-xs text-muted-foreground mt-1">Click to review →</p>
             </CardContent>
           </Card>
+          {isManager && (
+            <Card
+              className="cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => navigate('/action-items')}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Team Action Items</CardTitle>
+                <ClipboardList className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{teamActionItems?.totalCount ?? '—'}</div>
+                <p className="text-xs text-muted-foreground mt-1">View team's items →</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 

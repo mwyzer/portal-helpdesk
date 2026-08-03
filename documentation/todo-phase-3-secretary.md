@@ -91,8 +91,8 @@
 
 ## Dashboards
 
-- [ ] Create Secretary dashboard page (today's agenda, pending reviews, upcoming meetings, overdue action items)
-- [ ] Extend manager dashboard (approval queue, team action items)
+- [x] Create Secretary dashboard page (today's agenda, pending reviews, upcoming meetings, overdue action items) — **correction:** this was already fully built in `DashboardPage.tsx` (role-gated cards for today's meetings, pending document reviews, overdue action items, upcoming meetings); the earlier audit missed it since it lives inside the shared `DashboardPage` rather than a separate route
+- [x] Extend manager dashboard (approval queue, team action items) — approval queue already existed ("Needs Your Action"); added a "Team Action Items" card (fixed 2026-08-04) using the existing `GET /api/action-items/team` endpoint, which was built but never surfaced in the UI
 
 ## Backend Tests
 
