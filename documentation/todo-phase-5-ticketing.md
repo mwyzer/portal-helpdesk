@@ -1,6 +1,6 @@
 # Phase 5 — Ticketing Module — TODO Checklist
 
-> **Status (2026-08-04):** Core backend (entities, migration, controllers, services for tickets/categories/escalations/agent assignments) and 5 frontend pages are implemented, ahead of this checklist. All of it is **currently uncommitted** (`git status` shows it as untracked). Confirmed real gaps: AI categorization is a hardcoded stub not wired to the working Phase 4 AI service, no SLA breach background job, no attachment download/delete, no Excel export, and no tests.
+> **Status (2026-08-04, updated):** Core backend + 5 frontend pages committed. Since the initial audit, the following were closed: AI categorization now calls the real Phase 4 `IAIService` (with graceful fallback), a `TicketSlaBackgroundService` runs every 5 min to detect breaches/at-risk tickets and notify the assigned agent, attachment upload now validates extension/size with new download + delete endpoints, and Excel export was added (backend + frontend button). 54 backend tests now cover `TicketService`, `TicketCategoryService`, `EscalationService`, `AgentAssignmentService`, and the SLA job. Remaining real gaps: no dedicated `/start`/`/reject`/`/escalate` endpoints (generic status endpoint used instead), no formal status-transition state machine, and several frontend UI components (AI suggestion card, escalation modal, SLA countdown as a live timer, standalone reports/monitoring pages) are still missing.
 
 ## Database
 
@@ -37,7 +37,7 @@
 - [x] Create `AgentAssignment` entity
 - [ ] Create `SLAService` — no dedicated service; SLA report logic lives inline in `TicketService.GetSLAReportAsync`
 - [x] Implement SLA calculation (deadline = CreatedAt + SLAHours) — set in `TicketService.CreateAsync`
-- [ ] Implement SLA breach detection background job — confirmed: no `BackgroundService`/`IHostedService` anywhere in the codebase
+- [x] Implement SLA breach detection background job — `TicketSlaBackgroundService` (fixed 2026-08-04), scans every 5 min, marks Breached/AtRisk (80% window elapsed), logs `TicketHistory` + `TicketSLA` row, notifies assigned agent
 - [x] Create `AgentAssignmentController`
 - [x] Create `TicketSLA` entity
 
@@ -46,15 +46,15 @@
 - [x] Create `TicketComment` entity
 - [x] Implement comments CRUD with `isInternal` flag — flag is stored/returned; server-side filtering of internal comments by role not verified as enforced
 - [x] Create `TicketAttachment` entity
-- [ ] Implement file upload with validation (type, size) — upload endpoint exists but writes any file with no type/size check
-- [ ] Implement file download with access control — no download endpoint exists yet
-- [ ] Implement file deletion — no delete endpoint exists yet
+- [x] Implement file upload with validation (type, size) — fixed 2026-08-04, extension allowlist + 10MB size check (`InvalidOperationException` → 400)
+- [x] Implement file download with access control — `GET .../attachments/{id}/download`; access control matches the rest of the controller (`[Authorize]`, no per-ticket ownership check — see permission-checks note above)
+- [x] Implement file deletion — `DELETE .../attachments/{id}`, removes DB row + file from disk, logs `TicketHistory`
 
 ## Backend — AI Integration
 
-- [ ] Create `TicketAIService` (hook into Phase 4 AI service) — not hooked up
-- [x] Implement POST `/api/tickets/{id}/ai-suggest` — endpoint exists as `POST /api/tickets/ai-suggestion`, but `GetAISuggestionAsync` is a **hardcoded stub** (`"AI categorization not yet configured"`), does not call the real Phase 4 `IAIService`
-- [ ] Store AI suggestions in ticket history — not implemented (stub has nothing to store)
+- [ ] Create `TicketAIService` (hook into Phase 4 AI service) — no separate service class, but `TicketService.GetAISuggestionAsync` now calls `IAIService` directly (fixed 2026-08-04)
+- [x] Implement POST `/api/tickets/{id}/ai-suggest` — endpoint exists as `POST /api/tickets/ai-suggestion`; now calls the real Phase 4 `IAIService` with a category-constrained prompt, parses JSON response, falls back to the first configured category if the AI call fails
+- [ ] Store AI suggestions in ticket history — still not implemented (suggestion happens pre-creation, before a ticket/history row exists)
 
 ## Backend — History & Reports
 
@@ -63,7 +63,7 @@
 - [x] Create stats endpoint (`GET /api/tickets/stats`)
 - [x] Create SLA breach report — implemented as `GET /api/tickets/sla-report`
 - [x] Create agent queue endpoint — implemented as `GET /api/tickets/queue`
-- [ ] Implement Excel export — confirmed missing (no Excel/export references in `TicketsController` or `TicketService`, despite the shared `IExcelService` from Phase 2 being readily reusable)
+- [x] Implement Excel export — `GET /api/tickets/export` (fixed 2026-08-04), reuses the shared `IExcelService` from Phase 2, supports department/status/priority filters
 - [x] Create `TicketCategoryController` (CRUD)
 
 ## Frontend — Ticket Pages
@@ -78,7 +78,7 @@
 - [ ] Create status transition buttons (with confirmation modals) — not verified
 - [x] Create SLACountdown component — SLA deadline shown in `TicketDetailPage`, but as a static timestamp, not a live countdown
 - [ ] Create CommentThread component (internal + public) — not verified whether internal/public are visually distinguished
-- [ ] Create FileAttachment component (upload/download) — upload only; no download/delete UI (matches backend gap)
+- [ ] Create FileAttachment component (upload/download) — backend now supports download/delete, but no frontend UI wired to those endpoints yet (upload UI only)
 - [x] Create TicketHistoryTimeline component — History tab in `TicketDetailPage`
 - [ ] Create AISuggestionCard component (accept/reject) — not found
 - [ ] Create EscalationModal component — escalation implemented as a standalone `EscalationsPage.tsx`, not a modal on the ticket
@@ -91,20 +91,22 @@
 - [ ] Create AgentQueueCard component — not verified
 - [ ] Create SLAMonitoringPage (breach dashboard) — no dedicated page found
 - [ ] Create TicketReportsPage with charts — no dedicated page found
-- [ ] Implement Excel export button — matches missing backend endpoint
+- [x] Implement Excel export button — added to `TicketsPage.tsx` (fixed 2026-08-04), gated to Agent/Manager/Super Admin, respects current filters; not a dedicated reports page, just a list-page action
 
 ## Backend Tests
 
-- [ ] Unit: Status transition rules (valid/invalid transitions)
-- [ ] Unit: SLA calculation and breach detection
-- [ ] Unit: Auto-assignment round-robin logic
-- [ ] Unit: Comment isInternal access control
-- [ ] Unit: File validation (type, size)
-- [ ] Unit: Ticket history auto-logging
-- [ ] Integration: Full ticket lifecycle (create → assign → progress → resolve → close)
-- [ ] Integration: File upload + download
-- [ ] Integration: Comment CRUD with role checks
-- [ ] Integration: Escalation flow
+> **Added 2026-08-04:** 45 tests across `TicketServiceTests` (17), `TicketCategoryServiceTests` (8), `EscalationServiceTests` (8, incl. a 3-case `[Theory]`), `AgentAssignmentServiceTests` (8), `TicketSlaBackgroundServiceTests` (4) — all against an in-memory `ApplicationDbContext`, no `WebApplicationFactory`, so "Integration" items below remain unchecked.
+
+- [ ] Unit: Status transition rules (valid/invalid transitions) — no state machine exists to test (see note above)
+- [x] Unit: SLA calculation and breach detection — `CreateAsync_ShouldSetSLADeadline_FromCategorySLAHours`, `TicketSlaBackgroundServiceTests` (breach, at-risk, ignore-resolved, idempotency)
+- [x] Unit: Auto-assignment logic — `GetNextAvailableAgentAsync_*` (least-loaded, excludes at-capacity, excludes inactive); it's least-loaded, not round-robin, so tested to match actual behavior
+- [ ] Unit: Comment isInternal access control — `AddCommentAsync` tested, but no test asserts internal comments are hidden from unauthorized roles (matches the unenforced gap noted above)
+- [x] Unit: File validation (type, size) — `UploadAttachmentAsync_ShouldReject_DisallowedExtension`, `UploadAttachmentAsync_ShouldReject_OversizedFile`
+- [x] Unit: Ticket history auto-logging — asserted incidentally in the SLA breach test (`TicketHistories` row created); not exhaustively tested for every action
+- [ ] Integration: Full ticket lifecycle (create → assign → progress → resolve → close) — covered at unit level only
+- [ ] Integration: File upload + download — covered at unit level only (`UploadAttachmentAsync_ThenDownloadAttachmentAsync_ShouldRoundTrip`)
+- [ ] Integration: Comment CRUD with role checks — covered at unit level only
+- [ ] Integration: Escalation flow — covered at unit level only
 
 ## Frontend Tests
 
