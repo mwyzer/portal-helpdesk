@@ -294,5 +294,40 @@ public static class DbSeeder
             }
         }
         await context.SaveChangesAsync();
+
+        // ── Seed Ticket Categories ──
+        var ticketCategories = new (string Name, string Description, TicketPriority DefaultPriority, int SLAHours, string? DeptCode)[]
+        {
+            ("IT Support",   "Technical issues, hardware, software, network support", TicketPriority.Normal, 8,  "IT"),
+            ("HR",           "Human resources inquiries, benefits, payroll, policies", TicketPriority.Normal, 24, "HR"),
+            ("Facilities",   "Office maintenance, workspace, equipment, utilities",   TicketPriority.Low,    48, "OPS"),
+            ("Finance",      "Budget, expenses, reimbursements, invoices",            TicketPriority.Normal, 24, "FIN"),
+            ("Legal",        "Contracts, compliance, regulatory matters",              TicketPriority.High,   72, null),
+            ("General",      "General inquiries and other requests",                   TicketPriority.Low,    48, null),
+            ("Security",     "Access control, incidents, security concerns",           TicketPriority.High,   4,  "IT"),
+        };
+
+        foreach (var (name, description, defaultPriority, slaHours, deptCode) in ticketCategories)
+        {
+            if (!await context.TicketCategories.AnyAsync(c => c.Name == name))
+            {
+                Guid? departmentId = null;
+                if (deptCode != null)
+                {
+                    var dept = await context.Departments.FirstOrDefaultAsync(d => d.Code == deptCode);
+                    departmentId = dept?.Id;
+                }
+
+                context.TicketCategories.Add(new TicketCategory
+                {
+                    Name = name,
+                    Description = description,
+                    DefaultPriority = defaultPriority,
+                    SLAHours = slaHours,
+                    DepartmentId = departmentId,
+                });
+            }
+        }
+        await context.SaveChangesAsync();
     }
 }

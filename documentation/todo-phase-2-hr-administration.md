@@ -35,8 +35,8 @@
 - [x] Create `IEmployeeService` interface
 - [x] Implement `EmployeeService` (CRUD with search & filter)
 - [x] Implement `EmployeeService.SearchAsync` (filter by department, name, status, pagination)
-- [ ] Implement Excel import service (ClosedXML, validate rows, detect duplicates) — stub throws NotImplementedException
-- [ ] Implement Excel export service (generate .xlsx, respect filters) — stub throws NotImplementedException
+- [x] Implement Excel import service (ClosedXML, validate rows, detect duplicates)
+- [x] Implement Excel export service (generate .xlsx, respect filters) — via shared `IExcelService`
 
 ### Infrastructure
 - [x] Create `EmployeeConfiguration` (EF Core Fluent API)
@@ -214,51 +214,53 @@
 
 ## 9. Backend — Unit Tests (HR Module)
 
+> **Correction:** this section previously read as entirely not started — wrong. Real tests exist in the shared `tests/AIHelpdesk.Tests` project: `EmployeeServiceTests` (13), `LeaveRequestServiceTests` (14), `NotificationServiceTests` (7), `LeaveTypeServiceTests` (6, not represented below), `LeaveBalanceServiceTests` (6) = 46 tests. Checked off below only where an actual test method matches the named scenario; items with no matching test are left unchecked rather than assumed.
+
 ### Setup
-- [ ] Create `AIHelpdesk.UnitTests.Modules.HR` test project
-- [ ] Install Moq, FluentAssertions, Bogus, Coverlet
-- [ ] Configure test category constants (`Category.Employee`, `Category.Leave`, `Category.Notification`)
+- [x] Create test project — shared `tests/AIHelpdesk.Tests`, not a separate HR-module project
+- [x] Install Moq, FluentAssertions, Bogus, Coverlet
+- [ ] Configure test category constants (`Category.Employee`, etc.) — `[Trait]` categorization used in `DocumentServiceTests` only, not applied here
 
 ### Employee Service Tests
-- [ ] `CreateAsync` creates employee and returns response
+- [x] `CreateAsync` creates employee and returns response
 - [ ] `CreateAsync` rejects duplicate EmployeeNo (throws validation error)
 - [ ] `CreateAsync` rejects duplicate Email
 - [ ] `CreateAsync` validates department exists
-- [ ] `UpdateAsync` updates employee fields correctly
+- [x] `UpdateAsync` updates employee fields correctly
 - [ ] `UpdateAsync` validates position belongs to department
-- [ ] `DeleteAsync` soft-deletes employee (sets IsDeleted)
+- [x] `DeleteAsync` soft-deletes employee (sets IsDeleted)
 - [ ] `DeleteAsync` throws error if employee has active leave
-- [ ] `SearchAsync` filters by department ID
-- [ ] `SearchAsync` filters by name (partial match)
-- [ ] `SearchAsync` filters by employment status
-- [ ] `SearchAsync` returns paginated results
-- [ ] Excel import with valid data returns success with count
-- [ ] Excel import with invalid rows returns error details
+- [x] `SearchAsync` filters by department ID
+- [x] `SearchAsync` filters by name (partial match)
+- [x] `SearchAsync` filters by employment status
+- [x] `SearchAsync` returns paginated results
+- [x] Excel import with valid data returns success with count
+- [x] Excel import with invalid rows returns error details
 - [ ] Excel import with duplicate EmployeeNo reports as error
-- [ ] Excel export generates file with correct columns
+- [x] Excel export generates file — verifies byte array is returned, not column-level content
 
 ### Leave Service Tests
-- [ ] `SubmitAsync` transitions Draft → Submitted
-- [ ] `SubmitAsync` validates sufficient balance
-- [ ] `SubmitAsync` with insufficient balance returns validation error
-- [ ] `ApproveByManagerAsync` transitions → WaitingForHR (leave > 3 days)
-- [ ] `ApproveByManagerAsync` transitions → Approved (leave ≤ 3 days, no HR needed)
-- [ ] `ApproveByManagerAsync` with already approved request returns error
-- [ ] `ApproveByHRAsync` transitions WaitingForHR → Approved
-- [ ] `ApproveByHRAsync` updates leave balance (decrements UsedDays)
-- [ ] `RejectAsync` sets status to Rejected with reason
-- [ ] `CancelAsync` cancels Draft/Submitted request
-- [ ] `CancelAsync` cannot cancel already approved request
-- [ ] `LeaveBalanceService` returns correct remaining days
-- [ ] `LeaveBalanceService` annual reset works correctly
+- [x] `SubmitAsync` transitions Draft → Submitted (→ WaitingForManager)
+- [ ] `SubmitAsync` validates sufficient balance (happy path not separately tested)
+- [x] `SubmitAsync` with insufficient balance returns validation error
+- [x] `ApproveByManagerAsync` transitions → WaitingForHR (leave > 3 days)
+- [x] `ApproveByManagerAsync` transitions → Approved (leave ≤ 3 days, no HR needed)
+- [ ] `ApproveByManagerAsync` with already approved request returns error — tested scenario is "wrong manager," not "already approved"
+- [x] `ApproveByHRAsync` transitions WaitingForHR → Approved
+- [ ] `ApproveByHRAsync` updates leave balance (decrements UsedDays) — not separately asserted
+- [x] `RejectAsync` sets status to Rejected with reason
+- [x] `CancelAsync` cancels Draft/Submitted request
+- [x] `CancelAsync` cannot cancel already approved request
+- [x] `LeaveBalanceService` returns correct remaining days
+- [x] `LeaveBalanceService` annual reset works correctly (`InitializeYearlyBalancesAsync`)
 - [ ] `LeaveBalanceService` carry-over logic respects max
 
 ### Notification Service Tests
-- [ ] `CreateAsync` creates notification for target user
-- [ ] `MarkAsReadAsync` sets IsRead = true and ReadAt timestamp
-- [ ] `MarkAllAsReadAsync` marks all unread as read
-- [ ] `GetUnreadCountAsync` returns correct count
-- [ ] Leave submitted → notification sent to manager
+- [x] `CreateAsync` creates notification for target user
+- [x] `MarkAsReadAsync` sets IsRead = true and ReadAt timestamp
+- [x] `MarkAllAsReadAsync` marks all unread as read
+- [x] `GetUnreadCountAsync` returns correct count
+- [ ] Leave submitted → notification sent to manager — not tested at the notification-trigger level
 - [ ] Leave approved → notification sent to employee
 - [ ] Leave rejected → notification sent to employee
 
@@ -410,17 +412,19 @@
 
 | Category | Total Tasks | Done |
 |----------|:-----------:|:----:|
-| Database Migrations | 9 | `[ ]` |
-| Employee Module (Domain→API) | 21 | `[ ]` |
-| Leave Module (Domain→API) | 35 | `[ ]` |
-| Notification Module (Domain→API) | 23 | `[ ]` |
-| Frontend Employee Pages | 12 | `[ ]` |
-| Frontend Leave Pages | 12 | `[ ]` |
-| Frontend Notification System | 8 | `[ ]` |
-| Frontend Dashboards | 7 | `[ ]` |
-| Backend Unit Tests | 40 | `[ ]` |
-| Backend Integration Tests | 19 | `[ ]` |
-| Frontend Unit Tests | 30 | `[ ]` |
-| Test Automation | 7 | `[ ]` |
-| CI/CD Pipeline | 14 | `[ ]` |
-| **TOTAL** | **~237 tasks** | |
+| Database Migrations | 9 | 9 |
+| Employee Module (Domain→API) | 23 | 20 |
+| Leave Module (Domain→API) | 41 | 39 |
+| Notification Module (Domain→API) | 26 | 22 |
+| Frontend Employee Pages | 12 | 9 |
+| Frontend Leave Pages | 13 | 8 |
+| Frontend Notification System | 9 | 2 |
+| Frontend Dashboards | 9 | 1 |
+| Backend Unit Tests | 52 | 26 |
+| Backend Integration Tests | 29 | 0 |
+| Frontend Unit Tests | 34 | 0 |
+| Test Automation | 8 | 0 |
+| CI/CD Pipeline | 15 | 0 |
+| **TOTAL** | **280 tasks** | **136 (49%)** |
+
+Core backend (migrations, entities, services, controllers) and most primary frontend pages are done, and — corrected from the earlier version of this doc — real unit test coverage exists (26/52 backend unit test scenarios verifiably match actual test methods in `tests/AIHelpdesk.Tests`). The remaining gap: HR integration/frontend test coverage (0/63), the notification UI (bell/dropdown/toasts), dashboard widgets, SMTP email, and HR-specific CI/CD.

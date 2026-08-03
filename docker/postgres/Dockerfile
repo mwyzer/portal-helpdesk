@@ -5,8 +5,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-ADD https://github.com/pgvector/pgvector/archive/refs/tags/v0.8.0.tar.gz /tmp/pgvector.tar.gz
-RUN cd /tmp && tar xzf pgvector.tar.gz && cd pgvector-0.8.0 \
+ADD https://github.com/pgvector/pgvector/archive/refs/tags/v0.8.1.tar.gz /tmp/pgvector.tar.gz
+RUN cd /tmp && tar xzf pgvector.tar.gz && cd pgvector-0.8.1 \
     && make && make install \
     && rm -rf /tmp/pgvector*
 

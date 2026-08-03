@@ -12,4 +12,5 @@ public interface IEmployeeService
     Task DeleteEmployeeAsync(Guid id);
     Task<EmployeeImportResult> ImportFromExcelAsync(Stream fileStream);
     Task<byte[]> ExportToExcelAsync(string? search, Guid? departmentId, string? status);
+    Task<byte[]> GenerateImportTemplateAsync();
 }

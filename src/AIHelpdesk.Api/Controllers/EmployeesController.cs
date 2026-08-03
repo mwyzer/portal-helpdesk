@@ -72,6 +72,14 @@ public class EmployeesController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("import-template")]
+    [Authorize(Roles = "Super Admin,HRD")]
+    public async Task<IActionResult> DownloadImportTemplate()
+    {
+        var data = await _employeeService.GenerateImportTemplateAsync();
+        return File(data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "employee-import-template.xlsx");
+    }
+
     [HttpPost("import")]
     [Authorize(Roles = "Super Admin,HRD")]
     public async Task<ActionResult<EmployeeImportResult>> ImportEmployees(IFormFile file)

@@ -111,19 +111,21 @@
 
 ## Backend Tests
 
-- [ ] Unit: RAG pipeline (embed → search → context → response)
-- [ ] Unit: Document text extraction (PDF)
-- [ ] Unit: Document text extraction (DOCX)
-- [ ] Unit: Document text extraction (TXT)
-- [ ] Unit: Chunking strategy (token boundary, overlap)
-- [ ] Unit: AI guardrails (permission checks)
-- [ ] Unit: AI guardrails (PII stripping)
-- [ ] Unit: Rate limiting
-- [ ] Unit: Token counting
-- [ ] Integration: Upload → index → search → chat flow
-- [ ] Integration: Chat session CRUD with messages
-- [ ] Integration: SSE streaming
-- [ ] Integration: Feedback submission
+> **Correction:** this section previously read as not started — wrong, and also contradicts `test-coverage-report.md` (dated 2026-07-14), which predates these files and still lists Phase 4 as "0 tests." Real tests exist: `AIServiceTests` (10), `ChatServiceTests` (19), `KnowledgeBaseServiceTests` (16) = 45 tests, all unit-level against an in-memory DbContext (no `WebApplicationFactory`, so "Integration" items below stay unchecked even where the same behavior is unit-tested).
+
+- [x] Unit: RAG pipeline (embed → search → context → response) — covered across `GenerateEmbeddingAsync`, `SearchAsync`, `GenerateChatResponseAsync` tests
+- [ ] Unit: Document text extraction (PDF) — untested
+- [ ] Unit: Document text extraction (DOCX) — untested
+- [x] Unit: Document text extraction (TXT) — `IndexDocumentAsync_ShouldIndexTextFile`
+- [ ] Unit: Chunking strategy (token boundary, overlap) — no dedicated boundary/overlap assertion
+- [ ] Unit: AI guardrails (permission checks) — untested, matches confirmed gap (not implemented)
+- [ ] Unit: AI guardrails (PII stripping) — untested, matches confirmed gap (not implemented)
+- [ ] Unit: Rate limiting — untested
+- [x] Unit: Token counting — `EstimateTokenCount_*` (4 tests)
+- [ ] Integration: Upload → index → search → chat flow — covered at unit level only
+- [ ] Integration: Chat session CRUD with messages — covered at unit level only (`SendMessageAsync`/`GetSessionAsync`/`DeleteSessionAsync`)
+- [ ] Integration: SSE streaming — streaming callback is unit-tested (`*_ShouldCallOnToken`), but no real SSE/HTTP integration test
+- [ ] Integration: Feedback submission — covered at unit level only (`SubmitFeedbackAsync`)
 
 ## Frontend Tests
 

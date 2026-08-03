@@ -1,21 +1,25 @@
 # Phase 7 — Hardening & Production Deployment — TODO Checklist
 
+> **Status (2026-08-04): 6/102 tasks done (6%).** The 6 are all auth/identity hardening that happened to already be built in Phase 1 (JWT expiry, refresh token rotation/revocation, password policy, account lockout, pagination) — no actual Phase 7 work (infra, monitoring, backups, CI/CD hardening, pentesting, UAT) has started. This matches the README's "📋 Planned" status.
+
 ## Security Hardening
 
-- [ ] Enforce HTTPS (redirect HTTP → HTTPS)
-- [ ] Add HSTS header (`max-age=31536000; includeSubDomains`)
-- [ ] Restrict CORS to production domain only
-- [ ] Add Content Security Policy (CSP) headers
-- [ ] Configure rate limiting middleware (100 req/min general, 10 req/min AI)
-- [ ] Move all secrets to environment variables / Docker secrets
-- [ ] Remove any `.env` or secrets from repository
-- [ ] Shorten JWT access token expiry (15 minutes)
-- [ ] Implement refresh token rotation
-- [ ] Implement refresh token revocation list
-- [ ] Enforce password policy (min 8 chars, complexity)
-- [ ] Implement account lockout (5 failed attempts)
-- [ ] Add ClamAV file scanning for uploads
-- [ ] Restrict file upload extensions
+> **Status check (2026-08-04):** most items below are still genuinely not started — this is the one section where the "0% checklist" turned out to be mostly accurate. A handful of auth/identity items are done because they were built as part of Phase 1, not this phase.
+
+- [ ] Enforce HTTPS (redirect HTTP → HTTPS) — no `UseHttpsRedirection()` found
+- [ ] Add HSTS header — no `UseHsts()` found
+- [ ] Restrict CORS to production domain only — CORS origins are config-driven (`Cors:Origins`), but nothing restricts them to a production domain; defaults to `localhost:5173`
+- [ ] Add Content Security Policy (CSP) headers — not found
+- [ ] Configure rate limiting middleware (100 req/min general, 10 req/min AI) — `RateLimitingMiddleware` exists but **only guards `/api/ai/*`**; there is no general API rate limit
+- [ ] Move all secrets to environment variables / Docker secrets — `docker-compose.yml` passes secrets as env vars, but the JWT signing key is a hardcoded plaintext value committed to the file (labeled dev-only, not sourced from a secret manager)
+- [ ] Remove any `.env` or secrets from repository — no `.env` files are tracked, but see the hardcoded JWT key above
+- [x] Shorten JWT access token expiry (15 minutes) — `AccessTokenExpiryMinutes: 15` in `appsettings.json`
+- [x] Implement refresh token rotation — `AuthService.RefreshTokenAsync` revokes the old token and issues a new one on every refresh
+- [x] Implement refresh token revocation list — `RefreshToken.IsRevoked`/`RevokedAt`, checked via `IsActive`
+- [x] Enforce password policy (min 8 chars, complexity) — `RequireDigit`, `RequiredLength = 8`, `RequireUppercase` configured
+- [x] Implement account lockout (5 failed attempts) — `Lockout.MaxFailedAccessAttempts = 5`, 15 min lockout
+- [ ] Add ClamAV file scanning for uploads — not found
+- [ ] Restrict file upload extensions — inconsistent: Phase 4 knowledge-document upload validates file type; Phase 5 ticket attachment upload accepts any file with no validation (see `todo-phase-5-ticketing.md`)
 - [ ] Audit all EF Core queries for SQL injection safety
 - [ ] Verify all data mutations are audit-logged
 - [ ] Set up Dependabot for dependency vulnerability scanning
@@ -37,7 +41,7 @@
 - [ ] Run load tests and analyze results
 - [ ] Fix N+1 query issues (EF Core `.Include()` / `.ThenInclude()`)
 - [ ] Add missing database indexes (FK + status + date composite)
-- [ ] Ensure all list endpoints have pagination (skip/take, max page size)
+- [x] Ensure all list endpoints have pagination — `page`/`pageSize` params confirmed consistently used across Employee, Leave, Meeting, Ticket, Chat, and Knowledge Base list endpoints; no explicit max-page-size cap verified
 - [ ] Configure Redis caching for reference data (roles, departments, lookups)
 - [ ] Enable response compression (`app.UseResponseCompression()`)
 - [ ] Tune PostgreSQL connection pool (`MaxPoolSize`)

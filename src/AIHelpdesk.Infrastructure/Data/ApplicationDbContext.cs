@@ -36,6 +36,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<LeaveApproval> LeaveApprovals => Set<LeaveApproval>();
     public DbSet<Notification> Notifications => Set<Notification>();
 
+    // ─────── Phase 5: Ticketing Module ───────
+    public DbSet<TicketCategory> TicketCategories => Set<TicketCategory>();
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<TicketComment> TicketComments => Set<TicketComment>();
+    public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
+    public DbSet<TicketHistory> TicketHistories => Set<TicketHistory>();
+    public DbSet<TicketSLA> TicketSLAs => Set<TicketSLA>();
+    public DbSet<Escalation> Escalations => Set<Escalation>();
+    public DbSet<AgentAssignment> AgentAssignments => Set<AgentAssignment>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -294,6 +304,92 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(e => e.ReferenceType).HasMaxLength(100);
             entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.UserId, e.IsRead });
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        // ─────── Phase 5: Ticketing Module ───────
+
+        builder.Entity<TicketCategory>(entity =>
+        {
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(1000).IsRequired();
+            entity.Property(e => e.DefaultPriority).HasConversion<string>().HasMaxLength(50);
+            entity.HasOne(e => e.Department).WithMany().HasForeignKey(e => e.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<Ticket>(entity =>
+        {
+            entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(50000);
+            entity.Property(e => e.SubCategory).HasMaxLength(200);
+            entity.Property(e => e.Priority).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.SLAStatus).HasConversion<string>().HasMaxLength(50);
+            entity.HasOne(e => e.Category).WithMany(c => c.Tickets).HasForeignKey(e => e.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.AssignedTo).WithMany().HasForeignKey(e => e.AssignedToId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.AssignedAgent).WithMany().HasForeignKey(e => e.AssignedAgentId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.SubmittedBy).WithMany().HasForeignKey(e => e.SubmittedById).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Department).WithMany().HasForeignKey(e => e.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.Priority);
+            entity.HasIndex(e => e.SLAStatus);
+            entity.HasIndex(e => new { e.CategoryId, e.Status });
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<TicketComment>(entity =>
+        {
+            entity.Property(e => e.Content).HasMaxLength(50000).IsRequired();
+            entity.HasOne(e => e.Ticket).WithMany(t => t.Comments).HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Author).WithMany().HasForeignKey(e => e.AuthorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<TicketAttachment>(entity =>
+        {
+            entity.Property(e => e.FileName).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.FilePath).HasMaxLength(1000).IsRequired();
+            entity.Property(e => e.ContentType).HasMaxLength(200).IsRequired();
+            entity.HasOne(e => e.Ticket).WithMany(t => t.Attachments).HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.UploadedBy).WithMany().HasForeignKey(e => e.UploadedById).OnDelete(DeleteBehavior.Restrict);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<TicketHistory>(entity =>
+        {
+            entity.Property(e => e.Field).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.OldValue).HasMaxLength(500);
+            entity.Property(e => e.NewValue).HasMaxLength(500);
+            entity.HasOne(e => e.Ticket).WithMany(t => t.History).HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ChangedBy).WithMany().HasForeignKey(e => e.ChangedById).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.TicketId, e.CreatedAt });
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<TicketSLA>(entity =>
+        {
+            entity.HasOne(e => e.Ticket).WithMany(t => t.SLARecords).HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Category).WithMany().HasForeignKey(e => e.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<Escalation>(entity =>
+        {
+            entity.Property(e => e.Reason).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
+            entity.HasOne(e => e.Ticket).WithMany(t => t.Escalations).HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.EscalatedBy).WithMany().HasForeignKey(e => e.EscalatedById).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.AssignedTo).WithMany().HasForeignKey(e => e.AssignedToId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<AgentAssignment>(entity =>
+        {
+            entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Department).WithMany().HasForeignKey(e => e.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.UserId, e.DepartmentId }).IsUnique();
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
