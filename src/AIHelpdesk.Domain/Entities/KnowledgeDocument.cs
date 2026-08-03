@@ -15,5 +15,9 @@ public class KnowledgeDocument : BaseEntity
     public int? ChunkCount { get; set; }
     public string? ErrorMessage { get; set; }
 
+    /// <summary>Restricts this document to a department's chat context. Null = visible to everyone.</summary>
+    public Guid? DepartmentId { get; set; }
+
+    public Department? Department { get; set; }
     public ICollection<KnowledgeChunk> Chunks { get; set; } = new List<KnowledgeChunk>();
 }
