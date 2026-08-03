@@ -183,32 +183,36 @@
 
 ## 7. Frontend — Notification System
 
+> **Correction (2026-08-04):** this section was almost entirely wrong — `useSignalR.ts`, `NotificationBell.tsx`, and `NotificationCenterPage.tsx` were already fully built (just not found during the earlier audit). The one real gap was that `NotificationBell` imported `addToast` and called `useSignalR()` but never registered a handler, so nothing ever actually toasted or updated in real time — fixed by wiring `onNotification`/`onUnreadCount` callbacks.
+
 - [x] Create `notifications.api.ts` (list, mark read, mark all read, unread count) — inline in component
-- [ ] Create SignalR connection hook: `useSignalR` (connect on login, disconnect on logout)
-- [x] Connect to `/hubs/notifications` hub on authentication — backend Hub ready
-- [ ] Implement auto-reconnect with fallback polling (every 30s)
-- [ ] Build `NotificationBell` component (icon with unread count badge)
-- [ ] Build `NotificationBell` dropdown (last 5 notifications, "mark all read" link)
-- [ ] Build `NotificationList` component (scrollable list, each item with read/unread styling)
-- [ ] Build `NotificationCenterPage` (full list, filter by read/unread, mark as read)
-- [ ] Show toast notification on new SignalR event
+- [x] Create SignalR connection hook: `useSignalR` (connect on login, disconnect on logout) — shared connection with ref-counted handlers, connects/disconnects based on auth state
+- [x] Connect to `/hubs/notifications` hub on authentication
+- [x] Implement auto-reconnect with fallback polling (every 30s) — SignalR `withAutomaticReconnect` + a 30s `refetchInterval` on the unread-count query as a safety net
+- [x] Build `NotificationBell` component (icon with unread count badge)
+- [x] Build `NotificationBell` dropdown (last 5 notifications, "mark all read" link)
+- [x] Build `NotificationList` component (scrollable list, each item with read/unread styling) — implemented inline in `NotificationCenterPage.tsx`, not a separate component file
+- [x] Build `NotificationCenterPage` (full list, filter by read/unread, mark as read)
+- [x] Show toast notification on new SignalR event — fixed 2026-08-04, `NotificationBell` now registers an `onNotification` handler that calls `addToast`
 
 ---
 
 ## 8. Frontend — Dashboards
 
+> **Correction (2026-08-04):** most of this section was already built into the shared `DashboardPage.tsx` — the earlier audit missed it because it's role-gated content inside one component rather than separate `EmployeeDashboardPage`/`HRDashboardPage` files as the checklist names imply.
+
 ### Employee Dashboard
-- [ ] Display leave balance cards (all leave types, remaining days)
-- [ ] Display recent leave requests (last 5, with status badges)
+- [x] Display leave balance cards (all leave types, remaining days) — `LeaveBalanceCard` grid
+- [x] Display recent leave requests (last 5, with status badges)
 - [x] Display quick "Submit Leave" button — available on leave requests page
-- [ ] Display today's notifications count
-- [ ] Display announcements/widgets area
+- [x] Display today's notifications count — now visible via the `NotificationBell` unread badge (see section 7)
+- [ ] Display announcements/widgets area — genuinely missing; no announcements feature exists anywhere in the app (no entity, no endpoint) — this would be new scope, not a UI wiring gap
 
 ### HR Dashboard
-- [ ] Display total active employee count
-- [ ] Display pending leave verifications count (clickable → approval page)
-- [ ] Display leave requests by status (pie chart or bar chart via Recharts)
-- [ ] Display recent activity feed (new employees, recent approvals)
+- [x] Display total active employee count
+- [x] Display pending leave verifications count (clickable → approval page) — "Needs Your Action" card
+- [x] Display leave requests by status (pie chart or bar chart via Recharts) — both pie and bar chart implemented
+- [ ] Display recent activity feed (new employees, recent approvals) — genuinely missing; "Recent Leave Requests" card exists but is leave-only, not a unified activity feed mixing employee creation + approval events
 
 ---
 
@@ -418,13 +422,13 @@
 | Notification Module (Domain→API) | 26 | 22 |
 | Frontend Employee Pages | 12 | 9 |
 | Frontend Leave Pages | 13 | 8 |
-| Frontend Notification System | 9 | 2 |
-| Frontend Dashboards | 9 | 1 |
+| Frontend Notification System | 9 | 9 |
+| Frontend Dashboards | 9 | 7 |
 | Backend Unit Tests | 52 | 26 |
 | Backend Integration Tests | 29 | 0 |
 | Frontend Unit Tests | 34 | 0 |
 | Test Automation | 8 | 0 |
 | CI/CD Pipeline | 15 | 0 |
-| **TOTAL** | **280 tasks** | **136 (49%)** |
+| **TOTAL** | **280 tasks** | **149 (53%)** |
 
-Core backend (migrations, entities, services, controllers) and most primary frontend pages are done, and — corrected from the earlier version of this doc — real unit test coverage exists (26/52 backend unit test scenarios verifiably match actual test methods in `tests/AIHelpdesk.Tests`). The remaining gap: HR integration/frontend test coverage (0/63), the notification UI (bell/dropdown/toasts), dashboard widgets, SMTP email, and HR-specific CI/CD.
+Core backend (migrations, entities, services, controllers) and most primary frontend pages are done. Two rounds of correction so far: real unit test coverage exists (26/52 backend unit test scenarios verifiably match actual test methods), and — as of 2026-08-04 — the notification UI (bell/dropdown/toasts/center page) and most dashboard widgets turned out to already be built, contrary to the original audit; only the SignalR→toast wire-up was actually missing, now fixed. Remaining real gaps: HR integration/frontend test coverage (0/63), an announcements/activity-feed widget (new feature, not just missing UI), SMTP email, and HR-specific CI/CD.

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
@@ -57,9 +57,24 @@ export function NotificationBell() {
   });
 
   // Listen for real-time notifications via SignalR
-  useSignalR();
+  const { onNotification, onUnreadCount } = useSignalR();
 
-  // Use browser event for cross-component toast notifications
+  useEffect(() => {
+    onNotification((notification) => {
+      addToast({
+        title: notification.title,
+        message: '',
+        type: 'info',
+      });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    });
+
+    onUnreadCount((count) => {
+      queryClient.setQueryData(['notifications', 'unread-count'], count);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleMarkAsRead = async (id: string) => {
     await api.put(`/notifications/${id}/read`);
     queryClient.invalidateQueries({ queryKey: ['notifications'] });
