@@ -1,8 +1,8 @@
 # AIHelpdesk — Test Coverage Report
 
-**Generated:** 2026-07-14, refreshed 2026-08-04  
-**Total Tests:** 207  
-**Overall Status:** ✅ All Passing (counts below re-verified against actual `[Fact]`/`[Theory]` attributes in `tests/AIHelpdesk.Tests`; several 2026-07-14 per-file counts had drifted)
+**Generated:** 2026-07-14, refreshed 2026-08-04 (twice — this second pass adds Phases 5–6 and several bugfix-driven test additions to Phases 1/3/4)  
+**Total Tests:** 322  
+**Overall Status:** ✅ All Passing (counts below verified via `dotnet test --filter` per phase, cross-checked against `[Fact]`/`[Theory]` attribute counts; a filter substring collision between `AIServiceTests` and `RecruitmentAIServiceTests` was caught and corrected during this pass)
 
 ---
 
@@ -10,14 +10,14 @@
 
 | Phase | Backend Unit Tests | Frontend E2E Smoke | Frontend E2E Interaction | Total |
 |-------|-------------------|--------------------|--------------------------|-------|
-| Phase 1 — Foundation MVP | 23 | 13 | 0 | **36** |
+| Phase 1 — Foundation MVP | 31 | 13 | 0 | **44** |
 | Phase 2 — HR Administration | 46 | 4 | 26 | **76** |
-| Phase 3 — Secretary Module | 44 | 6 | 0 | **50** |
-| Phase 4 — AI Helpdesk Chat | 45 | 0 | 0 | **45** |
-| Phase 5 — Ticketing | 0 | 0 | 0 | **0** |
-| Phase 6 — Recruitment | 0 | 0 | 0 | **0** |
+| Phase 3 — Secretary Module | 54 | 6 | 0 | **60** |
+| Phase 4 — AI Helpdesk Chat | 56 | 0 | 0 | **56** |
+| Phase 5 — Ticketing | 49 | 0 | 0 | **49** |
+| Phase 6 — Recruitment | 37 | 0 | 0 | **37** |
 | Phase 7 — Hardening & Deployment | 0 | 0 | 0 | **0** |
-| **TOTAL** | **158** | **23** | **26** | **207** |
+| **TOTAL** | **273** | **23** | **26** | **322** |
 
 ---
 
@@ -102,13 +102,14 @@
 
 ## Phase 3 — Secretary Module
 
-### Backend Unit Tests (44 tests)
+### Backend Unit Tests (54 tests)
 
 | Test Class | Tests | File |
 |------------|-------|------|
 | `MeetingServiceTests` | 15 | `tests/AIHelpdesk.Tests/Services/MeetingServiceTests.cs` |
 | `ActionItemServiceTests` | 11 | `tests/AIHelpdesk.Tests/Services/ActionItemServiceTests.cs` |
-| `DocumentServiceTests` | 18 | `tests/AIHelpdesk.Tests/Services/DocumentServiceTests.cs` |
+| `DocumentServiceTests` | 22 | `tests/AIHelpdesk.Tests/Services/DocumentServiceTests.cs` |
+| `LetterDocumentGeneratorTests` | 6 | `tests/AIHelpdesk.Tests/Services/LetterDocumentGeneratorTests.cs` |
 
 **Covered:**
 - Meeting CRUD, pagination, date-range & status filtering, soft delete
@@ -119,6 +120,7 @@
 - Document requests: full workflow (Draft → AI Draft Ready → Review → Approve → Generate Final → Download)
 - Document workflow state guards (invalid transitions throw)
 - Letter number auto-generation (format: `{counter}/{code}/MGR/{year}`)
+- Real PDF/DOCX generation (magic-byte verification: `%PDF`, zip `PK`), format-selection on download (added 2026-08-04, alongside the fix for `GenerateFinalAsync` producing files that were never actually written to disk)
 
 ### Frontend E2E Smoke Tests (6 tests)
 
@@ -139,17 +141,54 @@
 
 ## Phase 4 — AI Helpdesk Chat
 
-### Backend Unit Tests (45 tests)
+### Backend Unit Tests (56 tests)
 
 | Test Class | Tests | File |
 |------------|-------|------|
 | `AIServiceTests` | 10 | `tests/AIHelpdesk.Tests/Services/AIServiceTests.cs` |
 | `ChatServiceTests` | 19 | `tests/AIHelpdesk.Tests/Services/ChatServiceTests.cs` |
-| `KnowledgeBaseServiceTests` | 16 | `tests/AIHelpdesk.Tests/Services/KnowledgeBaseServiceTests.cs` |
+| `KnowledgeBaseServiceTests` | 19 | `tests/AIHelpdesk.Tests/Services/KnowledgeBaseServiceTests.cs` |
+| `PiiRedactorTests` | 8 | `tests/AIHelpdesk.Tests/Services/PiiRedactorTests.cs` |
 
-**Covered:** token estimation, embedding generation, chat response generation (incl. streaming callback and history), chat session CRUD (create/append/rename/soft-delete), feedback submission, escalation, knowledge document upload/list/delete, TXT indexing, keyword search.
+**Covered:** token estimation, embedding generation, chat response generation (incl. streaming callback and history), chat session CRUD (create/append/rename/soft-delete), feedback submission, escalation, knowledge document upload/list/delete, TXT indexing, keyword search, department-scoped search filtering, PII redaction (email/NIK/phone/credit-card patterns) — the last two added 2026-08-04 alongside the guardrails fix.
 
-**Not covered:** PDF/DOCX text extraction, chunk boundary/overlap behavior, AI guardrails (permission-aware filtering, PII stripping — neither is implemented yet either), rate limiting.
+**Not covered:** PDF/DOCX text extraction quality (extraction itself is a lightweight best-effort approach, not a full parser), chunk boundary/overlap behavior, permission-aware filtering beyond department scoping, rate limiting.
+
+**Frontend E2E:** none.
+
+---
+
+## Phase 5 — Ticketing
+
+### Backend Unit Tests (49 tests)
+
+| Test Class | Tests | File |
+|------------|-------|------|
+| `TicketServiceTests` | 17 | `tests/AIHelpdesk.Tests/Services/TicketServiceTests.cs` |
+| `TicketCategoryServiceTests` | 8 | `tests/AIHelpdesk.Tests/Services/TicketCategoryServiceTests.cs` |
+| `EscalationServiceTests` | 8 | `tests/AIHelpdesk.Tests/Services/EscalationServiceTests.cs` |
+| `AgentAssignmentServiceTests` | 8 | `tests/AIHelpdesk.Tests/Services/AgentAssignmentServiceTests.cs` |
+| `TicketSlaBackgroundServiceTests` | 4 | `tests/AIHelpdesk.Tests/Services/TicketSlaBackgroundServiceTests.cs` |
+| `ActionItemReminderBackgroundServiceTests` | 4 | `tests/AIHelpdesk.Tests/Services/ActionItemReminderBackgroundServiceTests.cs` |
+
+**Covered:** ticket CRUD, SLA deadline calculation, status transitions, comments, attachment upload validation (type/size) + download/delete round-trip, Excel export with filters, AI suggestion (real `IAIService` call + parse + fallback), category CRUD, escalation lifecycle, least-loaded agent assignment, SLA breach/at-risk background job, overdue action-item reminder background job.
+
+**Frontend E2E:** none.
+
+---
+
+## Phase 6 — Recruitment
+
+### Backend Unit Tests (37 tests)
+
+| Test Class | Tests | File |
+|------------|-------|------|
+| `JobVacancyServiceTests` | 8 | `tests/AIHelpdesk.Tests/Services/JobVacancyServiceTests.cs` |
+| `CandidateServiceTests` | 13 | `tests/AIHelpdesk.Tests/Services/CandidateServiceTests.cs` |
+| `InterviewServiceTests` | 8 | `tests/AIHelpdesk.Tests/Services/InterviewServiceTests.cs` |
+| `RecruitmentAIServiceTests` | 8 | `tests/AIHelpdesk.Tests/Services/RecruitmentAIServiceTests.cs` |
+
+**Covered:** vacancy status transitions (Draft → Published → Closed/Filled, incl. auto-Filled detection), candidate pipeline stage advancement (forward-only, no skipping) and rejection (from any active stage), CV upload validation (type/size) + download round-trip, interview scheduling with interviewer double-booking conflict detection, interview complete/cancel, recruitment stats aggregation, Excel export, AI CV summarization/interview questions/candidate matching (all with mocked `IAIService`, success + failure-fallback paths).
 
 **Frontend E2E:** none.
 
@@ -157,8 +196,6 @@
 
 | Phase | Status |
 |-------|--------|
-| Phase 5 — Ticketing | ❌ No tests |
-| Phase 6 — Recruitment | ❌ No tests |
 | Phase 7 — Hardening & Deployment | ❌ No tests (includes security, performance, CI/CD) |
 
 ---
@@ -169,26 +206,39 @@
 tests/
 ├── AIHelpdesk.Tests/
 │   ├── Services/
+│   │   ├── ActionItemReminderBackgroundServiceTests.cs (Phase 5 · 4 tests)
 │   │   ├── ActionItemServiceTests.cs      (Phase 3 · 11 tests)
+│   │   ├── AgentAssignmentServiceTests.cs (Phase 5 · 8 tests)
 │   │   ├── AIServiceTests.cs             (Phase 4 · 10 tests)
+│   │   ├── AuthServiceTests.cs           (Phase 1 · 8 tests)
+│   │   ├── CandidateServiceTests.cs      (Phase 6 · 13 tests)
 │   │   ├── ChatServiceTests.cs           (Phase 4 · 19 tests)
 │   │   ├── DepartmentServiceTests.cs     (Phase 1 · 5 tests)
-│   │   ├── DocumentServiceTests.cs        (Phase 3 · 18 tests)
+│   │   ├── DocumentServiceTests.cs        (Phase 3 · 22 tests)
 │   │   ├── EmployeeServiceTests.cs        (Phase 2 · 13 tests)
-│   │   ├── KnowledgeBaseServiceTests.cs   (Phase 4 · 16 tests)
+│   │   ├── EscalationServiceTests.cs     (Phase 5 · 8 tests)
+│   │   ├── InterviewServiceTests.cs      (Phase 6 · 8 tests)
+│   │   ├── JobVacancyServiceTests.cs     (Phase 6 · 8 tests)
+│   │   ├── KnowledgeBaseServiceTests.cs   (Phase 4 · 19 tests)
 │   │   ├── LeaveBalanceServiceTests.cs    (Phase 2 · 6 tests)
 │   │   ├── LeaveRequestServiceTests.cs    (Phase 2 · 14 tests)
 │   │   ├── LeaveTypeServiceTests.cs       (Phase 2 · 6 tests)
+│   │   ├── LetterDocumentGeneratorTests.cs (Phase 3 · 6 tests)
 │   │   ├── MeetingServiceTests.cs         (Phase 3 · 15 tests)
 │   │   ├── NotificationServiceTests.cs   (Phase 2 · 7 tests)
+│   │   ├── PiiRedactorTests.cs            (Phase 4 · 8 tests)
+│   │   ├── RecruitmentAIServiceTests.cs  (Phase 6 · 8 tests)
 │   │   ├── RoleServiceTests.cs           (Phase 1 · 4 tests)
+│   │   ├── TicketCategoryServiceTests.cs (Phase 5 · 8 tests)
+│   │   ├── TicketServiceTests.cs         (Phase 5 · 17 tests)
+│   │   ├── TicketSlaBackgroundServiceTests.cs (Phase 5 · 4 tests)
 │   │   └── UserServiceTests.cs           (Phase 1 · 5 tests)
 │   ├── Domain/
 │   │   ├── DepartmentTests.cs            (Phase 1 · 2 tests)
 │   │   └── RefreshTokenTests.cs          (Phase 1 · 3 tests)
 │   ├── Contracts/
 │   │   └── AuthContractsTests.cs          (Phase 1 · 3 tests)
-│   ├── TestDataFactory.cs                (Phase 1+2+3 factories)
+│   ├── TestDataFactory.cs                (shared factories, all phases)
 │   └── UnitTest1.cs                       (Phase 1 · 1 test — placeholder)
 │
 └── frontend/
@@ -232,12 +282,14 @@ npx playwright test tests/e2e/phase-2/
 
 | Priority | Action |
 |----------|--------|
-| 🟢 Done | ~~Write backend unit tests for Phase 3 services~~ ✅ 44 tests written |
+| 🟢 Done | ~~Write backend unit tests for Phase 3 services~~ ✅ 54 tests written |
 | 🟢 Done | ~~E2E smoke tests for Phase 3 pages~~ ✅ 6 tests written |
-| 🟢 Done | ~~Write backend unit tests for Phase 4 AI Chat services~~ ✅ 45 tests written (`AIServiceTests`, `ChatServiceTests`, `KnowledgeBaseServiceTests`) |
-| 🔴 High | Write backend unit tests for Phase 5 Ticketing (currently 0, and the module itself is still uncommitted) |
-| 🟡 Medium | Add E2E interaction tests for Phase 3 and Phase 4 pages (mirror Phase 2 pattern) |
-| 🟡 Medium | Write backend unit tests for Phase 6 Recruitment |
-| 🟡 Medium | Add unit tests for AI guardrails (permission filtering, PII stripping) and PDF/DOCX extraction once those are implemented |
+| 🟢 Done | ~~Write backend unit tests for Phase 4 AI Chat services~~ ✅ 56 tests written (`AIServiceTests`, `ChatServiceTests`, `KnowledgeBaseServiceTests`, `PiiRedactorTests`) |
+| 🟢 Done | ~~Write backend unit tests for Phase 5 Ticketing~~ ✅ 49 tests written, module committed |
+| 🟢 Done | ~~Write backend unit tests for Phase 6 Recruitment~~ ✅ 37 tests written, module built from scratch |
+| 🟢 Done | ~~Add unit tests for PII stripping and department-scoped permission filtering~~ ✅ `PiiRedactorTests` + department-scoping tests in `KnowledgeBaseServiceTests` |
+| 🟡 Medium | Add E2E interaction/smoke tests for Phase 4, 5, and 6 pages (mirror Phase 2 pattern) — none of these phases have any Playwright coverage yet |
+| 🟡 Medium | Add backend integration tests (`WebApplicationFactory`) — every phase's tests, including this pass's 165 new ones, are unit-level only against an in-memory `DbContext` |
+| 🟡 Medium | Add frontend unit tests (Vitest/RTL) — still entirely unset up, see `todo-phase-1-foundation.md` |
 | 🟢 Low | Add Phase 7 k6 load tests, security scan config |
 | 🟢 Low | Remove `UnitTest1.cs` placeholder test |
