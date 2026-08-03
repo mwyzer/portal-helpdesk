@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Ticket, Clock, AlertTriangle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Plus, Ticket, Clock, AlertTriangle, CheckCircle, XCircle, RefreshCw, Download } from 'lucide-react';
 
 interface TicketItem {
   id: string;
@@ -110,10 +110,31 @@ export function TicketsPage() {
     createMutation.mutate(newTicket);
   };
 
+  const canExport = user?.roles?.some(r => ['Agent', 'Manager', 'Super Admin'].includes(r));
+
+  const handleExport = async () => {
+    const response = await api.get('/tickets/export', {
+      params: { status: statusFilter || undefined, priority: priorityFilter || undefined },
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `tickets-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Tickets</h1>
+        <div className="flex items-center gap-2">
+        {canExport && (
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" /> Export
+          </Button>
+        )}
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> New Ticket</Button>
@@ -158,6 +179,7 @@ export function TicketsPage() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Stats */}

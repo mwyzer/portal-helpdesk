@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AIHelpdesk.Application.Interfaces;
+using AIHelpdesk.Contracts.Excel;
 using AIHelpdesk.Contracts.Tickets;
 using AIHelpdesk.Domain.Entities;
 using AIHelpdesk.Infrastructure.Data;
@@ -14,6 +15,7 @@ public class TicketService : ITicketService
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly IAIService _ai;
+    private readonly IExcelService _excel;
     private readonly ILogger<TicketService> _logger;
 
     private const string AISuggestionSystemPrompt =
@@ -24,11 +26,12 @@ public class TicketService : ITicketService
         "{{\"category\":\"<one of the listed category names>\",\"priority\":\"<Low|Normal|High|Urgent>\"," +
         "\"reason\":\"<one sentence why>\",\"confidence\":<number between 0 and 1>}}";
 
-    public TicketService(ApplicationDbContext context, IConfiguration configuration, IAIService ai, ILogger<TicketService> logger)
+    public TicketService(ApplicationDbContext context, IConfiguration configuration, IAIService ai, IExcelService excel, ILogger<TicketService> logger)
     {
         _context = context;
         _configuration = configuration;
         _ai = ai;
+        _excel = excel;
         _logger = logger;
     }
 
@@ -593,4 +596,54 @@ public class TicketService : ITicketService
     }
 
     private record AISuggestionDto(string Category, string Priority, string Reason, double Confidence);
+
+    public async Task<byte[]> ExportToExcelAsync(Guid? departmentId, string? status, string? priority)
+    {
+        var query = _context.Tickets
+            .Include(t => t.Category)
+            .Include(t => t.AssignedAgent)
+            .Include(t => t.SubmittedBy)
+            .Include(t => t.Department)
+            .AsQueryable();
+
+        if (departmentId.HasValue)
+            query = query.Where(t => t.DepartmentId == departmentId.Value);
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<Domain.Common.TicketStatus>(status, true, out var s))
+            query = query.Where(t => t.Status == s);
+        if (!string.IsNullOrWhiteSpace(priority) && Enum.TryParse<Domain.Common.TicketPriority>(priority, true, out var p))
+            query = query.Where(t => t.Priority == p);
+
+        var tickets = await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
+
+        var config = new ExcelExportConfig("Tickets", [
+            new ExcelColumnDefinition("Title", "Title", 30),
+            new ExcelColumnDefinition("Category", "Category", 20),
+            new ExcelColumnDefinition("Priority", "Priority", 12),
+            new ExcelColumnDefinition("Status", "Status", 14),
+            new ExcelColumnDefinition("Submitted By", "SubmittedBy", 22),
+            new ExcelColumnDefinition("Assigned Agent", "AssignedAgent", 22),
+            new ExcelColumnDefinition("Department", "Department", 18),
+            new ExcelColumnDefinition("SLA Deadline", "SLADeadline", 18, "yyyy-MM-dd HH:mm"),
+            new ExcelColumnDefinition("SLA Status", "SLAStatus", 12),
+            new ExcelColumnDefinition("Created At", "CreatedAt", 18, "yyyy-MM-dd HH:mm"),
+        ]);
+
+        return await _excel.ExportToExcelAsync(
+            tickets,
+            config,
+            (t, col) => col.PropertyName switch
+            {
+                "Title" => t.Title,
+                "Category" => t.Category.Name,
+                "Priority" => t.Priority.ToString(),
+                "Status" => t.Status.ToString(),
+                "SubmittedBy" => t.SubmittedBy.FullName,
+                "AssignedAgent" => t.AssignedAgent?.FullName,
+                "Department" => t.Department?.Name,
+                "SLADeadline" => t.SLADeadline,
+                "SLAStatus" => t.SLAStatus.ToString(),
+                "CreatedAt" => t.CreatedAt,
+                _ => null,
+            });
+    }
 }

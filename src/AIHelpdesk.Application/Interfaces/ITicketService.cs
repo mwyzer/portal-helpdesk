@@ -23,4 +23,5 @@ public interface ITicketService
     Task<PagedResult<TicketQueueResponse>> GetQueueAsync(Guid? departmentId, int page, int pageSize, string? status, string? priority);
     Task<IList<TicketSLAReportResponse>> GetSLAReportAsync(Guid? departmentId);
     Task<TicketAISuggestionResponse> GetAISuggestionAsync(CreateTicketRequest request);
+    Task<byte[]> ExportToExcelAsync(Guid? departmentId, string? status, string? priority);
 }
