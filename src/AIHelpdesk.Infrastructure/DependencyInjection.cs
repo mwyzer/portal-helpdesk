@@ -55,6 +55,7 @@ public static class DependencyInjection
         services.AddScoped<ITicketService, TicketService>();
         services.AddScoped<IEscalationService, EscalationService>();
         services.AddScoped<IAgentAssignmentService, AgentAssignmentService>();
+        services.AddHostedService<TicketSlaBackgroundService>();
         services.Configure<AIOptions>(configuration.GetSection(AIOptions.SectionName));
 
         services.AddHttpClient<IAIService, AIService>(client =>
