@@ -183,7 +183,7 @@
 
 ## 7. Frontend — Notification System
 
-> **Correction (2026-08-04):** this section was almost entirely wrong — `useSignalR.ts`, `NotificationBell.tsx`, and `NotificationCenterPage.tsx` were already fully built (just not found during the earlier audit). The one real gap was that `NotificationBell` imported `addToast` and called `useSignalR()` but never registered a handler, so nothing ever actually toasted or updated in real time — fixed by wiring `onNotification`/`onUnreadCount` callbacks.
+> **Correction (2026-08-04):** this section was almost entirely wrong — `useSignalR.ts`, `NotificationBell.tsx`, `NotificationCenterPage.tsx`, **and** the toast-on-SignalR-event wiring were all already fully built (in `AppLayout.tsx`, not `NotificationBell.tsx` — which is why the first pass here missed it). `NotificationBell` did have an unused `addToast` import and an unused `useSignalR()` return value, which read like an incomplete wire-up; that was misleading, not actually broken. My first fix registered a *second* `onNotification` handler in `NotificationBell`, which would have double-toasted every notification (one from `AppLayout`, one from `NotificationBell`) — caught and corrected before commit. Final state: `NotificationBell` only uses `onNotification`/`onUnreadCount` to refresh its own dropdown/badge; `AppLayout` owns the toast.
 
 - [x] Create `notifications.api.ts` (list, mark read, mark all read, unread count) — inline in component
 - [x] Create SignalR connection hook: `useSignalR` (connect on login, disconnect on logout) — shared connection with ref-counted handlers, connects/disconnects based on auth state
@@ -193,7 +193,7 @@
 - [x] Build `NotificationBell` dropdown (last 5 notifications, "mark all read" link)
 - [x] Build `NotificationList` component (scrollable list, each item with read/unread styling) — implemented inline in `NotificationCenterPage.tsx`, not a separate component file
 - [x] Build `NotificationCenterPage` (full list, filter by read/unread, mark as read)
-- [x] Show toast notification on new SignalR event — fixed 2026-08-04, `NotificationBell` now registers an `onNotification` handler that calls `addToast`
+- [x] Show toast notification on new SignalR event — already implemented in `AppLayout.tsx`
 
 ---
 
