@@ -146,14 +146,16 @@ npm run test:e2e:ui
 
 | Phase | Backend (xUnit) | E2E Smoke | E2E Interaction | Status |
 |-------|-----------------|-----------|-----------------|--------|
-| Phase 1 — Foundation MVP | 23 | 13 | — | ✅ All passing |
+| Phase 1 — Foundation MVP | 31 | 13 | — | ✅ All passing |
 | Phase 2 — HR Administration | 46 | 4 | 26 | ✅ All passing |
-| Phase 3 — Secretary Module | 44 | 6 | — | ✅ All passing (4 partial gaps) |
-| Phase 4 — AI Helpdesk Chat | 45 | — | — | ✅ All passing (no E2E yet) |
-| Phase 5–7 | — | — | — | 📋 Not yet tested |
-| **Total** | **158** | **23** | **26** | — |
+| Phase 3 — Secretary Module | 54 | 6 | — | ✅ All passing |
+| Phase 4 — AI Helpdesk Chat | 56 | — | — | ✅ All passing (no E2E yet) |
+| Phase 5 — Ticketing | 49 | — | — | ✅ All passing (no E2E yet) |
+| Phase 6 — Recruitment | 37 | — | — | ✅ All passing (no E2E yet) |
+| Phase 7 | — | — | — | 📋 Not started |
+| **Total** | **273** | **23** | **26** | — |
 
-**Backend (158 tests):** 14 service classes, 2 domain, 1 contract — xUnit + Moq + FluentAssertions + Bogus  
+**Backend (273 tests):** xUnit + Moq + FluentAssertions + Bogus. No frontend (Vitest) unit tests exist yet for any phase — only backend unit tests and the Playwright E2E suite above.  
 **Phase 3 Code Coverage (coverlet):**
 - Services: MeetingService 93.6%, ActionItemService 97.8%, DocumentService 93.8%
 - Domain entities: Meeting, MeetingNote, MeetingParticipant, ActionItem, DocumentTemplate, DocumentRequest, GeneratedDocument — **all 100%**
@@ -331,8 +333,8 @@ npm run test:e2e:ui
 | **Phase 2** | HR Administration — Employee data, leave management, notifications | ✅ Done |
 | **Phase 3** | Secretary Module — Meetings, agendas, documents, action items | ✅ Done |
 | **Phase 4** | AI Helpdesk Chat — AI-powered RAG chat & knowledge base | ✅ Done |
-| **Phase 5** | Ticketing System — Request tracking, SLA, agent workflows | 🚧 In Progress (uncommitted) |
-| **Phase 6** | Recruitment — Job postings, candidate pipeline, AI CV parsing | 📋 Planned |
+| **Phase 5** | Ticketing System — Request tracking, SLA, agent workflows | ✅ Done |
+| **Phase 6** | Recruitment — Job postings, candidate pipeline, AI CV parsing | ✅ Done |
 | **Phase 7** | Hardening & Deployment — Security, performance, CI/CD, monitoring | 📋 Planned |
 
 Detailed documentation for each phase is available in the [`documentation/`](documentation/) directory.
