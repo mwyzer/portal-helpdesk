@@ -9,7 +9,7 @@
 - [x] Initialize Git repository (`git init`)
 - [x] Create `.gitignore` (Visual Studio + Node + .NET + Rider)
 - [x] Create `README.md` with project overview
-- [ ] Create `LICENSE` file
+- [x] Create `LICENSE` file — placeholder proprietary/all-rights-reserved notice added 2026-08-04; final license terms still need sign-off from the project owner
 - [x] Set up GitHub repository (remote origin)
 - [ ] Create branch strategy: `main`, `develop`, `feature/*`
 
@@ -199,7 +199,7 @@
 - [x] Add PostgreSQL service with health check
 - [ ] Add backend service with depends_on + health check — **correction:** `depends_on: postgres (condition: service_healthy)` exists, but the backend service itself has no `healthcheck:` block (nothing to check against, since no `/api/health` endpoint exists)
 - [x] Add frontend service (nginx, depends_on backend)
-- [ ] Create `.env.example` with all environment variables
+- [x] Create `.env.example` with all environment variables — added 2026-08-04, covers Postgres/JWT/CORS/Uploads/AI provider settings
 - [x] Create `.dockerignore` files (backend + frontend)
 
 ---
@@ -303,7 +303,7 @@
 - [ ] CD: Prune old Docker images
 
 ### 20.3 Environment Setup
-- [ ] Create `.env.example` with all variables
+- [x] Create `.env.example` with all variables — same file as above (section 15)
 - [ ] Configure GitHub secrets: `DOCKER_USERNAME`, `DOCKER_PASSWORD`
 - [ ] Configure GitHub secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`
 - [ ] Document environment tiers: Dev, CI, Staging, Production
@@ -319,7 +319,7 @@
 
 | Category | Total Tasks | Done |
 |----------|:-----------:|:----:|
-| Setup & Scaffolding | 15 | 13 |
+| Setup & Scaffolding | 15 | 14 |
 | Backend Domain | 11 | 10 |
 | Backend Infrastructure | 15 | 15 |
 | Backend Application | 8 | 6 |
@@ -332,12 +332,12 @@
 | Frontend Profile | 4 | 2 |
 | Frontend Admin Pages | 9 | 7 |
 | Frontend Routing | 5 | 4 |
-| Docker | 9 | 7 |
+| Docker | 9 | 8 |
 | Backend Unit Tests | 19 | 2 (infra only — 158 real tests exist project-wide, not itemized here; see note above) |
 | Backend Integration Tests | 12 | 0 |
 | Frontend Unit Tests (Vitest) | 13 | 0 — note: Playwright E2E tests exist separately (`frontend/tests/e2e/`), just not Vitest unit tests |
 | Test Automation | 10 | 0 |
-| CI/CD Pipeline | 23 | 0 — no `.github/workflows` directory exists |
-| **TOTAL** | **197 tasks** | **108 (55%)** |
+| CI/CD Pipeline | 23 | 1 — no `.github/workflows` directory exists yet |
+| **TOTAL** | **197 tasks** | **111 (56%)** |
 
 Core backend + frontend for auth, users, roles, departments/positions, and layout/routing are done. The gap is almost entirely: LICENSE/env docs, a few polish items (responsive sidebar, detail pages), and the whole test-automation/CI-CD layer (no integration tests, no frontend unit tests, no CI/CD pipeline at all despite 158 real backend unit tests existing).
