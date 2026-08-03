@@ -164,6 +164,20 @@ public class TicketsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id}/attachments/{attachmentId}/download")]
+    public async Task<IActionResult> DownloadAttachment(Guid id, Guid attachmentId)
+    {
+        var (stream, contentType, fileName) = await _service.DownloadAttachmentAsync(id, attachmentId);
+        return File(stream, string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType, fileName);
+    }
+
+    [HttpDelete("{id}/attachments/{attachmentId}")]
+    public async Task<IActionResult> DeleteAttachment(Guid id, Guid attachmentId)
+    {
+        await _service.DeleteAttachmentAsync(id, attachmentId, GetUserId());
+        return NoContent();
+    }
+
     [HttpPost("ai-suggestion")]
     public async Task<ActionResult<TicketAISuggestionResponse>> GetAISuggestion([FromBody] CreateTicketRequest request)
     {

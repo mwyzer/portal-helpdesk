@@ -17,6 +17,8 @@ public interface ITicketService
     Task<TicketDetailResponse> CloseAsync(Guid id, Guid userId);
     Task<TicketDetailResponse> ReopenAsync(Guid id, Guid userId);
     Task<TicketAttachmentResponse> UploadAttachmentAsync(Guid ticketId, Guid userId, string fileName, string contentType, Stream fileStream);
+    Task<(Stream FileStream, string ContentType, string FileName)> DownloadAttachmentAsync(Guid ticketId, Guid attachmentId);
+    Task DeleteAttachmentAsync(Guid ticketId, Guid attachmentId, Guid userId);
     Task<TicketStatsResponse> GetStatsAsync(Guid? userId, Guid? departmentId);
     Task<PagedResult<TicketQueueResponse>> GetQueueAsync(Guid? departmentId, int page, int pageSize, string? status, string? priority);
     Task<IList<TicketSLAReportResponse>> GetSLAReportAsync(Guid? departmentId);
