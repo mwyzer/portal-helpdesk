@@ -57,6 +57,11 @@ public static class DependencyInjection
         services.AddScoped<IAgentAssignmentService, AgentAssignmentService>();
         services.AddHostedService<TicketSlaBackgroundService>();
         services.AddHostedService<ActionItemReminderBackgroundService>();
+        // Phase 6: Recruitment Module
+        services.AddScoped<IJobVacancyService, JobVacancyService>();
+        services.AddScoped<ICandidateService, CandidateService>();
+        services.AddScoped<IInterviewService, InterviewService>();
+        services.AddScoped<IRecruitmentAIService, RecruitmentAIService>();
         services.Configure<AIOptions>(configuration.GetSection(AIOptions.SectionName));
 
         services.AddHttpClient<IAIService, AIService>(client =>
