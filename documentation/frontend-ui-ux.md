@@ -1,276 +1,933 @@
 ---
+
 name: frontend-ui-ux
-description: 'UI/UX and frontend development for the AIHelpdesk React app. Use when: building or editing pages, components, forms, modals, tables, or charts; styling with Tailwind/CSS variables; adding routes or navigation; integrating APIs with React Query + Axios; managing state with Zustand; implementing dark mode; writing Playwright e2e tests; working with shadcn-style Radix UI primitives; handling SignalR real-time events; validating forms with React Hook Form + Zod. Covers React 18 + TypeScript + Vite + Tailwind + shadcn/ui patterns.'
-argument-hint: '[task] — e.g., "add a new CRUD page", "create a modal form", "style a dashboard card"'
+description: >
+Frontend architecture, UI/UX standards, and development conventions for the
+AIHelpdesk React application. Use when creating or editing pages, components,
+forms, dialogs, tables, charts, navigation, API integrations, real-time
+notifications, dark mode, responsive layouts, or Playwright tests.
+argument-hint: >
+[task] — for example: "create an employee CRUD page",
+"add an AI answer card", or "build a responsive dashboard"
 user-invocable: true
 disable-model-invocation: false
+-------------------------------
+
+# Frontend UI/UX Standards — AIHelpdesk
+
+## 1. Purpose
+
+This document defines the frontend architecture, visual language, component patterns, accessibility rules, API conventions, and testing standards for the AIHelpdesk application.
+
+The frontend must be:
+
+* Consistent
+* Accessible
+* Responsive
+* Type-safe
+* Easy to maintain
+* Suitable for enterprise SaaS
+* Ready for AI, RAG, and real-time features
+
 ---
 
-# Frontend UI/UX — AIHelpdesk
+## 2. Technology Stack
 
-## Tech Stack
+| Category        | Technology                  | Purpose                                     |
+| --------------- | --------------------------- | ------------------------------------------- |
+| Framework       | React 18.3                  | UI rendering                                |
+| Language        | TypeScript strict mode      | Type safety                                 |
+| Build Tool      | Vite 5                      | Development server and bundling             |
+| Styling         | Tailwind CSS 3              | Utility-first styling                       |
+| Animation       | `tailwindcss-animate`       | UI transitions and animations               |
+| Design System   | CSS variables and CVA       | Theme tokens and component variants         |
+| UI Primitives   | Radix UI                    | Accessible headless components              |
+| Icons           | Lucide React                | Consistent icon library                     |
+| Routing         | React Router v6             | Client-side routing                         |
+| Server State    | TanStack React Query v5     | Fetching, caching, and mutations            |
+| Client State    | Zustand v5                  | Authentication and lightweight global state |
+| Forms           | React Hook Form             | Form state management                       |
+| Validation      | Zod                         | Schema validation                           |
+| HTTP Client     | Axios                       | API communication                           |
+| Real-time       | Microsoft SignalR           | WebSocket notifications                     |
+| Charts          | Recharts                    | Dashboard visualizations                    |
+| Class Utilities | `clsx` and `tailwind-merge` | Conditional class merging                   |
+| Testing         | Playwright                  | End-to-end browser testing                  |
 
-| Category | Library | Purpose |
-|----------|---------|---------|
-| Framework | React 18.3 + TypeScript strict | UI layer |
-| Build | Vite 5 | Dev server + bundler |
-| Styling | Tailwind CSS 3 + `tailwindcss-animate` | Utility-first CSS with animations |
-| Design System | CSS variables (HSL) + `class-variance-authority` | shadcn/ui-style theming + variant props |
-| UI Primitives | Radix UI (Avatar, Dialog, DropdownMenu, Label, Select, Separator, Slot, Switch, Tabs, Toast, Tooltip) | Accessible headless components |
-| Icons | Lucide React | Icon library |
-| Routing | React Router v6 | Client-side routing |
-| Server State | TanStack React Query v5 | Data fetching, caching, mutations |
-| Client State | Zustand v5 | Lightweight stores (`authStore`, `toastStore`) |
-| Forms | React Hook Form + Zod + `@hookform/resolvers` | Form state + schema validation |
-| HTTP | Axios | API client with JWT interceptor |
-| Real-time | `@microsoft/signalr` | WebSocket notifications |
-| Charts | Recharts | Bar, pie, line charts |
-| Class utils | `clsx` + `tailwind-merge` | `cn()` helper |
-| Testing | Playwright | End-to-end browser tests |
+---
 
-## Project Structure
+## 3. Visual Direction
 
-```
+AIHelpdesk uses a **Modern Enterprise SaaS with Calm AI** visual style.
+
+### Visual characteristics
+
+* Professional and trustworthy
+* Clean and spacious
+* Minimal visual noise
+* Soft borders and subtle shadows
+* Blue as the primary application color
+* Violet as the AI-specific accent color
+* Strong visual distinction between normal actions and AI actions
+* Compact tables with comfortable dashboard spacing
+* Clear loading, empty, success, warning, and error states
+
+### Color usage
+
+| Purpose              | Color Direction |
+| -------------------- | --------------- |
+| Primary action       | Blue            |
+| AI feature           | Violet          |
+| Success              | Emerald         |
+| Warning              | Amber           |
+| Error or destructive | Red             |
+| Information          | Sky or blue     |
+| Neutral              | Slate or gray   |
+
+### General appearance
+
+* Border radius: 8–12 px
+* Shadows: subtle
+* Cards: white or dark surface with thin border
+* Forms: clear labels and visible focus states
+* Gradients: use sparingly
+* Red: only for errors and destructive actions
+* Violet: only for AI-related features
+
+---
+
+## 4. Project Structure
+
+```text
 frontend/src/
-├── App.tsx                  # Route definitions (public + protected)
-├── main.tsx                 # Entry point, ReactDOM.render
-├── index.css                # Tailwind directives + CSS variables (light/dark)
+├── App.tsx
+├── main.tsx
+├── index.css
+│
 ├── components/
-│   ├── ui/                  # shadcn-style primitives (button, card, input, table, dialog, etc.)
+│   ├── ui/
+│   │   ├── button.tsx
+│   │   ├── card.tsx
+│   │   ├── dialog.tsx
+│   │   ├── input.tsx
+│   │   ├── badge.tsx
+│   │   ├── spinner.tsx
+│   │   ├── table.tsx
+│   │   └── error-boundary.tsx
+│   │
 │   ├── layout/
-│   │   ├── AppLayout.tsx    # Sidebar nav + header + <Outlet/>
-│   │   └── ProtectedRoute.tsx  # Auth guard wrapper
-│   ├── AISummaryButton.tsx  # Feature components
-│   ├── ApprovalTimeline.tsx
-│   ├── EmployeeTable.tsx
-│   ├── LeaveBalanceCard.tsx
-│   ├── NotificationBell.tsx
-│   ├── ParticipantSelector.tsx
-│   └── ToastContainer.tsx
-├── pages/                   # One file per route (e.g., DashboardPage.tsx)
+│   │   ├── AppLayout.tsx
+│   │   ├── AppSidebar.tsx
+│   │   ├── AppHeader.tsx
+│   │   └── ProtectedRoute.tsx
+│   │
+│   ├── ai/
+│   │   ├── AIAnswerCard.tsx
+│   │   ├── AIMessageContent.tsx
+│   │   ├── AISourceList.tsx
+│   │   ├── AIFeedbackActions.tsx
+│   │   ├── AIThinkingIndicator.tsx
+│   │   └── HumanHandoffButton.tsx
+│   │
+│   ├── domain/
+│   │   ├── EmployeeTable.tsx
+│   │   ├── LeaveBalanceCard.tsx
+│   │   ├── ApprovalTimeline.tsx
+│   │   ├── NotificationBell.tsx
+│   │   └── StatusBadge.tsx
+│   │
+│   └── feedback/
+│       ├── EmptyState.tsx
+│       ├── ErrorState.tsx
+│       ├── LoadingState.tsx
+│       └── PageSkeleton.tsx
+│
+├── pages/
+│   ├── DashboardPage.tsx
+│   ├── EmployeesPage.tsx
+│   ├── TicketsPage.tsx
+│   └── KnowledgeBasePage.tsx
+│
+├── hooks/
+│   ├── useDebounce.ts
+│   ├── usePagination.ts
+│   └── useSignalR.ts
+│
 ├── lib/
-│   ├── utils.ts             # cn() class merge helper
-│   ├── axios.ts             # API client with auth interceptors
-│   ├── useSignalR.ts        # SignalR hook
-│   └── useToast.ts          # Toast Zustand store
-└── store/
-    └── authStore.ts         # Auth state (user, login, logout)
+│   ├── axios.ts
+│   ├── query-client.ts
+│   ├── utils.ts
+│   ├── api-error.ts
+│   └── status-variants.ts
+│
+├── schemas/
+│   ├── employee.schema.ts
+│   ├── ticket.schema.ts
+│   └── auth.schema.ts
+│
+├── services/
+│   ├── employee.service.ts
+│   ├── ticket.service.ts
+│   └── knowledge-base.service.ts
+│
+├── store/
+│   ├── authStore.ts
+│   └── toastStore.ts
+│
+└── types/
+    ├── api.ts
+    ├── auth.ts
+    ├── employee.ts
+    └── ticket.ts
 ```
 
-Path alias: `@/` → `./src/` (configured in both `tsconfig.json` and `vite.config.ts`).
+Use the following alias:
 
-## Component Placement Rules
+```text
+@/ → ./src/
+```
 
-Use this decision tree to determine where a new component belongs:
+Configure the alias in both:
 
-| Location | When to Use | Example |
-|----------|-------------|---------|
-| `components/ui/` | Generic, reusable primitive without business logic; could live in any shadcn/ui project | `button.tsx`, `card.tsx`, `dialog.tsx`, `input.tsx`, `table.tsx`, `spinner.tsx`, `badge.tsx` |
-| `components/` (root) | Feature-specific, reusable across multiple pages; contains domain concepts | `EmployeeTable.tsx`, `LeaveBalanceCard.tsx`, `NotificationBell.tsx`, `ParticipantSelector.tsx` |
-| `components/layout/` | App shell, navigation, auth guards | `AppLayout.tsx`, `ProtectedRoute.tsx` |
-| Inline in `pages/` | One-off UI that is only used on that single page; do NOT extract premature abstractions | A dashboard-specific stat card, a page-specific form section |
+* `tsconfig.json`
+* `vite.config.ts`
 
-**Rule of thumb:** If a component is used on 2+ pages, extract it to `components/`. If it has zero business logic and is purely presentational, it goes in `components/ui/`.
+---
 
-## Component Patterns
+## 5. Component Placement Rules
 
-### 1. UI Primitives (shadcn-style)
+| Location               | Use When                                               |
+| ---------------------- | ------------------------------------------------------ |
+| `components/ui/`       | Generic reusable components without business logic     |
+| `components/layout/`   | Application shell, sidebar, header, and route guards   |
+| `components/ai/`       | AI chat, RAG sources, streaming, feedback, and handoff |
+| `components/domain/`   | Reusable business-specific components                  |
+| `components/feedback/` | Loading, empty, error, and skeleton states             |
+| `pages/`               | Route-level components                                 |
+| Inline inside a page   | UI used only once on that page                         |
 
-All UI components in `components/ui/` follow these conventions:
+### Extraction rule
+
+Extract a component when:
+
+* It is used on two or more pages
+* It contains reusable business behavior
+* The page becomes difficult to read
+* It represents a recognizable domain concept
+
+Do not extract components prematurely.
+
+---
+
+## 6. Naming and Export Conventions
+
+### Files
+
+Use PascalCase for React component files:
+
+```text
+EmployeeTable.tsx
+AIAnswerCard.tsx
+DashboardPage.tsx
+```
+
+Use kebab-case or camelCase for utilities:
+
+```text
+api-error.ts
+status-variants.ts
+useDebounce.ts
+```
+
+### Components
+
+Use named exports:
+
+```tsx
+export function EmployeeTable() {
+  return <div />;
+}
+```
+
+Avoid default exports:
+
+```tsx
+// Avoid
+export default EmployeeTable;
+```
+
+### Types
+
+Use descriptive names:
+
+```tsx
+interface EmployeeResponse {
+  id: string;
+  fullName: string;
+}
+
+interface CreateEmployeeRequest {
+  fullName: string;
+  email: string;
+}
+```
+
+Do not use unclear names such as:
+
+```tsx
+interface Data {}
+interface Item {}
+interface Result {}
+```
+
+unless the context is truly generic.
+
+---
+
+## 7. Design Tokens
+
+All colors must use semantic CSS variables.
+
+Do not hardcode application colors inside components unless the value comes from external data.
+
+### `index.css`
+
+```css
+:root {
+  --background: 220 20% 98%;
+  --foreground: 222 47% 11%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+
+  --primary: 221 83% 53%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 222 47% 11%;
+
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+
+  --accent: 220 14% 96%;
+  --accent-foreground: 222 47% 11%;
+
+  --ai: 262 83% 58%;
+  --ai-foreground: 0 0% 100%;
+
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 38 92% 50%;
+  --warning-foreground: 222 47% 11%;
+
+  --info: 199 89% 48%;
+  --info-foreground: 0 0% 100%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 221 83% 53%;
+
+  --chart-1: 221 83% 53%;
+  --chart-2: 142 71% 45%;
+  --chart-3: 38 92% 50%;
+  --chart-4: 262 83% 58%;
+  --chart-5: 199 89% 48%;
+
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: 222 47% 7%;
+  --foreground: 210 40% 98%;
+
+  --card: 222 47% 9%;
+  --card-foreground: 210 40% 98%;
+
+  --popover: 222 47% 9%;
+  --popover-foreground: 210 40% 98%;
+
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 11%;
+
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 98%;
+
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 40% 98%;
+
+  --ai: 263 70% 65%;
+  --ai-foreground: 222 47% 11%;
+
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 224 76% 48%;
+}
+```
+
+### Tailwind usage
+
+```tsx
+<div className="bg-background text-foreground" />
+
+<Button className="bg-primary text-primary-foreground" />
+
+<div className="border border-border bg-card text-card-foreground" />
+
+<div className="bg-ai text-ai-foreground" />
+```
+
+### Prohibited
+
+```tsx
+<div className="bg-[#3b82f6]" />
+<div style={{ color: '#ef4444' }} />
+```
+
+### Allowed
+
+```tsx
+<div className="bg-primary" />
+<div className="text-destructive" />
+<div className="border-border" />
+```
+
+---
+
+## 8. The `cn()` Utility
+
+Use `cn()` for all conditional or merged classes.
+
+```tsx
+import { cn } from '@/lib/utils';
+
+<div
+  className={cn(
+    'rounded-lg border bg-card p-4',
+    isActive && 'border-primary',
+    className,
+  )}
+/>
+```
+
+Do not manually concatenate Tailwind classes:
+
+```tsx
+// Avoid
+<div className={'p-4 ' + (isActive ? 'border-primary' : '')} />
+```
+
+---
+
+## 9. UI Primitive Pattern
+
+Use `React.forwardRef` when the consumer may need access to the underlying DOM element.
+
+Typical examples:
+
+* Button
+* Input
+* Textarea
+* Dialog content
+* Select trigger
+* Table elements
+* Components integrated with Radix UI
+* Components used for focus management
 
 ```tsx
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-// Always use React.forwardRef
-const Component = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('base-classes', className)} {...props} />
-  ),
-);
-Component.displayName = 'Component';  // REQUIRED for forwardRef
+const Input = React.forwardRef<
+  HTMLInputElement,
+  React.InputHTMLAttributes<HTMLInputElement>
+>(({ className, ...props }, ref) => {
+  return (
+    <input
+      ref={ref}
+      className={cn(
+        'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2',
+        'text-sm ring-offset-background',
+        'placeholder:text-muted-foreground',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        className,
+      )}
+      {...props}
+    />
+  );
+});
 
-export { Component };  // Named export
+Input.displayName = 'Input';
+
+export { Input };
 ```
 
-**Key rules:**
-- Use `React.forwardRef` for all primitives
-- Set `.displayName` after every `forwardRef`
-- Merge classes with `cn()` — always put base classes first, then `className`
-- Spread `...props` last so consumers can override
-- Named exports only (no default exports)
+Do not force `forwardRef` on components that do not expose or require a DOM reference.
 
-### 2. Radix UI Wrappers (dialog, select, dropdown-menu)
+---
 
-When wrapping Radix primitives, re-export the root parts and wrap content parts:
+## 10. Button Variants
 
-```tsx
-import * as DialogPrimitive from '@radix-ui/react-dialog';
-
-// Re-export unmodified primitives
-const Dialog = DialogPrimitive.Root;
-const DialogTrigger = DialogPrimitive.Trigger;
-const DialogClose = DialogPrimitive.Close;
-
-// Wrap only the styled parts with forwardRef
-const DialogContent = React.forwardRef<...>(({ className, children, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content ref={ref} className={cn('...', className)} {...props}>
-      {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 ...">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>  {/* Always include sr-only for a11y */}
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
-  </DialogPortal>
-));
-```
-
-### 3. CVA Variants (button)
-
-For components with multiple style variants, use `class-variance-authority`:
+Use `class-variance-authority` for components with multiple visual variants.
 
 ```tsx
 import { cva, type VariantProps } from 'class-variance-authority';
 
-const buttonVariants = cva('base-classes', {
-  variants: {
-    variant: {
-      default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-      destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-      outline: 'border border-input bg-background hover:bg-accent',
-      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-      ghost: 'hover:bg-accent hover:text-accent-foreground',
-      link: 'text-primary underline-offset-4 hover:underline',
+const buttonVariants = cva(
+  'inline-flex items-center justify-center rounded-md text-sm font-medium',
+  {
+    variants: {
+      variant: {
+        default:
+          'bg-primary text-primary-foreground hover:bg-primary/90',
+        destructive:
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        outline:
+          'border border-input bg-background hover:bg-accent',
+        secondary:
+          'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        ghost:
+          'hover:bg-accent hover:text-accent-foreground',
+        link:
+          'text-primary underline-offset-4 hover:underline',
+        ai:
+          'bg-ai text-ai-foreground hover:bg-ai/90',
+      },
+      size: {
+        default: 'h-10 px-4 py-2',
+        sm: 'h-9 rounded-md px-3',
+        lg: 'h-11 rounded-md px-8',
+        icon: 'h-10 w-10',
+      },
     },
-    size: {
-      default: 'h-10 px-4 py-2',
-      sm: 'h-9 rounded-md px-3',
-      lg: 'h-11 rounded-md px-8',
-      icon: 'h-10 w-10',
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
     },
   },
-  defaultVariants: { variant: 'default', size: 'default' },
-});
+);
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {}
 ```
 
-### 4. Simple Variants (badge)
+Use the AI variant only for actions such as:
 
-For fewer variants, a plain `Record<string, string>` is cleaner than CVA:
+* Generate summary
+* Ask AI
+* Regenerate answer
+* Analyze document
+* Create AI recommendation
+
+---
+
+## 11. Status Badge Pattern
+
+Status appearance must be centralized.
+
+Do not define different color maps independently on every page.
+
+### `lib/status-variants.ts`
 
 ```tsx
-const variantStyles: Record<string, string> = {
-  default: 'bg-primary text-primary-foreground hover:bg-primary/80',
-  secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-  destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/80',
-  outline: 'text-foreground border border-input',
-  success: 'bg-emerald-500 text-white hover:bg-emerald-600',
-  warning: 'bg-amber-500 text-white hover:bg-amber-600',
+export type StatusVariant =
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info'
+  | 'neutral';
+
+export const statusVariantMap: Record<string, StatusVariant> = {
+  approved: 'success',
+  completed: 'success',
+  active: 'success',
+
+  pending: 'warning',
+  submitted: 'warning',
+  waiting: 'warning',
+
+  rejected: 'danger',
+  failed: 'danger',
+  cancelled: 'danger',
+
+  processing: 'info',
+  in_progress: 'info',
+
+  draft: 'neutral',
+  inactive: 'neutral',
 };
-
-export function Badge({ className, variant = 'default', ...props }: BadgeProps) {
-  return <span className={cn('base-classes', variantStyles[variant], className)} {...props} />;
-}
 ```
 
-### 5. Compound Components (card, table, dialog)
-
-Compose multiple sub-components with `displayName`:
+### Usage
 
 ```tsx
-const Card = React.forwardRef<...>(({...}, ref) => <div ref={ref} ... />);
-Card.displayName = 'Card';
-const CardHeader = React.forwardRef<...>(({...}, ref) => <div ref={ref} ... />);
-CardHeader.displayName = 'CardHeader';
-// CardTitle, CardDescription, CardContent, CardFooter — same pattern
-
-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
+<StatusBadge status="approved" />
 ```
 
-## Page Patterns
+The same status must use the same color across the entire application.
 
-### Data Fetching Page (CRUD)
+---
 
-Every data page follows this structure:
+## 12. Page Layout Pattern
+
+Every page should use a consistent structure.
 
 ```tsx
-// ── Types ──────────────────────────────────────────
-interface ThingResponse {
-  id: string;
-  name: string;
-  // ...
-}
-
-// ── Component ──────────────────────────────────────
-export function ThingsPage() {
-  const navigate = useNavigate();
-
-  // 1. Query (READ)
-  const { data, isLoading, error } = useQuery<ThingResponse[]>({
-    queryKey: ['things'],
-    queryFn: () => api.get('/things').then((r) => r.data),
-  });
-
-  // 2. Mutation (CREATE/UPDATE/DELETE)
-  const queryClient = useQueryClient();
-  const createMutation = useMutation({
-    mutationFn: (body: CreateThingDto) => api.post('/things', body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['things'] }),
-  });
-
-  // 3. Render
-  if (isLoading) return <Spinner />;
-  if (error) return <ErrorState />;
-
+export function EmployeesPage() {
   return (
-    <div className="space-y-6 p-6">
-      {/* Header + action button */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Things</h1>
-        <Button onClick={() => setModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Add Thing
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Employees
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Manage employees and account access.
+          </p>
+        </div>
+
+        <Button>
+          Add Employee
         </Button>
       </div>
-      {/* Content: table, cards, or list */}
-      {/* Modal for create/edit */}
+
+      <section>
+        {/* Filters, table, cards, or page content */}
+      </section>
     </div>
   );
 }
 ```
 
-### Form Pattern (React Hook Form + Zod)
+### Page rules
+
+* Every page must have a clear title
+* Add a short description when useful
+* Primary action should appear near the title
+* Use `space-y-6` for major page sections
+* Use `p-4 md:p-6` for responsive page padding
+* Do not place unrelated content inside one large card
+
+---
+
+## 13. API Response Contract
+
+Use a consistent API response structure.
 
 ```tsx
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+export interface ApiResponse<T> {
+  data: T;
+  message?: string;
+  traceId?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+```
+
+Example:
+
+```tsx
+const response = await api.get<ApiResponse<EmployeeResponse[]>>(
+  '/employees',
+);
+
+return response.data.data;
+```
+
+For paginated endpoints:
+
+```tsx
+const response = await api.get<PaginatedResponse<EmployeeResponse>>(
+  '/employees',
+  {
+    params: {
+      page,
+      pageSize,
+      search,
+      status,
+    },
+  },
+);
+
+return response.data;
+```
+
+---
+
+## 14. Service Layer
+
+Do not write large API implementations directly inside page components.
+
+### `services/employee.service.ts`
+
+```tsx
+import api from '@/lib/axios';
+import type {
+  ApiResponse,
+  PaginatedResponse,
+} from '@/types/api';
+import type {
+  EmployeeResponse,
+  CreateEmployeeRequest,
+} from '@/types/employee';
+
+export interface EmployeeQuery {
+  page: number;
+  pageSize: number;
+  search?: string;
+  status?: string;
+}
+
+export async function getEmployees(
+  query: EmployeeQuery,
+): Promise<PaginatedResponse<EmployeeResponse>> {
+  const response = await api.get<
+    PaginatedResponse<EmployeeResponse>
+  >('/employees', {
+    params: query,
+  });
+
+  return response.data;
+}
+
+export async function createEmployee(
+  payload: CreateEmployeeRequest,
+): Promise<EmployeeResponse> {
+  const response = await api.post<
+    ApiResponse<EmployeeResponse>
+  >('/employees', payload);
+
+  return response.data.data;
+}
+```
+
+---
+
+## 15. React Query Pattern
+
+### Query
+
+```tsx
+const employeesQuery = useQuery({
+  queryKey: [
+    'employees',
+    {
+      page,
+      pageSize,
+      search,
+      status,
+    },
+  ],
+  queryFn: () =>
+    getEmployees({
+      page,
+      pageSize,
+      search,
+      status,
+    }),
+  placeholderData: (previousData) => previousData,
+});
+```
+
+### Mutation
+
+```tsx
+const queryClient = useQueryClient();
+
+const createMutation = useMutation({
+  mutationFn: createEmployee,
+  onSuccess: () => {
+    queryClient.invalidateQueries({
+      queryKey: ['employees'],
+    });
+
+    addToast({
+      title: 'Employee created',
+      type: 'success',
+    });
+
+    setDialogOpen(false);
+  },
+  onError: (error) => {
+    setApiError(getApiErrorMessage(error));
+  },
+});
+```
+
+### Query key rules
+
+Use descriptive array keys:
+
+```tsx
+['employees']
+['employees', employeeId]
+['tickets', { page, status, search }]
+['knowledge-articles', articleId]
+```
+
+Do not use unclear keys:
+
+```tsx
+['data']
+['list']
+['items']
+```
+
+---
+
+## 16. Form Pattern
+
+Use:
+
+* React Hook Form
+* Zod
+* `zodResolver`
+* Accessible labels
+* Inline validation errors
+* Disabled submit button during mutation
+
+### Schema
+
+```tsx
 import { z } from 'zod';
 
-const schema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email'),
-  departmentId: z.string().optional(),
+export const employeeSchema = z.object({
+  fullName: z
+    .string()
+    .trim()
+    .min(2, 'Full name must contain at least 2 characters'),
+
+  email: z
+    .string()
+    .trim()
+    .email('Enter a valid email address'),
+
+  departmentId: z
+    .string()
+    .min(1, 'Department is required'),
 });
 
-type FormData = z.infer<typeof schema>;
+export type EmployeeFormValues = z.infer<
+  typeof employeeSchema
+>;
+```
 
-function MyForm({ defaultValues, onSubmit }: {
-  defaultValues?: FormData;
-  onSubmit: (data: FormData) => void;
-}) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
-    resolver: zodResolver(schema),
-    defaultValues: defaultValues || { name: '', email: '' },
+### Form
+
+```tsx
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+
+interface EmployeeFormProps {
+  defaultValues?: EmployeeFormValues;
+  onSubmit: (values: EmployeeFormValues) => void;
+  isSubmitting?: boolean;
+  apiError?: string | null;
+}
+
+export function EmployeeForm({
+  defaultValues,
+  onSubmit,
+  isSubmitting = false,
+  apiError,
+}: EmployeeFormProps) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<EmployeeFormValues>({
+    resolver: zodResolver(employeeSchema),
+    defaultValues: defaultValues ?? {
+      fullName: '',
+      email: '',
+      departmentId: '',
+    },
   });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <Label htmlFor="name">Name</Label>
-        <Input id="name" {...register('name')} />
-        {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-4"
+    >
+      {apiError && (
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+        >
+          {apiError}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="fullName">Full name</Label>
+
+        <Input
+          id="fullName"
+          {...register('fullName')}
+          aria-invalid={Boolean(errors.fullName)}
+          aria-describedby={
+            errors.fullName
+              ? 'fullName-error'
+              : undefined
+          }
+        />
+
+        {errors.fullName && (
+          <p
+            id="fullName-error"
+            className="text-sm text-destructive"
+          >
+            {errors.fullName.message}
+          </p>
+        )}
       </div>
-      <Button type="submit" disabled={isSubmitting}>
+
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+
+        <Input
+          id="email"
+          type="email"
+          {...register('email')}
+          aria-invalid={Boolean(errors.email)}
+          aria-describedby={
+            errors.email ? 'email-error' : undefined
+          }
+        />
+
+        {errors.email && (
+          <p
+            id="email-error"
+            className="text-sm text-destructive"
+          >
+            {errors.email.message}
+          </p>
+        )}
+      </div>
+
+      <Button
+        type="submit"
+        disabled={isSubmitting}
+      >
         {isSubmitting ? 'Saving...' : 'Save'}
       </Button>
     </form>
@@ -278,382 +935,1008 @@ function MyForm({ defaultValues, onSubmit }: {
 }
 ```
 
-**Form conventions:**
-- Always pair `<Label htmlFor="...">` with `<Input id="...">` for a11y
-- Always show validation errors below the input: `{errors.field && <p className="text-sm text-destructive">{errors.field.message}</p>}`
-- Disable submit button during submission: `disabled={isSubmitting}`
-- Change button text during submission: `{isSubmitting ? 'Saving...' : 'Save'}`
-- Use `defaultValues` prop for edit forms; pass `null` defaults for create forms
+---
 
-## Styling System
+## 17. API Error Handling
 
-### Design Tokens (CSS Variables)
+Do not use `any` for API errors.
 
-All colors are HSL-based CSS variables defined in `index.css`:
+### `lib/api-error.ts`
 
-```css
-:root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
-  --primary: 221 83% 53%;
-  --primary-foreground: 0 0% 100%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --border: 240 5.9% 90%;
-  --ring: 221 83% 53%;
-  --radius: 0.5rem;
-  /* ... */
+```tsx
+import axios from 'axios';
+
+interface ApiErrorResponse {
+  message?: string;
+  errors?: Record<string, string[]>;
+  traceId?: string;
 }
-.dark {
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-  /* ... */
+
+export function getApiErrorMessage(
+  error: unknown,
+): string {
+  if (axios.isAxiosError<ApiErrorResponse>(error)) {
+    return (
+      error.response?.data?.message ??
+      error.message ??
+      'The request could not be completed.'
+    );
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'An unexpected error occurred.';
 }
 ```
 
-**Usage in Tailwind:** Reference via `bg-background`, `text-foreground`, `border-border`, etc.
+---
 
-### Dark Mode
+## 18. Loading, Error, and Empty States
 
-- Strategy: `class` (`.dark` class on `<html>`)
-- All components support dark mode via CSS variable mappers
-- Tailwind config extends colors to map to CSS variables
-- Use `dark:` prefix for one-off overrides: `dark:bg-gray-900`
+Every data page must support:
 
-### The cn() Helper
+* Initial loading
+* Background refresh
+* Error state
+* Empty state
+* Success state
+
+### Loading
 
 ```tsx
-import { cn } from '@/lib/utils';
-// Merges Tailwind classes, resolving conflicts via tailwind-merge
-<div className={cn('text-sm', isActive && 'text-primary', className)} />
+if (query.isLoading) {
+  return <PageSkeleton />;
+}
 ```
 
-### Status Color Maps
-
-For status badges across the app, use inline record maps (not global constants):
+### Error
 
 ```tsx
-const statusColor = (status: string) => {
-  const map: Record<string, string> = {
-    Approved: 'bg-green-100 text-green-800',
-    Rejected: 'bg-red-100 text-red-800',
-    Submitted: 'bg-blue-100 text-blue-800',
-    Draft: 'bg-gray-100 text-gray-800',
-  };
-  return map[status] || 'bg-gray-100 text-gray-800';
-};
-
-// Usage:
-<Badge className={statusColor(item.status)}>{item.status}</Badge>
-```
-
-## Charts & Dashboard Patterns
-
-Recharts is used on the dashboard. All chart components must be wrapped in `<ResponsiveContainer>`.
-
-### Pie Chart
-
-```tsx
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-const PIE_COLORS = ['#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899'];
-
-<ResponsiveContainer width="100%" height={250}>
-  <PieChart>
-    <Pie data={data} cx="50%" cy="50%" outerRadius={80} dataKey="value"
-      label={({ name, value }) => `${name}: ${value}`}>
-      {data.map((_, idx) => (
-        <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
-      ))}
-    </Pie>
-    <Tooltip />
-    <Legend />
-  </PieChart>
-</ResponsiveContainer>
-```
-
-### Bar Chart
-
-```tsx
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-<ResponsiveContainer width="100%" height={250}>
-  <BarChart data={data}>
-    <CartesianGrid strokeDasharray="3 3" />
-    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-    <YAxis allowDecimals={false} />
-    <Tooltip />
-    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-  </BarChart>
-</ResponsiveContainer>
-```
-
-### Stat Cards (Dashboard)
-
-```tsx
-<Card>
-  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-    <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-    <Users className="h-4 w-4 text-blue-600" />
-  </CardHeader>
-  <CardContent>
-    <div className="text-2xl font-bold">{count ?? '—'}</div>
-  </CardContent>
-</Card>
-```
-
-**Dashboard conventions:**
-- Use `useMemo` for derived data (chart transformations, filtered lists)
-- Wrap charts in `<Card>` + `<CardHeader>`/`<CardContent>`
-- Use `enabled:` query option for role-conditional data fetching (e.g., `enabled: isAdmin`)
-- Stat card grid: `grid gap-4 md:grid-cols-2 lg:grid-cols-4`
-- Chart grid: `grid gap-6 lg:grid-cols-2`
-
-## Error Handling Patterns
-
-### Data Fetching Errors (React Query)
-
-```tsx
-const { data, isLoading, error } = useQuery<Response>({
-  queryKey: ['things'],
-  queryFn: () => api.get('/things').then((r) => r.data),
-});
-
-if (isLoading) return <Spinner />;
-if (error) {
+if (query.isError) {
   return (
-    <Card className="m-6">
-      <CardContent className="pt-6 text-center text-destructive">
-        Failed to load data. Please try again.
-      </CardContent>
-    </Card>
+    <ErrorState
+      title="Unable to load employees"
+      description="Please try again or contact the administrator."
+      onRetry={() => query.refetch()}
+    />
   );
 }
 ```
 
-### Mutation Errors (Inline)
+### Empty
 
 ```tsx
-const [apiError, setApiError] = useState<string | null>(null);
-
-const createMutation = useMutation({
-  mutationFn: (body) => api.post('/things', body),
-  onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['things'] }); setShowCreate(false); },
-  onError: (err: any) => {
-    setApiError(err.response?.data?.message || 'An error occurred');
-  },
-});
-
-// In JSX:
-{apiError && <p className="text-sm text-destructive">{apiError}</p>}
-```
-
-### Error Display Styles
-
-| Context | Pattern |
-|---------|---------|
-| Form field validation | `<p className="text-sm text-destructive">{errors.field.message}</p>` |
-| API error above form | `<p className="text-sm text-destructive mb-4">{apiError}</p>` |
-| Page-level error state | `<Card><CardContent className="pt-6 text-center text-destructive">...</CardContent></Card>` |
-| Empty state | `<Card><CardContent className="pt-6 text-center text-muted-foreground">No data found.</CardContent></Card>` |
-
-**No ErrorBoundary class component is used in this project** — errors are handled inline via React Query's error state and mutation `onError` callbacks. Do not introduce `componentDidCatch`-style error boundaries.
-
-## State Management
-
-### Zustand Stores
-
-```tsx
-import { create } from 'zustand';
-
-interface MyStore {
-  value: string;
-  setValue: (v: string) => void;
+if (query.data?.data.length === 0) {
+  return (
+    <EmptyState
+      title="No employees found"
+      description="Create an employee or change the current filters."
+      action={
+        <Button onClick={() => setDialogOpen(true)}>
+          Add Employee
+        </Button>
+      }
+    />
+  );
 }
-
-export const useMyStore = create<MyStore>((set) => ({
-  value: '',
-  setValue: (v) => set({ value: v }),
-}));
 ```
 
-**Existing stores:**
-- `useAuthStore` (`@/store/authStore`): `user`, `login()`, `logout()`, `isAuthenticated`
-- `useToastStore` (`@/lib/useToast`): `toasts`, `addToast()`, `removeToast()`
+Do not display an empty table without explanation.
+
+---
+
+## 19. Error Boundary
+
+React Query errors and React rendering errors are different.
+
+Use inline error handling for API requests and an Error Boundary for unexpected rendering failures.
+
+```tsx
+<ErrorBoundary>
+  <App />
+</ErrorBoundary>
+```
+
+Use route-level boundaries for complex modules when appropriate.
+
+An Error Boundary must:
+
+* Show a friendly message
+* Provide a retry action
+* Avoid exposing stack traces to users
+* Log technical details to the monitoring system
+
+---
+
+## 20. Table Pattern
+
+Tables must support enterprise data workflows.
+
+Recommended features:
+
+* Server-side pagination
+* Search
+* Filtering
+* Sorting
+* Row actions
+* Loading state
+* Empty state
+* Responsive overflow
+* Optional column visibility
+* URL-based filter state
+
+### URL pattern
+
+```text
+/employees?page=2&pageSize=20&status=active&search=developer
+```
+
+### Responsive table container
+
+```tsx
+<div className="overflow-x-auto rounded-lg border border-border">
+  <Table>
+    {/* Table content */}
+  </Table>
+</div>
+```
+
+### Mobile behavior
+
+For important mobile workflows, consider rendering a card list instead of forcing a wide table.
+
+```tsx
+<div className="hidden md:block">
+  <EmployeeTable />
+</div>
+
+<div className="space-y-3 md:hidden">
+  <EmployeeCardList />
+</div>
+```
+
+---
+
+## 21. Search and Filter Pattern
+
+Use debounced search for server requests.
+
+```tsx
+const [searchInput, setSearchInput] = useState('');
+const debouncedSearch = useDebounce(searchInput, 400);
+```
+
+Do not send a request on every keystroke without debounce.
+
+Filters should be:
+
+* Visible
+* Resettable
+* Reflected in the URL
+* Preserved after page refresh
+* Included in the React Query key
+
+---
+
+## 22. Dashboard Pattern
+
+### Stat grid
+
+```tsx
+<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <StatCard
+    title="Open Tickets"
+    value={openTicketCount}
+    icon={TicketIcon}
+  />
+
+  <StatCard
+    title="Employees"
+    value={employeeCount}
+    icon={UsersIcon}
+  />
+</div>
+```
+
+### Chart grid
+
+```tsx
+<div className="grid gap-6 xl:grid-cols-2">
+  <TicketTrendChart />
+  <TicketStatusChart />
+</div>
+```
+
+### Dashboard rules
+
+* Use `useMemo` for derived chart data
+* Wrap charts inside cards
+* Every chart must include a title
+* Add a description when the metric may be unclear
+* Add empty states when chart data is unavailable
+* Use semantic chart tokens
+* Avoid placing more than two large charts in one row
+* Use role-based query conditions through `enabled`
+
+---
+
+## 23. Chart Colors
+
+Use CSS variables instead of hardcoded hexadecimal values.
+
+```tsx
+<Bar
+  dataKey="value"
+  fill="hsl(var(--chart-1))"
+  radius={[4, 4, 0, 0]}
+/>
+```
+
+For multiple chart series:
+
+```tsx
+const chartColors = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+];
+```
+
+All Recharts charts must use:
+
+```tsx
+<ResponsiveContainer width="100%" height={280}>
+  {/* Chart */}
+</ResponsiveContainer>
+```
+
+---
+
+## 24. AI Component Standards
+
+AI features must be visually distinct from normal system features.
+
+Use the `ai` color token for:
+
+* AI badges
+* AI action buttons
+* Thinking indicators
+* Generated summaries
+* AI recommendations
+
+Do not use AI styling for normal CRUD actions.
+
+### AI answer structure
+
+```tsx
+<AIAnswerCard>
+  <AIAnswerHeader
+    title="AI Helpdesk Assistant"
+    isStreaming={isStreaming}
+  />
+
+  <AIMessageContent>
+    {answer}
+  </AIMessageContent>
+
+  <AISourceList sources={sources} />
+
+  <AIFeedbackActions
+    onHelpful={handleHelpful}
+    onNotHelpful={handleNotHelpful}
+    onRegenerate={handleRegenerate}
+  />
+
+  <HumanHandoffButton
+    onClick={handleEscalation}
+  />
+</AIAnswerCard>
+```
+
+### AI answer requirements
+
+AI responses should support:
+
+* Streaming state
+* Thinking indicator
+* Source citations
+* Source preview
+* Copy answer
+* Regenerate answer
+* Helpful or not helpful feedback
+* Human handoff
+* Error recovery
+* Clear unverified-answer warning where required
+
+### RAG source display
+
+Each source should show:
+
+* Document title
+* Relevant excerpt
+* Page or section when available
+* Relevance or confidence when available
+* Action to open the source
+
+Never present an AI-generated answer as verified fact without showing the available source context.
+
+---
+
+## 25. SignalR Integration
+
+Use a single shared SignalR connection.
+
+```tsx
+const {
+  onNotification,
+  onUnreadCount,
+  isConnected,
+} = useSignalR();
+```
+
+Register handlers inside `useEffect`.
+
+```tsx
+useEffect(() => {
+  return onNotification((notification) => {
+    addToast({
+      title: notification.title,
+      message: notification.message ?? '',
+      type: 'info',
+    });
+  });
+}, [onNotification, addToast]);
+```
+
+The subscription function should return an unsubscribe function.
+
+### SignalR requirements
+
+* Use one global connection
+* Attach JWT through `accessTokenFactory`
+* Support automatic reconnect
+* Remove handlers during cleanup
+* Show connection status where operationally useful
+* Avoid creating one connection per component
+
+Recommended retry delays:
+
+```tsx
+[0, 2000, 5000, 10000, 30000]
+```
+
+---
+
+## 26. State Management Rules
 
 ### React Query
 
-- Always use `queryKey` arrays with descriptive names
-- Use `useMutation` with `onSuccess: () => queryClient.invalidateQueries(...)` for mutations
-- Handle loading state with `<Spinner />` and errors with inline error messages
-- Use `enabled:` for conditional queries (role-gated, dependent on other data)
+Use for:
 
-## SignalR Real-Time Integration
+* API data
+* Caching
+* Pagination
+* Mutations
+* Refetching
+* Background synchronization
 
-The `useSignalR` hook provides a singleton WebSocket connection to `/hubs/notifications`.
+### Zustand
 
-### Hook API
+Use for:
+
+* Authentication state
+* Toast state
+* Sidebar state
+* Small application-wide UI state
+
+### Local component state
+
+Use for:
+
+* Dialog visibility
+* Temporary form UI
+* Selected row
+* Local tab selection
+* Search input before debounce
+
+Do not place all state into Zustand.
+
+Do not duplicate API data from React Query inside Zustand.
+
+---
+
+## 27. Routing
+
+### Route registration
 
 ```tsx
-import { useSignalR } from '@/lib/useSignalR';
-
-const { onNotification, onUnreadCount, isConnected } = useSignalR();
-
-// Register handlers in useEffect
-useEffect(() => {
-  onNotification((notification) => {
-    addToast({ title: notification.title, message: '', type: 'info' });
-  });
-}, [onNotification, addToast]);
-
-useEffect(() => {
-  onUnreadCount((count) => {
-    setUnreadCount(count);
-  });
-}, [onUnreadCount]);
+<Route
+  path="employees"
+  element={<EmployeesPage />}
+/>
 ```
+
+### Navigation registration
+
+```tsx
+{
+  to: '/employees',
+  label: 'Employees',
+  icon: Users,
+}
+```
+
+### Navigation usage
+
+```tsx
+const navigate = useNavigate();
+
+navigate('/employees');
+navigate(`/employees/${employeeId}`);
+```
+
+### Route rules
+
+* Add new routes to `App.tsx`
+* Add visible routes to the sidebar or navigation configuration
+* Protect restricted routes
+* Apply role and permission checks
+* Provide a not-found route
+* Use lazy loading for large modules when useful
+
+---
+
+## 28. Authorization in the UI
+
+Frontend authorization improves UX but does not replace backend authorization.
+
+```tsx
+const canManageEmployees =
+  user?.permissions.includes('employees.manage');
+
+{canManageEmployees && (
+  <Button>Add Employee</Button>
+)}
+```
+
+The backend must still validate every protected action.
+
+Use permission-based checks instead of spreading role-name comparisons throughout the application.
+
+Preferred:
+
+```tsx
+hasPermission('tickets.assign')
+```
+
+Avoid:
+
+```tsx
+user.role === 'Admin' || user.role === 'SuperAdmin'
+```
+
+unless the business rule explicitly depends on the role itself.
+
+---
+
+## 29. Responsive Design Rules
+
+### Page spacing
+
+```tsx
+<div className="p-4 md:p-6">
+```
+
+### Responsive header
+
+```tsx
+<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+```
+
+### Responsive forms
+
+```tsx
+<div className="grid gap-4 md:grid-cols-2">
+```
+
+### Responsive dashboard
+
+```tsx
+<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+```
+
+### Mobile requirements
+
+* Sidebar becomes a drawer
+* Forms become one column
+* Tables scroll horizontally or become card lists
+* Primary mobile actions remain easy to reach
+* Dialogs must fit the viewport
+* Touch targets should be at least 44 × 44 px
+* Avoid hover-only interactions
+* Long text must wrap correctly
+* Buttons may become full width on small screens
+
+---
+
+## 30. Accessibility
+
+Accessibility is mandatory.
+
+### Labels
+
+Every input must have a label.
+
+```tsx
+<Label htmlFor="email">
+  Email
+</Label>
+
+<Input
+  id="email"
+  type="email"
+/>
+```
+
+### Icon-only buttons
+
+```tsx
+<Button
+  variant="ghost"
+  size="icon"
+  aria-label="Delete employee"
+>
+  <Trash2 className="h-4 w-4" />
+  <span className="sr-only">
+    Delete employee
+  </span>
+</Button>
+```
+
+### Form errors
+
+```tsx
+<Input
+  id="email"
+  aria-invalid={Boolean(errors.email)}
+  aria-describedby={
+    errors.email ? 'email-error' : undefined
+  }
+/>
+
+{errors.email && (
+  <p
+    id="email-error"
+    className="text-sm text-destructive"
+  >
+    {errors.email.message}
+  </p>
+)}
+```
+
+### Loading indicators
+
+```tsx
+<Loader2
+  className="h-4 w-4 animate-spin"
+  role="status"
+  aria-label="Loading"
+/>
+```
+
+### Clickable cards
+
+Prefer a semantic link or button.
+
+```tsx
+<Link
+  to="/tickets"
+  className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+>
+  <Card>
+    {/* Content */}
+  </Card>
+</Link>
+```
+
+When a card cannot use a semantic link:
+
+```tsx
+<Card
+  role="button"
+  tabIndex={0}
+  onClick={handleClick}
+  onKeyDown={(event) => {
+    if (
+      event.key === 'Enter' ||
+      event.key === ' '
+    ) {
+      handleClick();
+    }
+  }}
+/>
+```
+
+### Accessibility requirements
+
+* Preserve Radix UI ARIA attributes
+* Ensure sufficient contrast
+* Support keyboard navigation
+* Show visible focus styles
+* Do not communicate status through color alone
+* Use semantic HTML
+* Associate error messages with inputs
+* Use `aria-live` for dynamic AI and notification updates when needed
+
+---
+
+## 31. Dialog Standards
+
+Use Radix Dialog for modal workflows.
+
+Dialogs must include:
+
+* Title
+* Optional description
+* Close button
+* Keyboard support
+* Focus trap
+* Clear primary and secondary actions
+* Loading state during submission
+
+```tsx
+<DialogContent className="sm:max-w-lg">
+  <DialogHeader>
+    <DialogTitle>
+      Add Employee
+    </DialogTitle>
+
+    <DialogDescription>
+      Create an employee account and assign a department.
+    </DialogDescription>
+  </DialogHeader>
+
+  <EmployeeForm />
+
+  <DialogFooter>
+    <Button
+      type="button"
+      variant="outline"
+      onClick={() => setOpen(false)}
+    >
+      Cancel
+    </Button>
+
+    <Button
+      type="submit"
+      form="employee-form"
+    >
+      Save
+    </Button>
+  </DialogFooter>
+</DialogContent>
+```
+
+Use a drawer or bottom sheet for mobile-heavy workflows where appropriate.
+
+---
+
+## 32. Toast Standards
+
+Use toast messages for short operation feedback.
+
+Good examples:
+
+```text
+Employee created successfully.
+Ticket assigned to Ahmad.
+Article saved as draft.
+```
+
+Avoid vague messages:
+
+```text
+Success.
+Done.
+Operation completed.
+```
+
+Use inline errors when the user must correct something.
+
+Do not rely only on toast messages for form validation.
+
+---
+
+## 33. File Upload Pattern
+
+```tsx
+const formData = new FormData();
+formData.append('file', file);
+
+await api.post('/knowledge-documents', formData, {
+  headers: {
+    'Content-Type': 'multipart/form-data',
+  },
+});
+```
+
+File upload UI should show:
+
+* Accepted file types
+* Maximum file size
+* Selected file name
+* Upload progress when available
+* Validation errors
+* Upload success
+* Option to remove or replace the file
+
+For knowledge base uploads, also show:
+
+* Indexing status
+* Chunking status
+* Embedding status
+* Ready or failed state
+
+---
+
+## 34. Dark Mode
+
+Dark mode uses the `.dark` class on the root HTML element.
+
+Use semantic tokens whenever possible:
+
+```tsx
+<div className="bg-background text-foreground" />
+```
+
+Use `dark:` only for one-off cases that cannot be represented by tokens.
+
+```tsx
+<div className="bg-white dark:bg-slate-950" />
+```
+
+Before committing, verify:
+
+* Text contrast
+* Borders
+* Dialog surfaces
+* Input backgrounds
+* Charts
+* Status badges
+* AI cards
+* Hover states
+* Focus states
+
+---
+
+## 35. Performance Rules
+
+* Use route-level lazy loading for large modules
+* Use `useMemo` only for meaningful derived calculations
+* Avoid unnecessary global state
+* Debounce server search
+* Use server-side pagination for large datasets
+* Use image lazy loading
+* Avoid rendering thousands of rows at once
+* Consider virtualization for very large tables
+* Keep React Query keys stable
+* Do not refetch data unnecessarily
+* Avoid premature optimization
+
+---
+
+## 36. Playwright End-to-End Testing
+
+Tests are stored in:
+
+```text
+frontend/tests/e2e/
+```
+
+Basic example:
+
+```tsx
+import {
+  test,
+  expect,
+} from '@playwright/test';
+
+test(
+  'employees page loads correctly',
+  async ({ page }) => {
+    await page.goto('/employees');
+
+    await expect(
+      page.getByRole('heading', {
+        name: 'Employees',
+      }),
+    ).toBeVisible();
+  },
+);
+```
+
+Form test:
+
+```tsx
+test(
+  'user can create an employee',
+  async ({ page }) => {
+    await page.goto('/employees');
+
+    await page
+      .getByRole('button', {
+        name: 'Add Employee',
+      })
+      .click();
+
+    await page
+      .getByLabel('Full name')
+      .fill('Ahmad Fauzan');
+
+    await page
+      .getByLabel('Email')
+      .fill('ahmad@example.com');
+
+    await page
+      .getByRole('button', {
+        name: 'Save',
+      })
+      .click();
+
+    await expect(
+      page.getByText(
+        'Employee created successfully.',
+      ),
+    ).toBeVisible();
+  },
+);
+```
+
+Run tests:
+
+```bash
+npm run test:e2e
+```
+
+or:
+
+```bash
+npx playwright test
+```
+
+### Testing requirements
+
+Prioritize testing:
+
+* Login
+* Protected routes
+* Main navigation
+* CRUD operations
+* Form validation
+* Search and filters
+* Pagination
+* Role restrictions
+* AI prompt submission
+* AI streaming response
+* Source display
+* Human handoff
+* Real-time notifications
+* Mobile navigation
+
+---
+
+## 37. Definition of Done
+
+A frontend task is complete when:
+
+* The feature works
+* TypeScript passes
+* Build passes
+* Loading state exists
+* Error state exists
+* Empty state exists when relevant
+* Form validation works
+* API errors are user-friendly
+* Responsive layout works
+* Dark mode works
+* Keyboard navigation works
+* Permissions are respected
+* Relevant tests pass
+* No console errors remain
+
+---
+
+## 38. Pre-Commit Checklist
 
 ### Architecture
 
-- **Global singleton:** One `HubConnection` shared across all components via module-level `globalConnection` variable
-- **Handler pattern:** `Set<Function>` collections; `onNotification` / `onUnreadCount` add/remove handlers
-- **Reconnect:** Automatic retry with backoff `[0, 2000, 5000, 10000, 30000]` ms
-- **Lifecycle:** Connection starts on first subscriber, stops when last subscriber unregisters
-- **Auth:** JWT token from `useAuthStore` attached via `accessTokenFactory`
+* [ ] Components are placed in the correct directory
+* [ ] Reusable business components are extracted appropriately
+* [ ] API calls use the service layer
+* [ ] API data is managed by React Query
+* [ ] Local UI state is not unnecessarily global
+* [ ] Imports use the `@/` alias
+* [ ] Components use named exports
 
-### Events
+### TypeScript
 
-| Server Event | Payload | Handler |
-|-------------|---------|---------|
-| `ReceiveNotification` | `{ id, title, type, referenceId? }` | `onNotification(handler)` |
-| `UnreadCountUpdated` | `{ count }` | `onUnreadCount(handler)` |
+* [ ] No unnecessary `any`
+* [ ] API responses are typed
+* [ ] Form values are inferred from Zod
+* [ ] Mutation errors use `unknown` or typed Axios errors
+* [ ] `npm run build` passes
 
-## Accessibility (a11y)
+### Styling
 
-### Radix UI Provides Base a11y
+* [ ] Semantic design tokens are used
+* [ ] No unnecessary hardcoded colors
+* [ ] `cn()` is used for conditional classes
+* [ ] Dark mode is verified
+* [ ] Mobile layout is verified
+* [ ] AI features use the AI visual token
+* [ ] Status colors are centralized
 
-All Radix primitives (Dialog, Select, DropdownMenu, Tabs, Switch, Tooltip) are WCAG-compliant out of the box. Do not remove Radix's built-in ARIA attributes.
+### Forms
 
-### Required Additions in This Project
+* [ ] React Hook Form is used
+* [ ] Zod validation is used
+* [ ] Every input has a label
+* [ ] Errors use `aria-describedby`
+* [ ] Submit is disabled during submission
+* [ ] API errors are visible
+* [ ] Edit forms receive default values
 
-1. **Screen-reader-only labels:** Always add `<span className="sr-only">` for icon-only buttons and close buttons:
-   ```tsx
-   <DialogPrimitive.Close>
-     <X className="h-4 w-4" />
-     <span className="sr-only">Close</span>
-   </DialogPrimitive.Close>
-   ```
+### Data Pages
 
-2. **Label-input pairing:** Every `<Input>` must have a corresponding `<Label htmlFor={id}>`:
-   ```tsx
-   <Label htmlFor="email">Email</Label>
-   <Input id="email" {...register('email')} />
-   ```
+* [ ] Loading state is handled
+* [ ] Error state is handled
+* [ ] Empty state is handled
+* [ ] Pagination is implemented for large datasets
+* [ ] Search is debounced
+* [ ] Filters are reflected in the URL
+* [ ] Query keys contain all active filters
 
-3. **Focus management for modals:** Radix Dialog auto-traps focus. After opening a modal, focus automatically moves to the first focusable element. No extra code needed.
+### Accessibility
 
-4. **Keyboard navigation for clickable cards:** Ensure navigational cards are keyboard-accessible:
-   ```tsx
-   <Card
-     className="cursor-pointer hover:border-primary/50 transition-colors"
-     tabIndex={0}
-     role="button"
-     onClick={() => navigate('/target')}
-     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/target'); }}
-   >
-   ```
+* [ ] Icon-only buttons have accessible labels
+* [ ] Keyboard navigation works
+* [ ] Focus states are visible
+* [ ] Dialog focus is managed correctly
+* [ ] Status is not communicated only through color
+* [ ] Dynamic updates use appropriate ARIA behavior
 
-5. **Loading indicators:** `<Spinner />` renders a `<Loader2>` icon with `animate-spin`. Screen readers need `role="status"` and `aria-label`:
-   ```tsx
-   // In Spinner component:
-   <Loader2 className="animate-spin" role="status" aria-label="Loading" />
-   ```
+### AI Features
 
-6. **Form error association:** Use `aria-describedby` to link inputs to error messages:
-   ```tsx
-   <Input id="email" {...register('email')} aria-describedby="email-error" />
-   {errors.email && <p id="email-error" className="text-sm text-destructive">{errors.email.message}</p>}
-   ```
+* [ ] Streaming state is visible
+* [ ] Sources are displayed
+* [ ] AI errors can be retried
+* [ ] Feedback controls are available
+* [ ] Human handoff is available where required
+* [ ] Unverified answers are clearly identified
 
-## API Integration
+### Testing
 
-### Axios Client (`@/lib/axios`)
+* [ ] Main user flow has a Playwright test
+* [ ] Validation behavior is tested
+* [ ] Permission behavior is tested
+* [ ] No browser console errors occur
+* [ ] Existing tests still pass
 
-```tsx
-import api from '@/lib/axios';
+---
 
-// GET (auto-prefixed with /api/)
-const { data } = useQuery({ queryFn: () => api.get('/users').then(r => r.data) });
+## 39. Final Principles
 
-// POST
-await api.post('/users', { name: '...', email: '...' });
-
-// PUT
-await api.put('/users/123', { name: '...' });
-
-// DELETE
-await api.delete('/users/123');
-
-// File upload
-const formData = new FormData();
-formData.append('file', file);
-await api.post('/employees/import', formData, {
-  headers: { 'Content-Type': 'multipart/form-data' },
-});
-```
-
-**Auto-behaviors:**
-- JWT token attached automatically via request interceptor
-- 401 responses trigger automatic refresh token flow
-- Failed refresh clears storage and redirects to `/login`
-
-## Routing
-
-```tsx
-// Adding a new route in App.tsx:
-<Route path="my-new-page" element={<MyNewPage />} />
-
-// Adding a nav item in AppLayout.tsx:
-{ to: '/my-new-page', label: 'My Page', icon: PackageIcon },
-
-// Navigation in components:
-const navigate = useNavigate();
-navigate('/my-new-page');
-navigate(`/things/${id}`);  // dynamic params
-```
-
-## Testing (Playwright E2E)
-
-```ts
-// frontend/tests/e2e/all-phases.spec.ts
-import { test, expect } from '@playwright/test';
-
-test('page loads correctly', async ({ page }) => {
-  await page.goto('/my-page');
-  await expect(page.locator('h1')).toContainText('My Page');
-});
-```
-
-Run: `npm run test:e2e` (or `npx playwright test`)
-
-## Checklist: Before Committing Frontend Changes
-
-- [ ] All new components have `displayName` set
-- [ ] `cn()` used for conditional/Tailwind class merging (never manual string concat)
-- [ ] Forms use `react-hook-form` + `zod` schema validation
-- [ ] Every `<Input>` has a matching `<Label htmlFor={id}>` (a11y)
-- [ ] Form errors use `aria-describedby` linking input → error message (a11y)
-- [ ] Icon-only buttons have `<span className="sr-only">` (a11y)
-- [ ] Clickable cards have `tabIndex={0}`, `role="button"`, and `onKeyDown` (a11y)
-- [ ] API calls use the shared `api` axios instance (not raw axios/fetch)
-- [ ] React Query `queryKey` arrays are descriptive (e.g., `['users', userId]`)
-- [ ] Loading states handled with `<Spinner />` component
-- [ ] Error states display user-friendly messages
-- [ ] Dark mode works (check `.dark` class renders correctly)
-- [ ] Mobile sidebar toggle works (responsive layout)
-- [ ] New routes added to both `App.tsx` and `AppLayout.tsx` nav
-- [ ] New components placed in correct directory (ui/ vs components/ vs inline)
-- [ ] No hardcoded colors — use Tailwind theme classes or CSS variable tokens
-- [ ] Imports use `@/` alias (not relative `../../` paths)
-- [ ] Named exports for all components (no `export default`)
-- [ ] TypeScript compiles: `npm run build` passes
+1. Prefer consistency over personal preference.
+2. Prefer semantic design tokens over hardcoded styles.
+3. Prefer accessible primitives over custom interactive elements.
+4. Prefer server state in React Query.
+5. Prefer local state unless multiple areas truly need it.
+6. Prefer permission checks over hardcoded role comparisons.
+7. Prefer reusable domain components over duplicated business UI.
+8. Prefer clear loading, error, and empty states.
+9. Treat AI-generated content differently from verified system data.
+10. Build every feature for desktop, mobile, keyboard, and dark mode.

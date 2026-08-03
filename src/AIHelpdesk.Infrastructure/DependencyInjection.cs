@@ -44,11 +44,17 @@ public static class DependencyInjection
         services.AddScoped<IKnowledgeBaseService, KnowledgeBaseService>();
         services.AddScoped<IChatService, ChatService>();
         // Phase 2: HR Module
+        services.AddScoped<IExcelService, ExcelService>();
         services.AddScoped<IEmployeeService, EmployeeService>();
         services.AddScoped<ILeaveTypeService, LeaveTypeService>();
         services.AddScoped<ILeaveBalanceService, LeaveBalanceService>();
         services.AddScoped<ILeaveRequestService, LeaveRequestService>();
         services.AddScoped<INotificationService, NotificationService>();
+        // Phase 5: Ticketing Module
+        services.AddScoped<ITicketCategoryService, TicketCategoryService>();
+        services.AddScoped<ITicketService, TicketService>();
+        services.AddScoped<IEscalationService, EscalationService>();
+        services.AddScoped<IAgentAssignmentService, AgentAssignmentService>();
         services.Configure<AIOptions>(configuration.GetSection(AIOptions.SectionName));
 
         services.AddHttpClient<IAIService, AIService>(client =>

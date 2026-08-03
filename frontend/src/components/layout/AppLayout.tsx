@@ -14,7 +14,6 @@ import {
   LogOut,
   Menu,
   X,
-  Bell,
   Calendar,
   CheckSquare,
   FileText,
@@ -23,38 +22,128 @@ import {
   BookOpen,
   MessageSquare,
   UserCog,
-  CalendarCheck,
   Clock,
   ClipboardCheck,
   Tags,
+  Bell,
+  Ticket,
+  LayoutList,
+  UserCheck,
+  AlertTriangle,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/users', label: 'Users', icon: Users },
-  { to: '/roles', label: 'Roles', icon: Shield },
-  { to: '/departments', label: 'Departments', icon: Building2 },
-  { to: '/meetings', label: 'Meetings', icon: Calendar },
-  { to: '/action-items', label: 'Action Items', icon: CheckSquare },
-  { to: '/documents/requests', label: 'Documents', icon: FileText },
-  { to: '/documents/templates', label: 'Templates', icon: FileCode },
-  { to: '/ai/chat', label: 'AI Chat', icon: Bot },
-  { to: '/ai/conversations', label: 'Conversations', icon: MessageSquare },
-  { to: '/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
-  // HR Module
-  { to: '/employees', label: 'Employees', icon: UserCog },
-  { to: '/leave-types', label: 'Leave Types', icon: Tags },
-  { to: '/leave-requests', label: 'Leave Requests', icon: Clock },
-  { to: '/leave-approvals', label: 'Approvals', icon: ClipboardCheck },
-  { to: '/notifications', label: 'Notifications', icon: Bell },
+interface NavItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+// ── All navigation items ──────────────────────────
+
+const allNavItems = {
+  dashboard:        { to: '/dashboard',           label: 'Dashboard',        icon: LayoutDashboard },
+  users:            { to: '/users',               label: 'Users',            icon: Users },
+  roles:            { to: '/roles',               label: 'Roles',            icon: Shield },
+  departments:      { to: '/departments',         label: 'Departments',      icon: Building2 },
+  meetings:         { to: '/meetings',            label: 'Meetings',         icon: Calendar },
+  actionItems:      { to: '/action-items',        label: 'Action Items',     icon: CheckSquare },
+  documents:        { to: '/documents/requests',  label: 'Documents',        icon: FileText },
+  templates:        { to: '/documents/templates', label: 'Templates',        icon: FileCode },
+  aiChat:           { to: '/ai/chat',             label: 'AI Chat',          icon: Bot },
+  conversations:    { to: '/ai/conversations',    label: 'Conversations',    icon: MessageSquare },
+  knowledgeBase:    { to: '/knowledge-base',      label: 'Knowledge Base',   icon: BookOpen },
+  employees:        { to: '/employees',           label: 'Employees',        icon: UserCog },
+  leaveTypes:       { to: '/leave-types',         label: 'Leave Types',      icon: Tags },
+  leaveRequests:    { to: '/leave-requests',      label: 'Leave Requests',   icon: Clock },
+  leaveApprovals:   { to: '/leave-approvals',     label: 'Approvals',        icon: ClipboardCheck },
+  notifications:    { to: '/notifications',       label: 'Notifications',    icon: Bell },
+  tickets:          { to: '/tickets',             label: 'Tickets',          icon: Ticket },
+  ticketCategories: { to: '/tickets/categories',  label: 'Categories',       icon: LayoutList },
+  agentWorkload:    { to: '/tickets/agents',      label: 'Agent Workload',   icon: UserCheck },
+  escalations:      { to: '/tickets/escalations', label: 'Escalations',      icon: AlertTriangle },
+} as const;
+
+// ── Role-based navigation groups ──────────────────
+
+const adminNav: NavItem[] = [
+  allNavItems.dashboard,
+  allNavItems.users,
+  allNavItems.roles,
+  allNavItems.departments,
+  allNavItems.employees,
+  allNavItems.leaveTypes,
+  allNavItems.leaveRequests,
+  allNavItems.leaveApprovals,
+  allNavItems.meetings,
+  allNavItems.actionItems,
+  allNavItems.documents,
+  allNavItems.templates,
+  allNavItems.aiChat,
+  allNavItems.conversations,
+  allNavItems.knowledgeBase,
+  allNavItems.notifications,
+  allNavItems.tickets,
+  allNavItems.ticketCategories,
+  allNavItems.agentWorkload,
+  allNavItems.escalations,
 ];
+
+const managerNav: NavItem[] = [
+  allNavItems.dashboard,
+  allNavItems.employees,
+  allNavItems.leaveRequests,
+  allNavItems.leaveApprovals,
+  allNavItems.meetings,
+  allNavItems.actionItems,
+  allNavItems.documents,
+  allNavItems.aiChat,
+  allNavItems.notifications,
+  allNavItems.tickets,
+  allNavItems.escalations,
+];
+
+const secretaryNav: NavItem[] = [
+  allNavItems.dashboard,
+  allNavItems.meetings,
+  allNavItems.actionItems,
+  allNavItems.documents,
+  allNavItems.templates,
+  allNavItems.notifications,
+  allNavItems.tickets,
+];
+
+const employeeNav: NavItem[] = [
+  allNavItems.dashboard,
+  allNavItems.leaveRequests,
+  allNavItems.aiChat,
+  allNavItems.knowledgeBase,
+  allNavItems.notifications,
+  allNavItems.tickets,
+];
+
+// ── Resolve nav items from user roles ─────────────
+
+function resolveNavItems(roles: string[]): NavItem[] {
+  if (roles.includes('SuperAdmin') || roles.includes('HRD')) return adminNav;
+  if (roles.includes('Secretary')) return secretaryNav;
+  if (roles.includes('Manager')) return managerNav;
+  return employeeNav;
+}
 
 export function AppLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const addToast = useToastStore((s) => s.addToast);
+
+  const navItems = useMemo(() => resolveNavItems(user?.roles ?? []), [user?.roles]);
 
   // Listen for real-time notifications via SignalR
   const { onNotification, onUnreadCount } = useSignalR();

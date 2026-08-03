@@ -1,5 +1,6 @@
 using AIHelpdesk.Application.Interfaces;
 using AIHelpdesk.Contracts.Employees;
+using AIHelpdesk.Contracts.Excel;
 using AIHelpdesk.Domain.Entities;
 using AIHelpdesk.Domain.Common;
 using AIHelpdesk.Infrastructure.Data;
@@ -11,10 +12,12 @@ namespace AIHelpdesk.Infrastructure.Services;
 public class EmployeeService : IEmployeeService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IExcelService _excel;
 
-    public EmployeeService(ApplicationDbContext context)
+    public EmployeeService(ApplicationDbContext context, IExcelService excel)
     {
         _context = context;
+        _excel = excel;
     }
 
     public async Task<EmployeeListResponse> GetEmployeesAsync(int page, int pageSize, string? search, Guid? departmentId, string? status)
@@ -250,39 +253,51 @@ public class EmployeeService : IEmployeeService
             .OrderBy(e => e.EmployeeNo)
             .ToListAsync();
 
-        using var workbook = new XLWorkbook();
-        var worksheet = workbook.Worksheets.Add("Employees");
+        var config = new ExcelExportConfig("Employees", [
+            new ExcelColumnDefinition("Employee No", "EmployeeNo"),
+            new ExcelColumnDefinition("Full Name", "FullName", 30),
+            new ExcelColumnDefinition("Email", "Email", 30),
+            new ExcelColumnDefinition("Phone", "Phone", 18),
+            new ExcelColumnDefinition("Join Date", "JoinDate", 14, "yyyy-MM-dd"),
+            new ExcelColumnDefinition("Department", "Department", 22),
+            new ExcelColumnDefinition("Position", "Position", 22),
+            new ExcelColumnDefinition("Status", "EmploymentStatus", 14),
+            new ExcelColumnDefinition("Work Location", "WorkLocation", 20),
+        ]);
 
-        // Header
-        var headers = new[] { "Employee No", "Full Name", "Email", "Phone", "Join Date", "Department", "Position", "Status", "Work Location" };
-        for (int i = 0; i < headers.Length; i++)
+        return await _excel.ExportToExcelAsync(
+            employees,
+            config,
+            (e, col) => col.PropertyName switch
+            {
+                "EmployeeNo"       => e.EmployeeNo,
+                "FullName"         => e.FullName,
+                "Email"            => e.Email,
+                "Phone"            => e.Phone,
+                "JoinDate"         => e.JoinDate,
+                "Department"       => e.Department?.Name,
+                "Position"         => e.Position?.Name,
+                "EmploymentStatus" => e.EmploymentStatus.ToString(),
+                "WorkLocation"     => e.WorkLocation,
+                _                  => null,
+            });
+    }
+
+    public Task<byte[]> GenerateImportTemplateAsync()
+    {
+        var headers = new List<string>
         {
-            worksheet.Cell(1, i + 1).Value = headers[i];
-            worksheet.Cell(1, i + 1).Style.Font.Bold = true;
-            worksheet.Cell(1, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
-        }
+            "Employee No", "Full Name", "Email", "Phone",
+            "Join Date (yyyy-MM-dd)", "Department", "Position", "Work Location",
+        };
 
-        // Data rows
-        for (int i = 0; i < employees.Count; i++)
+        var sampleRow = new List<string>
         {
-            var e = employees[i];
-            var row = i + 2;
-            worksheet.Cell(row, 1).Value = e.EmployeeNo;
-            worksheet.Cell(row, 2).Value = e.FullName;
-            worksheet.Cell(row, 3).Value = e.Email;
-            worksheet.Cell(row, 4).Value = e.Phone ?? "";
-            worksheet.Cell(row, 5).Value = e.JoinDate.ToString("yyyy-MM-dd");
-            worksheet.Cell(row, 6).Value = e.Department?.Name ?? "";
-            worksheet.Cell(row, 7).Value = e.Position?.Name ?? "";
-            worksheet.Cell(row, 8).Value = e.EmploymentStatus.ToString();
-            worksheet.Cell(row, 9).Value = e.WorkLocation ?? "";
-        }
+            "EMP-050", "Jane Doe", "jane.doe@company.com", "08123456789",
+            "2025-01-15", "IT Department", "Software Developer", "Jakarta",
+        };
 
-        worksheet.Columns().AdjustToContents();
-
-        using var stream = new MemoryStream();
-        workbook.SaveAs(stream);
-        return stream.ToArray();
+        return _excel.GenerateTemplateAsync("Employees", headers, sampleRow);
     }
 
     private static EmployeeResponse MapToResponse(Employee e) => new(

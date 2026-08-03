@@ -53,7 +53,7 @@
 - [x] Create initial migration for all Phase 1 tables
 - [x] Apply migration to database
 - [x] Implement `JwtService` (generate access token + refresh token)
-- [x] Implement `IAuthService` (login, logout, refresh, forgot/reset password)
+- [/] Implement `IAuthService` (login, logout, refresh, forgot/reset password) — **correction:** `ForgotPasswordAsync` is a no-op stub (no email/token generated), so `ResetPasswordAsync` is unreachable in practice despite both being wired up end-to-end; login/logout/refresh are fully implemented
 - [x] Implement `IUserService` (CRUD, pagination, search, activate/deactivate)
 - [x] Implement `IRoleService` (CRUD, assign permissions)
 - [x] Implement `IDepartmentService` (CRUD)
@@ -80,17 +80,17 @@
 
 ## 6. Backend — API Layer
 
-- [x] Create `AuthController` (login, refresh, logout, forgot/reset password)
+- [x] Create `AuthController` (login, refresh, logout, forgot/reset password) — endpoints exist and route correctly; see note above re: `ForgotPasswordAsync` being a stub
 - [x] Create `UsersController` (CRUD, activate/deactivate, assign roles)
 - [x] Create `RolesController` (CRUD, assign permissions)
 - [x] Create `DepartmentsController` (CRUD)
 - [x] Create `PositionsController` (CRUD)
 - [x] Add global exception middleware (`ExceptionMiddleware`)
 - [x] Add request logging middleware
-- [ ] Add rate limiting middleware
+- [x] Add rate limiting middleware — `RateLimitingMiddleware` registered in `Program.cs`
 - [x] Configure Swagger with JWT Bearer token support
 - [x] Configure CORS (allow frontend origin)
-- [x] Add health check endpoint: `GET /api/health`
+- [ ] Add health check endpoint: `GET /api/health` — **correction:** no such endpoint exists; only an AI-provider-specific `GET /api/ai-chat/health` was found (see Phase 4)
 - [x] Add `Program.cs` service registration and middleware pipeline
 
 ---
@@ -185,7 +185,7 @@
 - [x] Define all public routes (login, forgot-password, reset-password)
 - [x] Define all authenticated routes (dashboard, profile, admin/*)
 - [x] Create `ProtectedRoute` component (redirect to `/login` if not authenticated)
-- [ ] Create `RoleGuard` component (show 403 page if insufficient permissions)
+- [x] Create `RoleGuard` component — implemented and wired across ~15 routes in `App.tsx`; redirects to `/dashboard` on insufficient role rather than showing a 403 page
 - [ ] Define route lazy-loading with `React.lazy()` and `Suspense`
 
 ---
@@ -197,7 +197,7 @@
 - [x] Create `nginx.conf` (SPA fallback, API proxy, WebSocket upgrade)
 - [x] Create `docker-compose.yml` (db, backend, frontend services)
 - [x] Add PostgreSQL service with health check
-- [x] Add backend service with depends_on + health check
+- [ ] Add backend service with depends_on + health check — **correction:** `depends_on: postgres (condition: service_healthy)` exists, but the backend service itself has no `healthcheck:` block (nothing to check against, since no `/api/health` endpoint exists)
 - [x] Add frontend service (nginx, depends_on backend)
 - [ ] Create `.env.example` with all environment variables
 - [x] Create `.dockerignore` files (backend + frontend)
@@ -206,8 +206,10 @@
 
 ## 16. Backend — Unit Tests
 
-- [ ] Create test project: `AIHelpdesk.UnitTests` (xUnit)
-- [ ] Install Moq, FluentAssertions, Bogus, Coverlet
+> **Correction:** this section previously read as "not started," but a real test project exists at `tests/AIHelpdesk.Tests` with 158 passing `[Fact]`/`[Theory]` tests across all phases (not just Phase 1) — see `test-coverage-report.md` (itself dated 2026-07-14 and now stale: it's missing `AIServiceTests`/`ChatServiceTests`/`KnowledgeBaseServiceTests`, 45 more tests covering Phase 4). Phase-1-relevant coverage: `UserServiceTests` (5), `RoleServiceTests` (4), `DepartmentServiceTests` (5), `DepartmentTests` domain (2), `RefreshTokenTests` (3), `AuthContractsTests` (3), `UnitTest1` (1, placeholder) = 23 tests. The granular scenario checkboxes below aren't individually re-verified against actual test bodies — left unchecked rather than guessed.
+
+- [x] Create test project: `AIHelpdesk.Tests` (xUnit)
+- [x] Install Moq, FluentAssertions, Bogus, Coverlet
 - [ ] **Domain Tests:** Entity validation (User requires email, Role requires name)
 - [ ] **Domain Tests:** Value object equality (Email, Password)
 - [ ] **Domain Tests:** Enum state transitions
@@ -317,23 +319,25 @@
 
 | Category | Total Tasks | Done |
 |----------|:-----------:|:----:|
-| Setup & Scaffolding | 12 | `[ ]` |
-| Backend Domain | 11 | `[ ]` |
-| Backend Infrastructure | 15 | `[ ]` |
-| Backend Application | 8 | `[ ]` |
-| Backend API | 12 | `[ ]` |
-| Frontend Scaffolding | 6 | `[ ]` |
-| Frontend API | 7 | `[ ]` |
-| Frontend Auth Store | 6 | `[ ]` |
-| Frontend Layouts | 7 | `[ ]` |
-| Frontend Auth Pages | 5 | `[ ]` |
-| Frontend Profile | 4 | `[ ]` |
-| Frontend Admin Pages | 10 | `[ ]` |
-| Frontend Routing | 5 | `[ ]` |
-| Docker | 9 | `[ ]` |
-| Backend Unit Tests | 18 | `[ ]` |
-| Backend Integration Tests | 10 | `[ ]` |
-| Frontend Unit Tests | 13 | `[ ]` |
-| Test Automation | 10 | `[ ]` |
-| CI/CD Pipeline | 17 | `[ ]` |
-| **TOTAL** | **~165 tasks** | |
+| Setup & Scaffolding | 15 | 13 |
+| Backend Domain | 11 | 10 |
+| Backend Infrastructure | 15 | 14 (1 partial — see `ForgotPasswordAsync` note) |
+| Backend Application | 8 | 6 |
+| Backend API | 12 | 11 |
+| Frontend Scaffolding | 6 | 6 |
+| Frontend API | 8 | 8 |
+| Frontend Auth Store | 6 | 6 |
+| Frontend Layouts | 7 | 5 |
+| Frontend Auth Pages | 5 | 5 |
+| Frontend Profile | 4 | 2 |
+| Frontend Admin Pages | 9 | 7 |
+| Frontend Routing | 5 | 4 |
+| Docker | 9 | 7 |
+| Backend Unit Tests | 19 | 2 (infra only — 158 real tests exist project-wide, not itemized here; see note above) |
+| Backend Integration Tests | 12 | 0 |
+| Frontend Unit Tests (Vitest) | 13 | 0 — note: Playwright E2E tests exist separately (`frontend/tests/e2e/`), just not Vitest unit tests |
+| Test Automation | 10 | 0 |
+| CI/CD Pipeline | 23 | 0 — no `.github/workflows` directory exists |
+| **TOTAL** | **197 tasks** | **106 (54%)** |
+
+Core backend + frontend for auth, users, roles, departments/positions, and layout/routing are done. The gap is almost entirely: LICENSE/env docs, a few polish items (responsive sidebar, detail pages), and the whole test-automation/CI-CD layer (no integration tests, no frontend unit tests, no CI/CD pipeline at all despite 158 real backend unit tests existing).
