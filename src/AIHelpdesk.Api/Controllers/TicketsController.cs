@@ -178,6 +178,14 @@ public class TicketsController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("export")]
+    [Authorize(Roles = "Agent,Manager,Super Admin")]
+    public async Task<IActionResult> Export([FromQuery] Guid? departmentId, [FromQuery] string? status, [FromQuery] string? priority)
+    {
+        var data = await _service.ExportToExcelAsync(departmentId, status, priority);
+        return File(data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "tickets-export.xlsx");
+    }
+
     [HttpPost("ai-suggestion")]
     public async Task<ActionResult<TicketAISuggestionResponse>> GetAISuggestion([FromBody] CreateTicketRequest request)
     {

@@ -28,7 +28,7 @@ public class TicketServiceTests
             .Build();
 
         var aiMock = new Mock<IAIService>();
-        var service = new TicketService(context, configuration, aiMock.Object, NullLogger<TicketService>.Instance);
+        var service = new TicketService(context, configuration, aiMock.Object, new ExcelService(), NullLogger<TicketService>.Instance);
         return (service, context, aiMock);
     }
 
@@ -239,6 +239,41 @@ public class TicketServiceTests
         var act = () => service.DownloadAttachmentAsync(created.Id, Guid.NewGuid());
 
         await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    // ─────────── Excel Export ───────────
+
+    [Fact]
+    public async Task ExportToExcelAsync_ShouldReturnByteArray()
+    {
+        var (service, context, _) = CreateService();
+        var category = await SeedCategoryAsync(context);
+        var userId = await SeedUserAsync(context);
+        await service.CreateAsync(userId, new CreateTicketRequest(category.Id, "t", "d", null, null));
+
+        var result = await service.ExportToExcelAsync(null, null, null);
+
+        result.Should().NotBeNull();
+        result.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task ExportToExcelAsync_ShouldFilterByStatus()
+    {
+        var (service, context, _) = CreateService();
+        var category = await SeedCategoryAsync(context);
+        var userId = await SeedUserAsync(context);
+        var created = await service.CreateAsync(userId, new CreateTicketRequest(category.Id, "t", "d", null, null));
+        await service.ResolveAsync(created.Id, userId);
+
+        var resolvedOnly = await service.ExportToExcelAsync(null, "Resolved", null);
+        var openOnly = await service.ExportToExcelAsync(null, "Open", null);
+
+        using var resolvedWorkbook = new ClosedXML.Excel.XLWorkbook(new MemoryStream(resolvedOnly));
+        using var openWorkbook = new ClosedXML.Excel.XLWorkbook(new MemoryStream(openOnly));
+
+        resolvedWorkbook.Worksheets.First().RangeUsed()!.RowCount().Should().Be(2); // header + 1 resolved ticket
+        openWorkbook.Worksheets.First().RangeUsed()!.RowCount().Should().Be(1); // header only, no open tickets
     }
 
     // ─────────── AI Suggestion ───────────
