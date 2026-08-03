@@ -46,6 +46,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Escalation> Escalations => Set<Escalation>();
     public DbSet<AgentAssignment> AgentAssignments => Set<AgentAssignment>();
 
+    // ─────── Phase 6: Recruitment Module ───────
+    public DbSet<JobVacancy> JobVacancies => Set<JobVacancy>();
+    public DbSet<Candidate> Candidates => Set<Candidate>();
+    public DbSet<CandidateStageHistory> CandidateStageHistories => Set<CandidateStageHistory>();
+    public DbSet<CandidateDocument> CandidateDocuments => Set<CandidateDocument>();
+    public DbSet<Interview> Interviews => Set<Interview>();
+    public DbSet<InterviewQuestion> InterviewQuestions => Set<InterviewQuestion>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -390,6 +398,75 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(e => e.Department).WithMany().HasForeignKey(e => e.DepartmentId).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => new { e.UserId, e.DepartmentId }).IsUnique();
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<JobVacancy>(entity =>
+        {
+            entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(20000);
+            entity.Property(e => e.Requirements).HasMaxLength(20000);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
+            entity.HasOne(e => e.Department).WithMany().HasForeignKey(e => e.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Position).WithMany().HasForeignKey(e => e.PositionId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.PostedBy).WithMany().HasForeignKey(e => e.PostedById).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.Status);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<Candidate>(entity =>
+        {
+            entity.Property(e => e.FullName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Email).HasMaxLength(300).IsRequired();
+            entity.Property(e => e.Phone).HasMaxLength(50);
+            entity.Property(e => e.Source).HasMaxLength(100);
+            entity.Property(e => e.Stage).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.AISummaryJson).HasColumnType("text");
+            entity.Property(e => e.RejectionReason).HasMaxLength(2000);
+            entity.HasOne(e => e.JobVacancy).WithMany(v => v.Candidates).HasForeignKey(e => e.JobVacancyId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.Stage);
+            entity.HasIndex(e => new { e.JobVacancyId, e.Stage });
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<CandidateStageHistory>(entity =>
+        {
+            entity.Property(e => e.FromStage).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.ToStage).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.HasOne(e => e.Candidate).WithMany(c => c.StageHistory).HasForeignKey(e => e.CandidateId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ChangedBy).WithMany().HasForeignKey(e => e.ChangedById).OnDelete(DeleteBehavior.Restrict);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<CandidateDocument>(entity =>
+        {
+            entity.Property(e => e.FileName).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.FilePath).HasMaxLength(1000).IsRequired();
+            entity.Property(e => e.ContentType).HasMaxLength(200).IsRequired();
+            entity.HasOne(e => e.Candidate).WithMany(c => c.Documents).HasForeignKey(e => e.CandidateId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.UploadedBy).WithMany().HasForeignKey(e => e.UploadedById).OnDelete(DeleteBehavior.Restrict);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<Interview>(entity =>
+        {
+            entity.Property(e => e.Type).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.Recommendation).HasConversion<string>().HasMaxLength(50);
+            entity.Property(e => e.Feedback).HasMaxLength(5000);
+            entity.HasOne(e => e.Candidate).WithMany(c => c.Interviews).HasForeignKey(e => e.CandidateId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Interviewer).WithMany().HasForeignKey(e => e.InterviewerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.ScheduledAt);
+            entity.HasIndex(e => new { e.InterviewerId, e.ScheduledAt });
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<InterviewQuestion>(entity =>
+        {
+            entity.Property(e => e.Question).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.Category).HasMaxLength(100);
+            entity.HasOne(e => e.Interview).WithMany(i => i.Questions).HasForeignKey(e => e.InterviewId).OnDelete(DeleteBehavior.Cascade);
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 

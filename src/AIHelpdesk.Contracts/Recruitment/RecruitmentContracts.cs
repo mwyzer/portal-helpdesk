@@ -1,0 +1,177 @@
+namespace AIHelpdesk.Contracts.Recruitment;
+
+// ═══════════════ Job Vacancy ═══════════════
+
+public record CreateJobVacancyRequest(
+    string Title,
+    string Description,
+    string Requirements,
+    Guid? DepartmentId,
+    Guid? PositionId,
+    int OpeningsCount);
+
+public record UpdateJobVacancyRequest(
+    string Title,
+    string Description,
+    string Requirements,
+    Guid? DepartmentId,
+    Guid? PositionId,
+    int OpeningsCount);
+
+public record JobVacancyResponse(
+    Guid Id,
+    string Title,
+    string Description,
+    string Requirements,
+    Guid? DepartmentId,
+    string? DepartmentName,
+    Guid? PositionId,
+    string? PositionName,
+    int OpeningsCount,
+    string Status,
+    Guid PostedById,
+    string PostedByName,
+    int CandidateCount,
+    DateTime? PublishedAt,
+    DateTime? ClosedAt,
+    DateTime CreatedAt);
+
+// ═══════════════ Candidate ═══════════════
+
+public record CreateCandidateRequest(
+    Guid JobVacancyId,
+    string FullName,
+    string Email,
+    string? Phone,
+    string? Source);
+
+public record UpdateCandidateRequest(
+    string FullName,
+    string Email,
+    string? Phone,
+    string? Source);
+
+public record AdvanceCandidateStageRequest(string? Notes);
+
+public record RejectCandidateRequest(string Reason);
+
+public record CandidateResponse(
+    Guid Id,
+    Guid JobVacancyId,
+    string JobVacancyTitle,
+    string FullName,
+    string Email,
+    string? Phone,
+    string? Source,
+    string Stage,
+    bool HasAISummary,
+    DateTime CreatedAt);
+
+public record CandidateStageHistoryResponse(
+    Guid Id,
+    string FromStage,
+    string ToStage,
+    Guid ChangedById,
+    string ChangedByName,
+    string? Notes,
+    DateTime CreatedAt);
+
+public record CandidateDocumentResponse(
+    Guid Id,
+    string FileName,
+    long FileSize,
+    string ContentType,
+    Guid UploadedById,
+    string UploadedByName,
+    DateTime CreatedAt);
+
+public record InterviewSummaryResponse(
+    Guid Id,
+    DateTime ScheduledAt,
+    string Type,
+    string Status,
+    string InterviewerName,
+    int? Rating);
+
+public record CandidateDetailResponse(
+    Guid Id,
+    Guid JobVacancyId,
+    string JobVacancyTitle,
+    string FullName,
+    string Email,
+    string? Phone,
+    string? Source,
+    string Stage,
+    string? AISummaryJson,
+    string? RejectionReason,
+    List<CandidateDocumentResponse> Documents,
+    List<CandidateStageHistoryResponse> StageHistory,
+    List<InterviewSummaryResponse> Interviews,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+// ═══════════════ Interview ═══════════════
+
+public record CreateInterviewRequest(
+    Guid CandidateId,
+    Guid InterviewerId,
+    DateTime ScheduledAt,
+    int DurationMinutes,
+    string Type);
+
+public record UpdateInterviewRequest(
+    DateTime ScheduledAt,
+    int DurationMinutes,
+    string Type);
+
+public record CompleteInterviewRequest(
+    string Feedback,
+    int Rating,
+    string Recommendation);
+
+public record InterviewResponse(
+    Guid Id,
+    Guid CandidateId,
+    string CandidateName,
+    Guid InterviewerId,
+    string InterviewerName,
+    DateTime ScheduledAt,
+    int DurationMinutes,
+    string Type,
+    string Status,
+    string? Feedback,
+    int? Rating,
+    string? Recommendation,
+    DateTime? CompletedAt,
+    DateTime CreatedAt);
+
+public record InterviewQuestionResponse(
+    Guid Id,
+    string Question,
+    string? Category,
+    bool IsAIGenerated);
+
+// ═══════════════ AI ═══════════════
+
+public record CvSummarizeResponse(
+    List<string> Skills,
+    string? ExperienceSummary,
+    string? EducationSummary,
+    string RawSummary);
+
+public record InterviewQuestionsResponse(List<InterviewQuestionResponse> Questions);
+
+public record CandidateMatchResponse(
+    Guid CandidateId,
+    string CandidateName,
+    double MatchScore,
+    string Reason);
+
+// ═══════════════ Reports ═══════════════
+
+public record RecruitmentStatsResponse(
+    int TotalVacancies,
+    int PublishedVacancies,
+    int TotalCandidates,
+    Dictionary<string, int> CandidatesPerStage,
+    double AverageDaysInPipeline);
