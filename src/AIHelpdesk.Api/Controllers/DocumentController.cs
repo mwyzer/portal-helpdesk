@@ -143,9 +143,9 @@ public class DocumentRequestsController : ControllerBase
     }
 
     [HttpGet("{id}/download")]
-    public async Task<ActionResult> DownloadDocument(Guid id)
+    public async Task<ActionResult> DownloadDocument(Guid id, [FromQuery] string? format = null)
     {
-        var (fileContents, fileName, contentType) = await _documentService.DownloadDocumentAsync(id);
+        var (fileContents, fileName, contentType) = await _documentService.DownloadDocumentAsync(id, format);
         return File(fileContents, contentType, fileName);
     }
 }

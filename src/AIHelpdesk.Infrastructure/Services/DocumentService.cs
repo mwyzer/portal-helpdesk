@@ -4,16 +4,21 @@ using AIHelpdesk.Domain.Common;
 using AIHelpdesk.Domain.Entities;
 using AIHelpdesk.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace AIHelpdesk.Infrastructure.Services;
 
 public class DocumentService : IDocumentService
 {
     private readonly ApplicationDbContext _context;
+    private readonly string _generatedDocsPath;
 
-    public DocumentService(ApplicationDbContext context)
+    public DocumentService(ApplicationDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _generatedDocsPath = configuration["Documents:GeneratedPath"]
+            ?? Path.Combine(Directory.GetCurrentDirectory(), "uploads", "documents");
+        Directory.CreateDirectory(_generatedDocsPath);
     }
 
     // ─────────── Templates ───────────
@@ -334,18 +339,40 @@ public class DocumentService : IDocumentService
         docRequest.Status = DocumentRequestStatus.Generated;
         docRequest.UpdatedAt = DateTime.UtcNow;
 
-        // Create a generated document record
-        var genDoc = new GeneratedDocument
+        // LetterNumber contains "/" (e.g. "001/CODE/MGR/2026"), which is not a valid filename
+        var safeLetterNumber = string.Join("-", docRequest.LetterNumber.Split('/'));
+        var docDir = Path.Combine(_generatedDocsPath, docRequest.Id.ToString());
+        Directory.CreateDirectory(docDir);
+
+        var body = docRequest.ContentFinal ?? string.Empty;
+        var pdfBytes = LetterDocumentGenerator.GeneratePdf(docRequest.Title, docRequest.LetterNumber, DateTime.UtcNow, body);
+        var pdfPath = Path.Combine(docDir, $"{safeLetterNumber}.pdf");
+        await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+
+        var docxBytes = LetterDocumentGenerator.GenerateDocx(docRequest.Title, docRequest.LetterNumber, DateTime.UtcNow, body);
+        var docxPath = Path.Combine(docDir, $"{safeLetterNumber}.docx");
+        await File.WriteAllBytesAsync(docxPath, docxBytes);
+
+        var generatedAt = DateTime.UtcNow;
+        _context.GeneratedDocuments.Add(new GeneratedDocument
         {
             DocumentRequestId = docRequest.Id,
-            FileName = $"{docRequest.LetterNumber}.pdf",
-            FilePath = $"/documents/{docRequest.Id}/{docRequest.LetterNumber}.pdf",
+            FileName = $"{safeLetterNumber}.pdf",
+            FilePath = pdfPath,
             FileFormat = Domain.Common.DocumentFormat.PDF,
             Version = 1,
-            GeneratedAt = DateTime.UtcNow
-        };
+            GeneratedAt = generatedAt
+        });
+        _context.GeneratedDocuments.Add(new GeneratedDocument
+        {
+            DocumentRequestId = docRequest.Id,
+            FileName = $"{safeLetterNumber}.docx",
+            FilePath = docxPath,
+            FileFormat = Domain.Common.DocumentFormat.DOCX,
+            Version = 1,
+            GeneratedAt = generatedAt
+        });
 
-        _context.GeneratedDocuments.Add(genDoc);
         await _context.SaveChangesAsync();
 
         return new DocumentRequestResponse(
@@ -356,7 +383,7 @@ public class DocumentService : IDocumentService
             docRequest.CreatedAt, docRequest.UpdatedAt);
     }
 
-    public async Task<(byte[] FileContents, string FileName, string ContentType)> DownloadDocumentAsync(Guid id)
+    public async Task<(byte[] FileContents, string FileName, string ContentType)> DownloadDocumentAsync(Guid id, string? format = null)
     {
         var docRequest = await _context.DocumentRequests
             .Include(r => r.GeneratedDocuments)
@@ -365,16 +392,25 @@ public class DocumentService : IDocumentService
         if (docRequest == null)
             throw new KeyNotFoundException("Document request not found");
 
-        var latestDoc = docRequest.GeneratedDocuments
-            .OrderByDescending(d => d.Version)
-            .FirstOrDefault();
+        var wantsDocx = string.Equals(format, "docx", StringComparison.OrdinalIgnoreCase);
+        var targetFormat = wantsDocx ? Domain.Common.DocumentFormat.DOCX : Domain.Common.DocumentFormat.PDF;
 
-        if (latestDoc == null)
+        var doc = docRequest.GeneratedDocuments
+            .Where(d => d.FileFormat == targetFormat)
+            .OrderByDescending(d => d.Version)
+            .FirstOrDefault()
+            ?? docRequest.GeneratedDocuments.OrderByDescending(d => d.Version).FirstOrDefault();
+
+        if (doc == null)
             throw new KeyNotFoundException("No generated document found");
 
-        // TODO: Implement actual file retrieval from storage
-        // For now, return a placeholder PDF
-        var content = System.Text.Encoding.UTF8.GetBytes(docRequest.ContentFinal ?? docRequest.ContentDraft ?? "");
-        return (content, latestDoc.FileName, "application/pdf");
+        if (!File.Exists(doc.FilePath))
+            throw new KeyNotFoundException("Generated document file is missing from storage");
+
+        var content = await File.ReadAllBytesAsync(doc.FilePath);
+        var contentType = doc.FileFormat == Domain.Common.DocumentFormat.DOCX
+            ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            : "application/pdf";
+        return (content, doc.FileName, contentType);
     }
 }

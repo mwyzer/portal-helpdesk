@@ -21,5 +21,5 @@ public interface IDocumentService
     Task<DocumentRequestResponse> ApproveDocumentAsync(Guid id, Guid reviewerId);
     Task<DocumentRequestResponse> RejectDocumentAsync(Guid id, string reason);
     Task<DocumentRequestResponse> GenerateFinalAsync(Guid id);
-    Task<(byte[] FileContents, string FileName, string ContentType)> DownloadDocumentAsync(Guid id);
+    Task<(byte[] FileContents, string FileName, string ContentType)> DownloadDocumentAsync(Guid id, string? format = null);
 }

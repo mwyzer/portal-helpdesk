@@ -47,9 +47,9 @@
 - [x] Implement POST `/api/document-requests/{id}/generate-final`
 - [x] Implement GET `/api/document-requests/{id}/download`
 - [x] Implement letter number auto-generation (yearly counter)
-- [ ] Implement PDF generation (QuestPDF)
-- [ ] Implement DOCX generation (OpenXML)
-- [ ] Integrate AI draft generation
+- [x] Implement PDF generation — fixed 2026-08-04, `LetterDocumentGenerator.GeneratePdf` via **PdfSharpCore** (not QuestPDF as originally planned — QuestPDF's free tier is revenue-capped at $1M/year for commercial use, which is a licensing decision for an "internal company app" of unknown scale; PdfSharpCore is MIT-licensed with no such restriction). `GenerateFinalAsync` previously created a `GeneratedDocument` row pointing at a file that was never written; `DownloadDocumentAsync` served raw UTF-8 text mislabeled as `application/pdf`. Both fixed — real PDF bytes are now generated, written to disk, and served back
+- [x] Implement DOCX generation (OpenXML) — fixed 2026-08-04, `LetterDocumentGenerator.GenerateDocx` via `DocumentFormat.OpenXml`. `GenerateFinalAsync` now produces both PDF and DOCX per request; `GET /api/documents/{id}/download?format=docx` selects which one
+- [ ] Integrate AI draft generation — `GenerateDraftAsync` still does plain template variable substitution ({employee_name}, {date}), no AI call despite Phase 4's `IAIService` being available and already wired into Phase 5's ticket suggestions
 
 ## Database
 
@@ -105,8 +105,8 @@
 - [x] Unit: Overdue detection
 - [x] Unit: Document workflow states (submit → review → approve → generate final)
 - [x] Unit: Letter number generation (format, yearly reset)
-- [ ] Unit: PDF generation — untested, matches unimplemented PDF generation
-- [ ] Unit: DOCX generation — untested, matches unimplemented DOCX generation
+- [x] Unit: PDF generation — `LetterDocumentGeneratorTests` (6 tests) + `DocumentServiceTests.GenerateFinalAsync_ShouldProduceRealPdfAndDocxFiles`, verifies real `%PDF` magic bytes
+- [x] Unit: DOCX generation — same test files, verifies real zip (`PK`) magic bytes
 - [ ] Integration: Meeting with participants full CRUD — covered at unit level only, no true integration test
 - [ ] Integration: Full document workflow (request → AI draft → review → approve → download) — covered at unit level only
 - [ ] Integration: Action item lifecycle (create → complete) — covered at unit level only

@@ -5,6 +5,7 @@ using AIHelpdesk.Infrastructure.Data;
 using AIHelpdesk.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace AIHelpdesk.Tests.Services;
 
@@ -17,7 +18,13 @@ public class DocumentServiceTests
             .Options;
 
         var context = new ApplicationDbContext(options);
-        var service = new DocumentService(context);
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Documents:GeneratedPath"] = Path.Combine(Path.GetTempPath(), "AIHelpdeskTests", "documents", Guid.NewGuid().ToString())
+            })
+            .Build();
+        var service = new DocumentService(context, configuration);
         return (service, context);
     }
 
@@ -321,6 +328,104 @@ public class DocumentServiceTests
         await service.Invoking(s => s.GenerateFinalAsync(docRequest.Id))
             .Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Document must be approved before final generation");
+    }
+
+    [Fact]
+    public async Task GenerateFinalAsync_ShouldProduceRealPdfAndDocxFiles()
+    {
+        var (service, context) = await CreateServiceAsync();
+        var employee = TestDataFactory.CreateUser();
+        context.Users.Add(employee);
+        var template = TestDataFactory.CreateDocumentTemplate(name: "Leave Letter", code: "LL");
+        context.DocumentTemplates.Add(template);
+        var docRequest = TestDataFactory.CreateDocumentRequest(employee.Id, template.Id, status: DocumentRequestStatus.Approved);
+        docRequest.ContentDraft = "This is the final approved letter content.";
+        context.DocumentRequests.Add(docRequest);
+        await context.SaveChangesAsync();
+
+        await service.GenerateFinalAsync(docRequest.Id);
+
+        var generatedDocs = await context.GeneratedDocuments
+            .Where(d => d.DocumentRequestId == docRequest.Id)
+            .ToListAsync();
+
+        generatedDocs.Should().HaveCount(2);
+        generatedDocs.Should().Contain(d => d.FileFormat == AIHelpdesk.Domain.Common.DocumentFormat.PDF);
+        generatedDocs.Should().Contain(d => d.FileFormat == AIHelpdesk.Domain.Common.DocumentFormat.DOCX);
+
+        foreach (var doc in generatedDocs)
+        {
+            File.Exists(doc.FilePath).Should().BeTrue();
+            new FileInfo(doc.FilePath).Length.Should().BeGreaterThan(0);
+        }
+
+        // PDF files start with the "%PDF" magic bytes
+        var pdfDoc = generatedDocs.First(d => d.FileFormat == AIHelpdesk.Domain.Common.DocumentFormat.PDF);
+        var pdfBytes = await File.ReadAllBytesAsync(pdfDoc.FilePath);
+        System.Text.Encoding.ASCII.GetString(pdfBytes, 0, 4).Should().Be("%PDF");
+
+        // DOCX files are zip archives, which start with "PK"
+        var docxDoc = generatedDocs.First(d => d.FileFormat == AIHelpdesk.Domain.Common.DocumentFormat.DOCX);
+        var docxBytes = await File.ReadAllBytesAsync(docxDoc.FilePath);
+        System.Text.Encoding.ASCII.GetString(docxBytes, 0, 2).Should().Be("PK");
+    }
+
+    [Fact]
+    public async Task DownloadDocumentAsync_ShouldReturnPdf_ByDefault()
+    {
+        var (service, context) = await CreateServiceAsync();
+        var employee = TestDataFactory.CreateUser();
+        context.Users.Add(employee);
+        var template = TestDataFactory.CreateDocumentTemplate(code: "LL");
+        context.DocumentTemplates.Add(template);
+        var docRequest = TestDataFactory.CreateDocumentRequest(employee.Id, template.Id, status: DocumentRequestStatus.Approved);
+        docRequest.ContentDraft = "Letter body";
+        context.DocumentRequests.Add(docRequest);
+        await context.SaveChangesAsync();
+        await service.GenerateFinalAsync(docRequest.Id);
+
+        var (content, fileName, contentType) = await service.DownloadDocumentAsync(docRequest.Id);
+
+        contentType.Should().Be("application/pdf");
+        fileName.Should().EndWith(".pdf");
+        content.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task DownloadDocumentAsync_ShouldReturnDocx_WhenFormatRequested()
+    {
+        var (service, context) = await CreateServiceAsync();
+        var employee = TestDataFactory.CreateUser();
+        context.Users.Add(employee);
+        var template = TestDataFactory.CreateDocumentTemplate(code: "LL");
+        context.DocumentTemplates.Add(template);
+        var docRequest = TestDataFactory.CreateDocumentRequest(employee.Id, template.Id, status: DocumentRequestStatus.Approved);
+        docRequest.ContentDraft = "Letter body";
+        context.DocumentRequests.Add(docRequest);
+        await context.SaveChangesAsync();
+        await service.GenerateFinalAsync(docRequest.Id);
+
+        var (content, fileName, contentType) = await service.DownloadDocumentAsync(docRequest.Id, "docx");
+
+        contentType.Should().Be("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        fileName.Should().EndWith(".docx");
+        content.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task DownloadDocumentAsync_ShouldThrow_WhenNoDocumentGenerated()
+    {
+        var (service, context) = await CreateServiceAsync();
+        var employee = TestDataFactory.CreateUser();
+        context.Users.Add(employee);
+        var template = TestDataFactory.CreateDocumentTemplate();
+        context.DocumentTemplates.Add(template);
+        var docRequest = TestDataFactory.CreateDocumentRequest(employee.Id, template.Id, status: DocumentRequestStatus.Draft);
+        context.DocumentRequests.Add(docRequest);
+        await context.SaveChangesAsync();
+
+        await service.Invoking(s => s.DownloadDocumentAsync(docRequest.Id))
+            .Should().ThrowAsync<KeyNotFoundException>();
     }
 
     [Fact]
