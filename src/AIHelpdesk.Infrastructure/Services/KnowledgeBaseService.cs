@@ -56,7 +56,7 @@ public class KnowledgeBaseService : IKnowledgeBaseService
             doc.CreatedAt, doc.UpdatedAt);
     }
 
-    public async Task<KnowledgeDocumentResponse> UploadDocumentAsync(Guid userId, string title, string fileName, Stream fileStream, string contentType)
+    public async Task<KnowledgeDocumentResponse> UploadDocumentAsync(Guid userId, string title, string fileName, Stream fileStream, string contentType, Guid? departmentId = null)
     {
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
         if (ext != ".pdf" && ext != ".docx" && ext != ".txt")
@@ -76,7 +76,8 @@ public class KnowledgeBaseService : IKnowledgeBaseService
             ContentType = contentType,
             FileSize = new FileInfo(filePath).Length,
             Status = KnowledgeDocumentStatus.Pending,
-            CreatedBy = userId
+            CreatedBy = userId,
+            DepartmentId = departmentId
         };
 
         _context.KnowledgeDocuments.Add(doc);
@@ -126,13 +127,14 @@ public class KnowledgeBaseService : IKnowledgeBaseService
         return Map(doc);
     }
 
-    public async Task<List<KnowledgeSearchResult>> SearchAsync(string query, int topK)
+    public async Task<List<KnowledgeSearchResult>> SearchAsync(string query, int topK, Guid? requesterDepartmentId = null)
     {
         // For now, use a simple text-based search since vector column is not in EF model.
         // Full vector search can be enabled after pgvector extension is set up in production.
         var queryLower = query.ToLowerInvariant();
         var results = await _context.KnowledgeChunks
-            .Where(c => c.Content.ToLower().Contains(queryLower))
+            .Where(c => c.Content.ToLower().Contains(queryLower)
+                && (c.Document.DepartmentId == null || c.Document.DepartmentId == requesterDepartmentId))
             .Take(topK)
             .Select(c => new KnowledgeSearchResult(
                 c.Document.Id,
@@ -156,8 +158,9 @@ public class KnowledgeBaseService : IKnowledgeBaseService
                     FROM ""KnowledgeChunks"" kc
                     INNER JOIN ""KnowledgeDocuments"" kd ON kc.""DocumentId"" = kd.""Id""
                     WHERE NOT kc.""IsDeleted"" AND NOT kd.""IsDeleted""
+                      AND (kd.""DepartmentId"" IS NULL OR kd.""DepartmentId"" = {2})
                     ORDER BY {0}::vector <=> kc.""EmbeddingJson""::vector
-                    LIMIT {1}", embeddingJson, topK)
+                    LIMIT {1}", embeddingJson, topK, requesterDepartmentId)
                 .ToListAsync();
 
             if (vectorResults.Count > 0)

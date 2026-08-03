@@ -36,7 +36,7 @@ public class KnowledgeBaseController : ControllerBase
     [HttpPost]
     [Authorize(Roles = "Secretary,HR Admin,Super Admin")]
     public async Task<ActionResult<KnowledgeDocumentResponse>> Upload(
-        [FromForm] string title, IFormFile file)
+        [FromForm] string title, IFormFile file, [FromForm] Guid? departmentId = null)
     {
         if (file == null || file.Length == 0)
             return BadRequest("File is required");
@@ -44,7 +44,7 @@ public class KnowledgeBaseController : ControllerBase
         using var stream = file.OpenReadStream();
         var result = await _kbService.UploadDocumentAsync(
             Guid.Parse(User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)!),
-            title, file.FileName, stream, file.ContentType);
+            title, file.FileName, stream, file.ContentType, departmentId);
         return CreatedAtAction(nameof(GetDocument), new { id = result.Id }, result);
     }
 

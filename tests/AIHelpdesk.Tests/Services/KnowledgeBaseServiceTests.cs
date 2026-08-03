@@ -316,4 +316,55 @@ public class KnowledgeBaseServiceTests
         results[0].Content.Should().EndWith("...");
         results[0].Content.Length.Should().BeLessThanOrEqualTo(303);
     }
+
+    // ── Department-scoped permission filtering ──
+
+    [Fact]
+    public async Task SearchAsync_ShouldExcludeDocument_ScopedToDifferentDepartment()
+    {
+        var (service, context, _) = await CreateServiceAsync();
+        var deptA = Guid.NewGuid();
+        var deptB = Guid.NewGuid();
+        var doc = TestDataFactory.CreateKnowledgeDocument("HR-only policies");
+        doc.DepartmentId = deptA;
+        doc.Chunks.Add(TestDataFactory.CreateKnowledgeChunk(doc.Id, "confidential HR policies content", 0));
+        context.KnowledgeDocuments.Add(doc);
+        await context.SaveChangesAsync();
+
+        var resultsForOtherDept = await service.SearchAsync("policies", 5, deptB);
+        var resultsForNoDept = await service.SearchAsync("policies", 5, null);
+
+        resultsForOtherDept.Should().BeEmpty();
+        resultsForNoDept.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task SearchAsync_ShouldIncludeDocument_MatchingRequesterDepartment()
+    {
+        var (service, context, _) = await CreateServiceAsync();
+        var deptA = Guid.NewGuid();
+        var doc = TestDataFactory.CreateKnowledgeDocument("HR-only policies");
+        doc.DepartmentId = deptA;
+        doc.Chunks.Add(TestDataFactory.CreateKnowledgeChunk(doc.Id, "confidential HR policies content", 0));
+        context.KnowledgeDocuments.Add(doc);
+        await context.SaveChangesAsync();
+
+        var results = await service.SearchAsync("policies", 5, deptA);
+
+        results.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task SearchAsync_ShouldIncludeDocument_WithNoDepartmentScope_RegardlessOfRequester()
+    {
+        var (service, context, _) = await CreateServiceAsync();
+        var doc = TestDataFactory.CreateKnowledgeDocument("Public handbook"); // DepartmentId left null
+        doc.Chunks.Add(TestDataFactory.CreateKnowledgeChunk(doc.Id, "general company policies content", 0));
+        context.KnowledgeDocuments.Add(doc);
+        await context.SaveChangesAsync();
+
+        var results = await service.SearchAsync("policies", 5, Guid.NewGuid());
+
+        results.Should().ContainSingle();
+    }
 }

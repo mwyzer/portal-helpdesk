@@ -62,9 +62,15 @@ Context:
         _context.ChatMessages.Add(userMessage);
         await _context.SaveChangesAsync();
 
-        // RAG: search knowledge base
-        var searchResults = await _kb.SearchAsync(request.Message, topK: 5);
-        var contextText = string.Join("\n\n", searchResults.Select((r, i) => $"[Source {i + 1}: {r.DocumentTitle}]\n{r.Content}"));
+        // RAG: search knowledge base, scoped to the requester's department (docs with no
+        // department are visible to everyone; department-scoped docs stay within that department)
+        var requesterDepartmentId = await _context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.DepartmentId)
+            .FirstOrDefaultAsync();
+        var searchResults = await _kb.SearchAsync(request.Message, topK: 5, requesterDepartmentId);
+        var contextText = PiiRedactor.Redact(
+            string.Join("\n\n", searchResults.Select((r, i) => $"[Source {i + 1}: {r.DocumentTitle}]\n{r.Content}")));
         var sources = JsonSerializer.Serialize(searchResults.Select(r => new { r.DocumentId, r.DocumentTitle, r.ChunkId, r.Content, r.Relevance }));
 
         // Build history

@@ -60,8 +60,8 @@
 ## Backend — AI Guardrails
 
 - [x] Create guardrails (system prompt: "answer based only on context")
-- [ ] Implement permission-aware context filtering
-- [ ] Implement PII stripping
+- [x] Implement permission-aware context filtering — fixed 2026-08-04: `KnowledgeDocument.DepartmentId` (nullable — null means visible to everyone) scopes RAG search results to the requester's department; `ChatService` looks up the user's department and passes it to `KnowledgeBaseService.SearchAsync`. Backend-complete; no frontend UI yet to set a document's department on upload, so all existing/new docs default to public until set via the API directly
+- [x] Implement PII stripping — fixed 2026-08-04: `PiiRedactor` regex-redacts emails, Indonesian NIK (16-digit), Indonesian phone numbers, and credit-card-shaped sequences from RAG context before it reaches the system prompt. Applied to retrieved context only, not the user's own message. Best-effort regex approach, not a guarantee of complete PII removal
 - [x] Implement system prompt management
 - [x] Implement no-context fallback response
 - [ ] Implement prompt/response audit logging
