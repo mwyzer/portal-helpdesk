@@ -216,6 +216,8 @@ public class KnowledgeBaseService : IKnowledgeBaseService
     private static List<string> ChunkText(string text, int chunkSize, int overlap)
     {
         var chunks = new List<string>();
+        if (string.IsNullOrEmpty(text)) return chunks;
+
         int start = 0;
         while (start < text.Length)
         {
@@ -228,8 +230,11 @@ public class KnowledgeBaseService : IKnowledgeBaseService
                     end = lastPeriod + 1;
             }
             chunks.Add(text[start..end].Trim());
-            start = end - overlap;
-            if (start < 0) start = 0;
+
+            if (end >= text.Length) break; // reached the end of the text — stop
+
+            var next = end - overlap;
+            start = next > start ? next : start + 1; // guarantee forward progress even if overlap >= chunk length
         }
         return chunks;
     }

@@ -53,7 +53,7 @@
 - [x] Create initial migration for all Phase 1 tables
 - [x] Apply migration to database
 - [x] Implement `JwtService` (generate access token + refresh token)
-- [/] Implement `IAuthService` (login, logout, refresh, forgot/reset password) — **correction:** `ForgotPasswordAsync` is a no-op stub (no email/token generated), so `ResetPasswordAsync` is unreachable in practice despite both being wired up end-to-end; login/logout/refresh are fully implemented
+- [x] Implement `IAuthService` (login, logout, refresh, forgot/reset password) — `ForgotPasswordAsync` no-op stub fixed 2026-08-04 (now generates a real Identity reset token, logged until SMTP is wired up)
 - [x] Implement `IUserService` (CRUD, pagination, search, activate/deactivate)
 - [x] Implement `IRoleService` (CRUD, assign permissions)
 - [x] Implement `IDepartmentService` (CRUD)
@@ -90,7 +90,7 @@
 - [x] Add rate limiting middleware — `RateLimitingMiddleware` registered in `Program.cs`
 - [x] Configure Swagger with JWT Bearer token support
 - [x] Configure CORS (allow frontend origin)
-- [ ] Add health check endpoint: `GET /api/health` — **correction:** no such endpoint exists; only an AI-provider-specific `GET /api/ai-chat/health` was found (see Phase 4)
+- [x] Add health check endpoint: `GET /api/health` — fixed 2026-08-04, minimal API checking DB connectivity in `Program.cs`
 - [x] Add `Program.cs` service registration and middleware pipeline
 
 ---
@@ -321,9 +321,9 @@
 |----------|:-----------:|:----:|
 | Setup & Scaffolding | 15 | 13 |
 | Backend Domain | 11 | 10 |
-| Backend Infrastructure | 15 | 14 (1 partial — see `ForgotPasswordAsync` note) |
+| Backend Infrastructure | 15 | 15 |
 | Backend Application | 8 | 6 |
-| Backend API | 12 | 11 |
+| Backend API | 12 | 12 |
 | Frontend Scaffolding | 6 | 6 |
 | Frontend API | 8 | 8 |
 | Frontend Auth Store | 6 | 6 |
@@ -338,6 +338,6 @@
 | Frontend Unit Tests (Vitest) | 13 | 0 — note: Playwright E2E tests exist separately (`frontend/tests/e2e/`), just not Vitest unit tests |
 | Test Automation | 10 | 0 |
 | CI/CD Pipeline | 23 | 0 — no `.github/workflows` directory exists |
-| **TOTAL** | **197 tasks** | **106 (54%)** |
+| **TOTAL** | **197 tasks** | **108 (55%)** |
 
 Core backend + frontend for auth, users, roles, departments/positions, and layout/routing are done. The gap is almost entirely: LICENSE/env docs, a few polish items (responsive sidebar, detail pages), and the whole test-automation/CI-CD layer (no integration tests, no frontend unit tests, no CI/CD pipeline at all despite 158 real backend unit tests existing).
