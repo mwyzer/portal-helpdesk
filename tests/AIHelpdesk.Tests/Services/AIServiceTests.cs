@@ -61,8 +61,8 @@ public class AIServiceTests
     {
         var service = CreateService();
         var result = service.EstimateTokenCount("Hello, how are you doing today?");
-        // 32 chars / 4 = 8 tokens
-        result.Should().Be(8);
+        // 31 chars / 4 = 7 tokens (integer division)
+        result.Should().Be(7);
     }
 
     [Fact]

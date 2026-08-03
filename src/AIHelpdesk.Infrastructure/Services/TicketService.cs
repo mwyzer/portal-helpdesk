@@ -1,9 +1,11 @@
+using System.Text.Json;
 using AIHelpdesk.Application.Interfaces;
 using AIHelpdesk.Contracts.Tickets;
 using AIHelpdesk.Domain.Entities;
 using AIHelpdesk.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace AIHelpdesk.Infrastructure.Services;
 
@@ -11,11 +13,23 @@ public class TicketService : ITicketService
 {
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly IAIService _ai;
+    private readonly ILogger<TicketService> _logger;
 
-    public TicketService(ApplicationDbContext context, IConfiguration configuration)
+    private const string AISuggestionSystemPrompt =
+        "You are a helpdesk ticket triage assistant. Given a ticket title and description, " +
+        "choose the single best-fitting category from this list: {0}. " +
+        "Also suggest a priority (Low, Normal, High, or Urgent). " +
+        "Respond with ONLY a JSON object, no markdown, in this exact shape: " +
+        "{{\"category\":\"<one of the listed category names>\",\"priority\":\"<Low|Normal|High|Urgent>\"," +
+        "\"reason\":\"<one sentence why>\",\"confidence\":<number between 0 and 1>}}";
+
+    public TicketService(ApplicationDbContext context, IConfiguration configuration, IAIService ai, ILogger<TicketService> logger)
     {
         _context = context;
         _configuration = configuration;
+        _ai = ai;
+        _logger = logger;
     }
 
     private TicketResponse MapToResponse(Ticket t) => new(
@@ -468,16 +482,64 @@ public class TicketService : ITicketService
             .ToListAsync();
     }
 
-    public Task<TicketAISuggestionResponse> GetAISuggestionAsync(CreateTicketRequest request)
+    public async Task<TicketAISuggestionResponse> GetAISuggestionAsync(CreateTicketRequest request)
     {
-        // Stub: returns default suggestion until Azure OpenAI integration
-        var response = new TicketAISuggestionResponse(
-            SuggestedCategory: "General Support",
-            CategoryId: null,
-            SuggestedPriority: "Normal",
-            Reason: "AI categorization not yet configured",
-            Confidence: 0.5);
+        var categories = await _context.TicketCategories
+            .Where(c => !c.IsDeleted)
+            .Select(c => new { c.Id, c.Name, c.DefaultPriority })
+            .ToListAsync();
 
-        return Task.FromResult(response);
+        if (categories.Count == 0)
+            return new TicketAISuggestionResponse("General Support", null, "Normal", "No ticket categories are configured.", 0.0);
+
+        var systemPrompt = string.Format(AISuggestionSystemPrompt, string.Join(", ", categories.Select(c => c.Name)));
+        var userMessage = $"Title: {request.Title}\nDescription: {request.Description}";
+
+        try
+        {
+            var raw = await _ai.GenerateChatResponseAsync(systemPrompt, userMessage, new List<(string Role, string Content)>());
+            var parsed = ParseAISuggestion(raw);
+            if (parsed != null)
+            {
+                var matched = categories.FirstOrDefault(c => string.Equals(c.Name, parsed.Category, StringComparison.OrdinalIgnoreCase));
+                return new TicketAISuggestionResponse(
+                    matched?.Name ?? parsed.Category,
+                    matched?.Id,
+                    parsed.Priority,
+                    parsed.Reason,
+                    parsed.Confidence);
+            }
+
+            _logger.LogWarning("AI ticket suggestion returned unparseable content: {Raw}", raw);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "AI ticket suggestion call failed; falling back to default category");
+        }
+
+        var fallback = categories[0];
+        return new TicketAISuggestionResponse(
+            fallback.Name, fallback.Id, fallback.DefaultPriority.ToString(),
+            "AI suggestion unavailable; defaulted to first configured category.", 0.0);
     }
+
+    private static AISuggestionDto? ParseAISuggestion(string raw)
+    {
+        var start = raw.IndexOf('{');
+        var end = raw.LastIndexOf('}');
+        if (start < 0 || end <= start) return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<AISuggestionDto>(
+                raw[start..(end + 1)],
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private record AISuggestionDto(string Category, string Priority, string Reason, double Confidence);
 }

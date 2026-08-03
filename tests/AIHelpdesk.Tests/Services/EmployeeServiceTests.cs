@@ -16,7 +16,7 @@ public class EmployeeServiceTests
             .Options;
 
         var context = new ApplicationDbContext(options);
-        var service = new EmployeeService(context);
+        var service = new EmployeeService(context, new ExcelService());
         return (service, context);
     }
 

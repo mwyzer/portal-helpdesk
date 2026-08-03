@@ -1,6 +1,6 @@
 # Phase 7 — Hardening & Production Deployment — TODO Checklist
 
-> **Status (2026-08-04): 6/102 tasks done (6%).** The 6 are all auth/identity hardening that happened to already be built in Phase 1 (JWT expiry, refresh token rotation/revocation, password policy, account lockout, pagination) — no actual Phase 7 work (infra, monitoring, backups, CI/CD hardening, pentesting, UAT) has started. This matches the README's "📋 Planned" status.
+> **Status (2026-08-04): 8/102 tasks done (8%).** 6 are auth/identity hardening that happened to already be built in Phase 1 (JWT expiry, refresh token rotation/revocation, password policy, account lockout, pagination); 2 more (health endpoint + DB connectivity check) were fixed as part of this pass. No actual Phase 7 work (infra, monitoring, backups, CI/CD hardening, pentesting, UAT) has started. This still matches the README's "📋 Planned" status.
 
 ## Security Hardening
 
@@ -64,8 +64,8 @@
 
 - [ ] Configure Serilog to send logs to Seq
 - [ ] Set up Seq dashboard (structured log viewer)
-- [ ] Create health check endpoint (`GET /api/health`)
-- [ ] Add health checks: database connectivity
+- [x] Create health check endpoint (`GET /api/health`) — fixed 2026-08-04, checks DB connectivity, returns `{status, database, timestamp}`
+- [x] Add health checks: database connectivity
 - [ ] Add health checks: Redis connectivity
 - [ ] Add health checks: AI provider connectivity
 - [ ] Add health checks: disk space

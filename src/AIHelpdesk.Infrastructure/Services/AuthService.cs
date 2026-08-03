@@ -7,6 +7,7 @@ using AIHelpdesk.Infrastructure.Data;
 using AIHelpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace AIHelpdesk.Infrastructure.Services;
 
@@ -16,17 +17,20 @@ public class AuthService : IAuthService
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly ApplicationDbContext _context;
     private readonly ITokenService _tokenService;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
         ApplicationDbContext context,
-        ITokenService tokenService)
+        ITokenService tokenService,
+        ILogger<AuthService> logger)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _context = context;
         _tokenService = tokenService;
+        _logger = logger;
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, string? ipAddress)
@@ -81,9 +85,17 @@ public class AuthService : IAuthService
         }
     }
 
-    public Task ForgotPasswordAsync(ForgotPasswordRequest request)
+    public async Task ForgotPasswordAsync(ForgotPasswordRequest request)
     {
-        return Task.CompletedTask;
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user == null || !user.IsActive)
+            return; // don't reveal whether the email exists
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+        // No SMTP provider is configured yet (see documentation/todo-phase-2-hr-administration.md).
+        // Log the token so the reset flow is testable end-to-end until email delivery is wired up.
+        _logger.LogInformation("Password reset requested for {Email}. Reset token: {Token}", user.Email, token);
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request)

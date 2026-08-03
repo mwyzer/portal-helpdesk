@@ -95,6 +95,14 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<AIHelpdesk.Api.Hubs.NotificationHub>("/hubs/notifications");
 
+app.MapGet("/api/health", async (ApplicationDbContext db) =>
+{
+    var databaseHealthy = await db.Database.CanConnectAsync();
+    var status = databaseHealthy ? "Healthy" : "Unhealthy";
+    var payload = new { status, database = databaseHealthy, timestamp = DateTime.UtcNow };
+    return databaseHealthy ? Results.Ok(payload) : Results.Json(payload, statusCode: StatusCodes.Status503ServiceUnavailable);
+}).AllowAnonymous();
+
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
