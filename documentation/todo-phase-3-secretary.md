@@ -28,8 +28,8 @@
 - [x] Implement POST `/api/action-items/{id}/cancel`
 - [x] Implement GET `/api/action-items/overdue`
 - [x] Implement GET `/api/action-items/team` (manager)
-- [ ] Implement overdue detection background job
-- [ ] Implement due-date reminder notification
+- [x] Implement overdue detection background job — fixed 2026-08-04, `ActionItemReminderBackgroundService` scans every 30 min, notifies the assignee once per overdue item (tracked via new `ActionItem.OverdueNotifiedAt`)
+- [x] Implement due-date reminder notification — same fix; notification fires exactly once when an item first goes overdue, not a recurring reminder before the deadline
 
 ## Document Module — Backend
 

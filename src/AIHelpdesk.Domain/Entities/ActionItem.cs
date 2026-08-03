@@ -12,6 +12,7 @@ public class ActionItem : BaseEntity
     public ActionItemPriority Priority { get; set; } = ActionItemPriority.Medium;
     public ActionItemStatus Status { get; set; } = ActionItemStatus.Open;
     public DateTime? CompletedAt { get; set; }
+    public DateTime? OverdueNotifiedAt { get; set; }
 
     public Meeting? Meeting { get; set; }
     public ApplicationUser AssignedTo { get; set; } = null!;
