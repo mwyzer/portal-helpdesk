@@ -18,11 +18,20 @@ interface AuthState {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  loadUser: () => void;
+}
+
+function readStoredUser(): User | null {
+  const userStr = localStorage.getItem('user');
+  if (!userStr) return null;
+  try {
+    return JSON.parse(userStr);
+  } catch {
+    return null;
+  }
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
+  user: readStoredUser(),
   accessToken: localStorage.getItem('accessToken'),
   refreshToken: localStorage.getItem('refreshToken'),
   isAuthenticated: !!localStorage.getItem('accessToken'),
@@ -57,17 +66,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     } finally {
       localStorage.clear();
       set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
-    }
-  },
-
-  loadUser: () => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        set({ user: JSON.parse(userStr), isAuthenticated: true });
-      } catch {
-        set({ isAuthenticated: false });
-      }
     }
   },
 }));
