@@ -53,6 +53,10 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
 
 builder.Services.AddCors(options =>
 {
@@ -65,10 +69,18 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+});
+
 builder.Host.UseSerilog((context, config) =>
     config.ReadFrom.Configuration(context.Configuration));
 
 var app = builder.Build();
+
+app.UseResponseCompression();
 
 // Apply migrations and seed data
 using (var scope = app.Services.CreateScope())
@@ -88,6 +100,22 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    // HSTS/HTTPS redirect only outside Development: the local docker-compose setup and
+    // `dotnet run` both serve plain HTTP with no cert, so enabling these there would break
+    // every request. In production this assumes a reverse proxy or Kestrel terminates TLS.
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'");
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    await next();
+});
 
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
