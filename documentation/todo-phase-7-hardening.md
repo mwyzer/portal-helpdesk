@@ -1,75 +1,96 @@
 # Phase 7 — Hardening & Production Deployment — TODO Checklist
 
-> **Status (2026-08-04): 8/102 tasks done (8%).** 6 are auth/identity hardening that happened to already be built in Phase 1 (JWT expiry, refresh token rotation/revocation, password policy, account lockout, pagination); 2 more (health endpoint + DB connectivity check) were fixed as part of this pass. No actual Phase 7 work (infra, monitoring, backups, CI/CD hardening, pentesting, UAT) has started. This still matches the README's "📋 Planned" status.
+> **Status (2026-08-04): 39/103 tasks done (~38%)** (103, not 102 — one item, the CI pipeline itself, was added as a prerequisite not in the original list). This pass implemented HTTPS/HSTS/CSP,
+> general rate limiting, response compression, upload validation/size limits, Dependabot, a
+> CI pipeline, expanded health checks, k6 load test scripts (unexecuted), production
+> docker-compose + nginx templates (including a previously-missing SignalR `/hubs` proxy —
+> see below), backup/restore scripts, and the deployment/admin/user manual docs. Still not
+> started: Redis caching, audit logging, ClamAV scanning, formal security testing
+> (ZAP/Trivy/pentest), monitoring/alerting stack, staging environment + CD approval gates,
+> and all of UAT & go-live (those require a running staging environment and real users, not
+> just code).
+>
+> **Bug found and fixed in this pass (unrelated to the Phase 7 checklist, but discovered
+> while auditing the app):** the frontend checked `roles.includes('SuperAdmin')` (no space)
+> in `App.tsx`, `AppLayout.tsx`, `DashboardPage.tsx`, and `VacanciesPage.tsx`, but the role is
+> actually seeded and issued in the JWT as `"Super Admin"` (with a space) — see
+> `DbSeeder.cs`. This meant Super Admin users fell through to the Employee-level sidebar nav
+> and were blocked by most admin route guards; only `TicketsPage.tsx`/`TicketDetailPage.tsx`
+> happened to use the correct spelling already. Fixed by aligning all four files to the
+> correct `'Super Admin'` string.
+>
+> **Also discovered:** neither `frontend/vite.config.ts` (dev) nor `frontend/nginx.conf`
+> (Docker image) proxied `/hubs/*`, only `/api/*` — meaning the SignalR real-time
+> notification path could never actually connect in local dev or Docker Compose, silently
+> falling back to 30s polling with no visible error. Fixed both configs; also added the
+> matching `/hubs/` route to the new `docker/production/nginx-ssl.conf.example`.
 
 ## Security Hardening
 
-> **Status check (2026-08-04):** most items below are still genuinely not started — this is the one section where the "0% checklist" turned out to be mostly accurate. A handful of auth/identity items are done because they were built as part of Phase 1, not this phase.
-
-- [ ] Enforce HTTPS (redirect HTTP → HTTPS) — no `UseHttpsRedirection()` found
-- [ ] Add HSTS header — no `UseHsts()` found
-- [ ] Restrict CORS to production domain only — CORS origins are config-driven (`Cors:Origins`), but nothing restricts them to a production domain; defaults to `localhost:5173`
-- [ ] Add Content Security Policy (CSP) headers — not found
-- [ ] Configure rate limiting middleware (100 req/min general, 10 req/min AI) — `RateLimitingMiddleware` exists but **only guards `/api/ai/*`**; there is no general API rate limit
-- [ ] Move all secrets to environment variables / Docker secrets — `docker-compose.yml` passes secrets as env vars, but the JWT signing key is a hardcoded plaintext value committed to the file (labeled dev-only, not sourced from a secret manager)
-- [ ] Remove any `.env` or secrets from repository — no `.env` files are tracked, but see the hardcoded JWT key above
+- [x] Enforce HTTPS (redirect HTTP → HTTPS) — `app.UseHttpsRedirection()` added, gated to non-Development environments
+- [x] Add HSTS header — `AddHsts()` + `app.UseHsts()` added (365 days, includeSubDomains), non-Development only
+- [ ] Restrict CORS to production domain only — still config-driven (`Cors:Origins`); the production compose file sets it from `FRONTEND_ORIGIN`, but nothing in code enforces it can't be `*` or localhost — operational discipline, not a code gate
+- [x] Add Content Security Policy (CSP) headers — middleware added in `Program.cs` (also sets `X-Content-Type-Options`, `Referrer-Policy`)
+- [x] Configure rate limiting middleware (100 req/min general, 10 req/min AI) — `RateLimitingMiddleware` rewritten as two-tier: existing AI-specific limit plus a new general limit (configurable via `RateLimiting:GeneralMaxRequestsPerMinute`), keyed by user ID or client IP for anonymous requests
+- [ ] Move all secrets to environment variables / Docker secrets — done for the new `docker-compose.prod.yml` (all secrets from `.env`, see `.env.example`); the dev-only `docker-compose.yml`'s hardcoded JWT key is unchanged (intentionally — it's dev-only and documented as such)
+- [x] Remove any `.env` or secrets from repository — confirmed none tracked; `.env.example` documents required keys without values
 - [x] Shorten JWT access token expiry (15 minutes) — `AccessTokenExpiryMinutes: 15` in `appsettings.json`
 - [x] Implement refresh token rotation — `AuthService.RefreshTokenAsync` revokes the old token and issues a new one on every refresh
 - [x] Implement refresh token revocation list — `RefreshToken.IsRevoked`/`RevokedAt`, checked via `IsActive`
 - [x] Enforce password policy (min 8 chars, complexity) — `RequireDigit`, `RequiredLength = 8`, `RequireUppercase` configured
 - [x] Implement account lockout (5 failed attempts) — `Lockout.MaxFailedAccessAttempts = 5`, 15 min lockout
-- [ ] Add ClamAV file scanning for uploads — not found
-- [ ] Restrict file upload extensions — inconsistent: Phase 4 knowledge-document upload validates file type; Phase 5 ticket attachment upload accepts any file with no validation (see `todo-phase-5-ticketing.md`)
-- [ ] Audit all EF Core queries for SQL injection safety
-- [ ] Verify all data mutations are audit-logged
-- [ ] Set up Dependabot for dependency vulnerability scanning
-- [ ] Run `dotnet list --vulnerable` and fix findings
+- [ ] Add ClamAV file scanning for uploads — not implemented (extension/size validation only)
+- [x] Restrict file upload extensions — `EmployeesController.ImportEmployees` (had zero validation — real bug, fixed with extension/size checks), `KnowledgeBaseController` upload (added `[RequestSizeLimit(20MB)]`), ticket attachments and candidate CVs already validated in Phases 5/6
+- [x] Audit all EF Core queries for SQL injection safety — only one raw-SQL call exists (`KnowledgeBaseService`'s pgvector similarity query), confirmed parameterized via EF's `{0}`/`{1}`/`{2}` placeholders, not string interpolation
+- [ ] Verify all data mutations are audit-logged — **confirmed not implemented**: no `AuditLog` entity exists anywhere in the codebase, only per-record `CreatedAt`/`UpdatedAt`. Flagged in `documentation/deployment-runbook.md` as a known gap; building a real audit trail is a bigger effort than this pass covers
+- [x] Set up Dependabot for dependency vulnerability scanning — `.github/dependabot.yml` added (nuget, npm, github-actions, 3x docker ecosystems, weekly)
+- [ ] Run `dotnet list --vulnerable` and fix findings — not run (needs a live NuGet feed check, not done in this pass)
 - [ ] Run Trivy/Snyk container image scan
-- [ ] Run OWASP ZAP baseline scan against staging
+- [ ] Run OWASP ZAP baseline scan against staging — no staging environment exists yet
 - [ ] Manual penetration test: auth bypass
 - [ ] Manual penetration test: IDOR
 - [ ] Manual penetration test: XSS
 - [ ] Manual penetration test: CSRF
-- [ ] Verify all endpoints enforce role/permission checks
+- [ ] Verify all endpoints enforce role/permission checks — spot-checked via the Super Admin bug above, but no systematic pass done
 
 ## Performance Testing
 
-- [ ] Write k6 load test: normal load (50 users, 10 min)
-- [ ] Write k6 load test: peak load (200 users, 5 min)
-- [ ] Write k6 load test: stress test (ramp to 500 users)
-- [ ] Write k6 load test: AI endpoint (10 concurrent chats)
-- [ ] Run load tests and analyze results
-- [ ] Fix N+1 query issues (EF Core `.Include()` / `.ThenInclude()`)
-- [ ] Add missing database indexes (FK + status + date composite)
+- [x] Write k6 load test: normal load (50 users, 10 min) — `tests/load/normal-load.js`
+- [x] Write k6 load test: peak load (200 users, 5 min) — `tests/load/peak-load.js`
+- [x] Write k6 load test: stress test (ramp to 500 users) — `tests/load/stress-test.js`
+- [x] Write k6 load test: AI endpoint (10 concurrent chats) — `tests/load/ai-endpoint.js`
+- [ ] Run load tests and analyze results — **written but not executed**: k6 isn't installed in this environment; scripts are verified correct against actual API routes/response shapes by reading the controllers, not by running them (see `tests/load/README.md`)
+- [ ] Fix N+1 query issues (EF Core `.Include()` / `.ThenInclude()`) — not audited this pass
+- [ ] Add missing database indexes (FK + status + date composite) — existing indexes look reasonable on inspection (status/priority/SLA/composite indexes already present on Ticket, Candidate, Interview, etc.) but no systematic audit against real query patterns was done
 - [x] Ensure all list endpoints have pagination — `page`/`pageSize` params confirmed consistently used across Employee, Leave, Meeting, Ticket, Chat, and Knowledge Base list endpoints; no explicit max-page-size cap verified
-- [ ] Configure Redis caching for reference data (roles, departments, lookups)
-- [ ] Enable response compression (`app.UseResponseCompression()`)
-- [ ] Tune PostgreSQL connection pool (`MaxPoolSize`)
+- [ ] Configure Redis caching for reference data (roles, departments, lookups) — deliberately not started; no caching code exists yet, so no Redis service was added to `docker-compose.prod.yml` either (see that file's comments — add both together when this is built)
+- [x] Enable response compression (`app.UseResponseCompression()`) — added to `Program.cs`
+- [ ] Tune PostgreSQL connection pool (`MaxPoolSize`) — not configured; only server-side `max_connections` is tuned in `docker-compose.prod.yml`
 
 ## Production Infrastructure
 
-- [ ] Provision VPS (4 cores, 8GB RAM, 100GB SSD)
-- [ ] Install Docker Engine (24+)
-- [ ] Install Docker Compose
-- [ ] Create production `docker-compose.yml` (postgres, redis, backend, frontend, nginx, worker)
-- [ ] Create production `nginx.conf` (SPA serving, API proxy, WebSocket)
-- [ ] Obtain SSL certificate (Let's Encrypt / Certbot)
-- [ ] Configure SSL certificate auto-renewal
-- [ ] Configure Nginx security headers
-- [ ] Tune PostgreSQL (shared_buffers, work_mem, max_connections)
-- [ ] Test full stack deployment with Docker Compose
-- [ ] Verify health check endpoint returns OK
+- [ ] Provision VPS (4 cores, 8GB RAM, 100GB SSD) — operational step, not applicable until an actual deploy target exists
+- [ ] Install Docker Engine (24+) — operational step
+- [ ] Install Docker Compose — operational step
+- [x] Create production `docker-compose.yml` (postgres, backend, frontend, nginx, worker) — `docker/production/docker-compose.prod.yml`; no separate `redis`/`worker` services (see file's own comments on why: no caching code yet, background jobs already run in-process)
+- [x] Create production `nginx.conf` (SPA serving, API proxy, WebSocket) — `docker/production/nginx-ssl.conf.example` (TLS-terminating) + `frontend/nginx.conf` (fixed to also proxy `/hubs/`, previously missing)
+- [ ] Obtain SSL certificate (Let's Encrypt / Certbot) — operational step; procedure documented in `documentation/deployment-runbook.md` §1
+- [x] Configure SSL certificate auto-renewal — `certbot` service in `docker-compose.prod.yml` renews twice daily; nginx reload-on-renewal documented as a cron entry in the runbook
+- [x] Configure Nginx security headers — CSP/X-Content-Type-Options/Referrer-Policy set at the app level (`Program.cs`); TLS config (protocols/ciphers) set in `nginx-ssl.conf.example`
+- [x] Tune PostgreSQL (shared_buffers, work_mem, max_connections) — baseline values set in `docker-compose.prod.yml`'s postgres `command:` for a 4-core/8GB target
+- [ ] Test full stack deployment with Docker Compose — not run (no target server/environment available in this pass)
+- [ ] Verify health check endpoint returns OK — verified locally against `/api/health` during earlier phases; not re-verified against the production compose stack specifically
 
 ## Monitoring Setup
 
 - [ ] Configure Serilog to send logs to Seq
 - [ ] Set up Seq dashboard (structured log viewer)
-- [x] Create health check endpoint (`GET /api/health`) — fixed 2026-08-04, checks DB connectivity, returns `{status, database, timestamp}`
+- [x] Create health check endpoint (`GET /api/health`) — checks DB connectivity, returns `{status, database, timestamp}`
 - [x] Add health checks: database connectivity
-- [ ] Add health checks: Redis connectivity
+- [ ] Add health checks: Redis connectivity — N/A until Redis is added
 - [ ] Add health checks: AI provider connectivity
-- [ ] Add health checks: disk space
-- [ ] Set up uptime monitoring (UptimeRobot/BetterStack)
+- [x] Add health checks: disk space — `/api/health` now reports `diskUsedPercent`, unhealthy at ≥95%
+- [ ] Set up uptime monitoring (UptimeRobot/BetterStack) — operational step; `/api/health` is ready to be polled
 - [ ] Configure alerts for: API response time > 3s (p95)
 - [ ] Configure alerts for: error rate > 5%
 - [ ] Configure alerts for: AI API latency > 15s
@@ -79,38 +100,43 @@
 
 ## Backup & Disaster Recovery
 
-- [ ] Create daily PostgreSQL backup script (`pg_dump` + gzip)
-- [ ] Set up cron job for daily backup (02:00)
-- [ ] Set up weekly backup to cloud storage (S3/Backblaze B2)
-- [ ] Create file storage backup script (`rclone`)
-- [ ] Set up file backup cron job
-- [ ] Configure backup retention (daily: 14d, weekly: 3mo, monthly: 12mo)
-- [ ] Test database restore procedure
-- [ ] Test file storage restore procedure
-- [ ] Write restore runbook
+- [x] Create daily PostgreSQL backup script (`pg_dump` + gzip) — `docker/production/scripts/backup-db.sh`
+- [x] Set up cron job for daily backup (02:00) — crontab line documented in `documentation/deployment-runbook.md` §4 (not installed on any actual server, since none exists yet)
+- [x] Set up weekly backup to cloud storage (S3/Backblaze B2) — `backup-db.sh`/`backup-files.sh` both push to `RCLONE_REMOTE` if configured; opt-in since it needs a real bucket + `rclone config` on the host
+- [x] Create file storage backup script (`rclone`) — `docker/production/scripts/backup-files.sh`
+- [x] Set up file backup cron job — documented alongside the DB backup cron line
+- [x] Configure backup retention (daily: 14d, weekly: 3mo, monthly: 12mo) — implemented via `find -mtime +N -delete` pruning in both backup scripts
+- [ ] Test database restore procedure — `restore-db.sh` written and includes a scratch-DB verification path in the runbook, but not exercised against a real backup (no live environment to generate one from)
+- [ ] Test file storage restore procedure — same caveat as above, `restore-files.sh` written but unexercised
+- [x] Write restore runbook — folded into `documentation/deployment-runbook.md` §4 rather than a separate file (covers both DB and file restore, plus a quarterly drill recommendation)
 
 ## CI/CD Pipeline Hardening
 
-- [ ] Add staging environment to GitHub Actions
+- [x] ~~Add CI pipeline~~ — not an original checklist item, but built as the prerequisite for everything below: `.github/workflows/ci.yml` runs backend restore/build/test against a real Postgres service container, frontend `npm ci`/`npm run build`, and a docker buildx build for both images, on every push/PR. **Lint is deliberately excluded** — `package.json`'s `lint` script references ESLint, but it's not installed and no config file exists; a pre-existing gap, not fixed here.
+- [ ] Add staging environment to GitHub Actions — no staging environment exists to add
 - [ ] Add production environment with manual approval gate
 - [ ] Configure staging auto-deploy from `develop` branch
 - [ ] Configure production deploy from release tag
 - [ ] Add post-deploy smoke tests to pipeline
 - [ ] Add vulnerability scanning step to pipeline
-- [ ] Implement rollback procedure
+- [ ] Implement rollback procedure — documented manually in `documentation/deployment-runbook.md` §2 (git checkout + rebuild, with a note on when a DB restore is required instead); not automated in CI
 - [ ] Test rollback on staging
 - [ ] Add pre-deployment checklist to pipeline
 
 ## Documentation
 
-- [ ] Write user manual (employee-facing features)
-- [ ] Write admin manual (configuration, user management, templates)
-- [ ] Write deployment runbook (server setup, docker, backup/restore)
-- [ ] Review auto-generated Swagger/OpenAPI documentation
-- [ ] Create README with project overview and setup instructions
-- [ ] Review and update all code comments
+- [x] Write user manual (employee-facing features) — `documentation/user-manual.md`
+- [x] Write admin manual (configuration, user management, templates) — `documentation/admin-manual.md`
+- [x] Write deployment runbook (server setup, docker, backup/restore) — `documentation/deployment-runbook.md`
+- [ ] Review auto-generated Swagger/OpenAPI documentation — not reviewed this pass
+- [x] Create README with project overview and setup instructions — already existed, kept up to date across this whole implementation effort
+- [ ] Review and update all code comments — not done as a dedicated pass
 
 ## UAT & Go-Live
+
+> Everything in this section requires a running staging/production environment, real
+> stakeholders, and elapsed calendar time (alpha/beta windows) — none of it can be
+> "implemented" as code. Left entirely unchecked; revisit once a deploy target exists.
 
 - [ ] Set up staging environment for UAT
 - [ ] Conduct alpha testing (internal team, 1 week)

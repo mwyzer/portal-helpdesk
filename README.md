@@ -152,10 +152,10 @@ npm run test:e2e:ui
 | Phase 4 — AI Helpdesk Chat | 56 | — | — | ✅ All passing (no E2E yet) |
 | Phase 5 — Ticketing | 49 | — | — | ✅ All passing (no E2E yet) |
 | Phase 6 — Recruitment | 37 | — | — | ✅ All passing (no E2E yet) |
-| Phase 7 | — | — | — | 📋 Not started |
-| **Total** | **273** | **23** | **26** | — |
+| Phase 7 — Hardening & Deployment | 6 | — | — | 🔧 In progress (see below) |
+| **Total** | **279** | **23** | **26** | — |
 
-**Backend (273 tests):** xUnit + Moq + FluentAssertions + Bogus. No frontend (Vitest) unit tests exist yet for any phase — only backend unit tests and the Playwright E2E suite above.  
+**Backend (279 tests):** xUnit + Moq + FluentAssertions + Bogus. No frontend (Vitest) unit tests exist yet for any phase — only backend unit tests and the Playwright E2E suite above.  
 **Phase 3 Code Coverage (coverlet):**
 - Services: MeetingService 93.6%, ActionItemService 97.8%, DocumentService 93.8%
 - Domain entities: Meeting, MeetingNote, MeetingParticipant, ActionItem, DocumentTemplate, DocumentRequest, GeneratedDocument — **all 100%**
@@ -335,7 +335,7 @@ npm run test:e2e:ui
 | **Phase 4** | AI Helpdesk Chat — AI-powered RAG chat & knowledge base | ✅ Done |
 | **Phase 5** | Ticketing System — Request tracking, SLA, agent workflows | ✅ Done |
 | **Phase 6** | Recruitment — Job postings, candidate pipeline, AI CV parsing | ✅ Done |
-| **Phase 7** | Hardening & Deployment — Security, performance, CI/CD, monitoring | 📋 Planned |
+| **Phase 7** | Hardening & Deployment — Security, performance, CI/CD, monitoring | 🔧 In progress (~38% of checklist — see [`documentation/todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md)) |
 
 Detailed documentation for each phase is available in the [`documentation/`](documentation/) directory.
 
@@ -476,9 +476,18 @@ Detailed documentation for each phase is available in the [`documentation/`](doc
 | 7 | Documentation | User manual, admin manual, API docs, deployment runbook |
 | 8 | UAT & go-live | User acceptance testing, bug fixes, production deployment, sign-off |
 
+**Status (2026-08-04):** items 1–3, 5, and 7 are partially implemented (HTTPS/HSTS/CSP,
+general rate limiting, response compression, upload validation, CI build+test pipeline,
+Dependabot, k6 scripts, production Docker Compose + Nginx + TLS templates, backup/restore
+scripts, deployment/admin/user manuals). Items 4 (monitoring/alerting), 6 (staging/approval
+gates), and 8 (UAT) are not started — they require a live staging/production environment,
+which doesn't exist yet. Full breakdown: [`documentation/todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md),
+[`documentation/deployment-runbook.md`](documentation/deployment-runbook.md).
+
 ## License
 
-*[Add license information here]*
+See [`LICENSE`](LICENSE) — proprietary, all rights reserved (placeholder terms pending a
+final decision from the project owner).
 
 
 ## Demo Account **IMPORTANT MUST READ**

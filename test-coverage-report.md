@@ -1,8 +1,8 @@
 # AIHelpdesk — Test Coverage Report
 
-**Generated:** 2026-07-14, refreshed 2026-08-04 (twice — this second pass adds Phases 5–6 and several bugfix-driven test additions to Phases 1/3/4)  
-**Total Tests:** 322  
-**Overall Status:** ✅ All Passing (counts below verified via `dotnet test --filter` per phase, cross-checked against `[Fact]`/`[Theory]` attribute counts; a filter substring collision between `AIServiceTests` and `RecruitmentAIServiceTests` was caught and corrected during this pass)
+**Generated:** 2026-07-14, refreshed 2026-08-04 (three passes — the second adds Phases 5–6 and several bugfix-driven test additions to Phases 1/3/4; the third adds Phase 7's rate-limiting middleware tests)  
+**Total Tests:** 328  
+**Overall Status:** ✅ All Passing (counts below verified via `dotnet test --filter` per phase, cross-checked against `[Fact]`/`[Theory]` attribute counts; a filter substring collision between `AIServiceTests` and `RecruitmentAIServiceTests` was caught and corrected during the second pass)
 
 ---
 
@@ -16,8 +16,8 @@
 | Phase 4 — AI Helpdesk Chat | 56 | 0 | 0 | **56** |
 | Phase 5 — Ticketing | 49 | 0 | 0 | **49** |
 | Phase 6 — Recruitment | 37 | 0 | 0 | **37** |
-| Phase 7 — Hardening & Deployment | 0 | 0 | 0 | **0** |
-| **TOTAL** | **273** | **23** | **26** | **322** |
+| Phase 7 — Hardening & Deployment | 6 | 0 | 0 | **6** |
+| **TOTAL** | **279** | **23** | **26** | **328** |
 
 ---
 
@@ -192,11 +192,24 @@
 
 **Frontend E2E:** none.
 
-### No tests yet
+---
 
-| Phase | Status |
-|-------|--------|
-| Phase 7 — Hardening & Deployment | ❌ No tests (includes security, performance, CI/CD) |
+## Phase 7 — Hardening & Deployment
+
+**File:** `tests/Middleware/RateLimitingMiddlewareTests.cs` (6 tests)
+
+**Covered:** general per-user/per-IP rate limit enforcement, the separate AI-endpoint limit,
+and that requests under the limit pass through untouched.
+
+**Not covered by automated tests** (not code that fits a unit-test harness — see
+`documentation/todo-phase-7-hardening.md` and `documentation/deployment-runbook.md` for
+details): HTTPS/HSTS/CSP header presence (would need an integration test host, not written
+this pass), the k6 load-test scripts (written but not executed against a live environment),
+backup/restore scripts (shell scripts, would need a real Postgres+Docker environment to
+exercise), and the CI pipeline itself (validated by it running successfully on push, not by
+a test suite).
+
+**Frontend E2E:** none.
 
 ---
 
@@ -291,5 +304,5 @@ npx playwright test tests/e2e/phase-2/
 | 🟡 Medium | Add E2E interaction/smoke tests for Phase 4, 5, and 6 pages (mirror Phase 2 pattern) — none of these phases have any Playwright coverage yet |
 | 🟡 Medium | Add backend integration tests (`WebApplicationFactory`) — every phase's tests, including this pass's 165 new ones, are unit-level only against an in-memory `DbContext` |
 | 🟡 Medium | Add frontend unit tests (Vitest/RTL) — still entirely unset up, see `todo-phase-1-foundation.md` |
-| 🟢 Low | Add Phase 7 k6 load tests, security scan config |
+| 🟢 Low | Run the existing Phase 7 k6 load test scripts against a live environment and add CI-based security scan config (Trivy/ZAP) |
 | 🟢 Low | Remove `UnitTest1.cs` placeholder test |
