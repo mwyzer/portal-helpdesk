@@ -177,12 +177,12 @@ export function LeaveTypesPage() {
                     <TableCell>{lt.isActive ? <Badge className="bg-success/10 text-success">Active</Badge> : <Badge className="bg-muted text-muted-foreground">Inactive</Badge>}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(lt)} aria-label="Edit leave type">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(lt)} title="Edit" aria-label="Edit leave type">
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => {
                           if (confirm('Delete this leave type?')) deleteMutation.mutate(lt.id);
-                        }} aria-label="Delete leave type">
+                        }} title="Delete" aria-label="Delete leave type">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
