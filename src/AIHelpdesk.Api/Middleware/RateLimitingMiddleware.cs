@@ -8,13 +8,21 @@ namespace AIHelpdesk.Api.Middleware;
 /// <summary>
 /// Two-tier rate limiting: a tighter per-user limit on AI endpoints (configured via
 /// <see cref="AIOptions.RateLimit"/>), and a general per-client limit on everything else
-/// (configured via "RateLimiting:GeneralMaxRequestsPerMinute", default 100/min).
+/// (configured via "RateLimiting:GeneralMaxRequestsPerMinute", default 300/min).
 /// Keyed by authenticated user ID when available, falling back to client IP for anonymous
 /// requests (login, forgot-password, health check) so those can't be used to bypass limiting.
+///
+/// The general limit is a single bucket shared across every non-AI endpoint for one user, not
+/// per-endpoint -- a SPA session firing several XHRs per page navigation eats into it quickly.
+/// Verified empirically on 2026-08-04: a clean Playwright smoke run (23 sequential page loads,
+/// one login + a handful of GETs each) tripped a 100/min default within roughly a minute of
+/// real usage, which is not just automated-test load, it's realistic for a person clicking
+/// through many admin pages in a short burst. Raised to 300/min so ordinary rapid navigation
+/// doesn't get 429'd; the original 100/min Phase 7 spec value undersold how chatty this SPA is.
 /// </summary>
 public class RateLimitingMiddleware
 {
-    private const int DefaultGeneralMaxRequestsPerMinute = 100;
+    private const int DefaultGeneralMaxRequestsPerMinute = 300;
 
     private readonly RequestDelegate _next;
     private readonly int _generalMaxRequestsPerMinute;
