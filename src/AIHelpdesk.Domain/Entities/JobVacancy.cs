@@ -19,4 +19,5 @@ public class JobVacancy : BaseEntity
     public Position? Position { get; set; }
     public ApplicationUser PostedBy { get; set; } = null!;
     public ICollection<Candidate> Candidates { get; set; } = new List<Candidate>();
+    public ICollection<InterviewSlot> InterviewSlots { get; set; } = new List<InterviewSlot>();
 }

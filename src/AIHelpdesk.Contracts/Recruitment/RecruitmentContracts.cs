@@ -81,7 +81,7 @@ public record CandidateDocumentResponse(
     string FileName,
     long FileSize,
     string ContentType,
-    Guid UploadedById,
+    Guid? UploadedById,
     string UploadedByName,
     DateTime CreatedAt);
 
@@ -166,6 +166,69 @@ public record CandidateMatchResponse(
     string CandidateName,
     double MatchScore,
     string Reason);
+
+// ═══════════════ Interview Slots (staff-managed) ═══════════════
+
+public record CreateInterviewSlotRequest(
+    Guid InterviewerId,
+    Guid JobVacancyId,
+    DateTime ScheduledAt,
+    int DurationMinutes,
+    string Type);
+
+public record InterviewSlotResponse(
+    Guid Id,
+    Guid InterviewerId,
+    string InterviewerName,
+    Guid JobVacancyId,
+    string JobVacancyTitle,
+    DateTime ScheduledAt,
+    int DurationMinutes,
+    string Type,
+    string Status);
+
+public record CandidatePortalInviteResponse(string SetupToken, DateTime ExpiresAt);
+
+// ═══════════════ Candidate Portal (candidate-facing) ═══════════════
+
+public record CandidatePortalLoginRequest(string Email, string Password);
+
+public record CandidatePortalActivateRequest(string SetupToken, string NewPassword);
+
+public record CandidatePortalRefreshRequest(string AccessToken, string RefreshToken);
+
+public record CandidatePortalAuthResponse(
+    string AccessToken,
+    string RefreshToken,
+    DateTime ExpiresAt,
+    CandidatePortalProfile Profile);
+
+public record CandidatePortalProfile(Guid CandidateId, string FullName, string Email);
+
+public record CandidatePortalStatusResponse(
+    string JobVacancyTitle,
+    string Stage,
+    string? RejectionReason,
+    DateTime AppliedAt);
+
+public record CandidatePortalUploadDocumentResponse(
+    Guid Id,
+    string FileName,
+    long FileSize,
+    DateTime CreatedAt);
+
+public record AvailableInterviewSlotResponse(
+    Guid SlotId,
+    DateTime ScheduledAt,
+    int DurationMinutes,
+    string Type);
+
+public record CandidatePortalInterviewResponse(
+    Guid Id,
+    DateTime ScheduledAt,
+    int DurationMinutes,
+    string Type,
+    string Status);
 
 // ═══════════════ Reports ═══════════════
 

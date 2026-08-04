@@ -446,6 +446,63 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                     b.ToTable("Candidates");
                 });
 
+            modelBuilder.Entity("AIHelpdesk.Domain.Entities.CandidateAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("InvitedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("SetupToken")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("SetupTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CandidateId")
+                        .IsUnique();
+
+                    b.HasIndex("SetupToken");
+
+                    b.ToTable("CandidateAccounts");
+                });
+
             modelBuilder.Entity("AIHelpdesk.Domain.Entities.CandidateDocument", b =>
                 {
                     b.Property<Guid>("Id")
@@ -488,7 +545,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("UploadedById")
+                    b.Property<Guid?>("UploadedById")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -498,6 +555,57 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                     b.HasIndex("UploadedById");
 
                     b.ToTable("CandidateDocuments");
+                });
+
+            modelBuilder.Entity("AIHelpdesk.Domain.Entities.CandidatePortalRefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByIp")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CandidateId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("CandidatePortalRefreshTokens");
                 });
 
             modelBuilder.Entity("AIHelpdesk.Domain.Entities.CandidateStageHistory", b =>
@@ -1094,6 +1202,67 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                     b.HasIndex("InterviewId");
 
                     b.ToTable("InterviewQuestions");
+                });
+
+            modelBuilder.Entity("AIHelpdesk.Domain.Entities.InterviewSlot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BookedByCandidateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("InterviewId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InterviewerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("JobVacancyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ScheduledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookedByCandidateId");
+
+                    b.HasIndex("InterviewId")
+                        .IsUnique();
+
+                    b.HasIndex("InterviewerId", "ScheduledAt");
+
+                    b.HasIndex("JobVacancyId", "Status");
+
+                    b.ToTable("InterviewSlots");
                 });
 
             modelBuilder.Entity("AIHelpdesk.Domain.Entities.JobVacancy", b =>
@@ -1779,7 +1948,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Users",
                             IsDeleted = false,
                             Name = "users.read",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(6487)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(3926)
                         },
                         new
                         {
@@ -1789,7 +1958,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Users",
                             IsDeleted = false,
                             Name = "users.create",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7911)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6798)
                         },
                         new
                         {
@@ -1799,7 +1968,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Users",
                             IsDeleted = false,
                             Name = "users.update",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7923)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6823)
                         },
                         new
                         {
@@ -1809,7 +1978,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Users",
                             IsDeleted = false,
                             Name = "users.delete",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7926)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6846)
                         },
                         new
                         {
@@ -1819,7 +1988,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Roles",
                             IsDeleted = false,
                             Name = "roles.read",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7928)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6852)
                         },
                         new
                         {
@@ -1829,7 +1998,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Roles",
                             IsDeleted = false,
                             Name = "roles.create",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7952)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6872)
                         },
                         new
                         {
@@ -1839,7 +2008,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Roles",
                             IsDeleted = false,
                             Name = "roles.update",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7956)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6876)
                         },
                         new
                         {
@@ -1849,7 +2018,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Roles",
                             IsDeleted = false,
                             Name = "roles.delete",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7958)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6880)
                         },
                         new
                         {
@@ -1859,7 +2028,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Departments",
                             IsDeleted = false,
                             Name = "departments.read",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7961)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6885)
                         },
                         new
                         {
@@ -1869,7 +2038,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Departments",
                             IsDeleted = false,
                             Name = "departments.create",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7964)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6891)
                         },
                         new
                         {
@@ -1879,7 +2048,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Departments",
                             IsDeleted = false,
                             Name = "departments.update",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7967)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6895)
                         },
                         new
                         {
@@ -1889,7 +2058,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Employee",
                             IsDeleted = false,
                             Name = "employee.read",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7970)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6905)
                         },
                         new
                         {
@@ -1899,7 +2068,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Employee",
                             IsDeleted = false,
                             Name = "employee.create",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7972)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6910)
                         },
                         new
                         {
@@ -1909,7 +2078,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Leave",
                             IsDeleted = false,
                             Name = "leave.submit",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7978)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6915)
                         },
                         new
                         {
@@ -1919,7 +2088,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Leave",
                             IsDeleted = false,
                             Name = "leave.approve",
-                            UpdatedAt = new DateTime(2026, 8, 3, 22, 17, 25, 159, DateTimeKind.Utc).AddTicks(7980)
+                            UpdatedAt = new DateTime(2026, 8, 4, 17, 50, 2, 485, DateTimeKind.Utc).AddTicks(6919)
                         });
                 });
 
@@ -2562,6 +2731,17 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                     b.Navigation("JobVacancy");
                 });
 
+            modelBuilder.Entity("AIHelpdesk.Domain.Entities.CandidateAccount", b =>
+                {
+                    b.HasOne("AIHelpdesk.Domain.Entities.Candidate", "Candidate")
+                        .WithOne()
+                        .HasForeignKey("AIHelpdesk.Domain.Entities.CandidateAccount", "CandidateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Candidate");
+                });
+
             modelBuilder.Entity("AIHelpdesk.Domain.Entities.CandidateDocument", b =>
                 {
                     b.HasOne("AIHelpdesk.Domain.Entities.Candidate", "Candidate")
@@ -2573,12 +2753,22 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                     b.HasOne("AIHelpdesk.Domain.Entities.ApplicationUser", "UploadedBy")
                         .WithMany()
                         .HasForeignKey("UploadedById")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Candidate");
 
                     b.Navigation("UploadedBy");
+                });
+
+            modelBuilder.Entity("AIHelpdesk.Domain.Entities.CandidatePortalRefreshToken", b =>
+                {
+                    b.HasOne("AIHelpdesk.Domain.Entities.Candidate", "Candidate")
+                        .WithMany()
+                        .HasForeignKey("CandidateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Candidate");
                 });
 
             modelBuilder.Entity("AIHelpdesk.Domain.Entities.CandidateStageHistory", b =>
@@ -2737,6 +2927,39 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Interview");
+                });
+
+            modelBuilder.Entity("AIHelpdesk.Domain.Entities.InterviewSlot", b =>
+                {
+                    b.HasOne("AIHelpdesk.Domain.Entities.Candidate", "BookedByCandidate")
+                        .WithMany()
+                        .HasForeignKey("BookedByCandidateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AIHelpdesk.Domain.Entities.Interview", "Interview")
+                        .WithOne()
+                        .HasForeignKey("AIHelpdesk.Domain.Entities.InterviewSlot", "InterviewId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AIHelpdesk.Domain.Entities.ApplicationUser", "Interviewer")
+                        .WithMany()
+                        .HasForeignKey("InterviewerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AIHelpdesk.Domain.Entities.JobVacancy", "JobVacancy")
+                        .WithMany("InterviewSlots")
+                        .HasForeignKey("JobVacancyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BookedByCandidate");
+
+                    b.Navigation("Interview");
+
+                    b.Navigation("Interviewer");
+
+                    b.Navigation("JobVacancy");
                 });
 
             modelBuilder.Entity("AIHelpdesk.Domain.Entities.JobVacancy", b =>
@@ -3159,6 +3382,8 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
             modelBuilder.Entity("AIHelpdesk.Domain.Entities.JobVacancy", b =>
                 {
                     b.Navigation("Candidates");
+
+                    b.Navigation("InterviewSlots");
                 });
 
             modelBuilder.Entity("AIHelpdesk.Domain.Entities.KnowledgeDocument", b =>

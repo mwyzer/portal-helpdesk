@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import { RoleGuard } from '@/components/layout/RoleGuard';
+import { CandidatePortalLayout } from '@/components/layout/CandidatePortalLayout';
+import { CandidatePortalRoute } from '@/components/layout/CandidatePortalRoute';
 import { LoginPage } from '@/pages/LoginPage';
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
@@ -33,6 +35,11 @@ import { VacanciesPage } from '@/pages/VacanciesPage';
 import { CandidatesPage } from '@/pages/CandidatesPage';
 import { CandidateDetailPage } from '@/pages/CandidateDetailPage';
 import { InterviewsPage } from '@/pages/InterviewsPage';
+import { PortalLoginPage } from '@/pages/portal/PortalLoginPage';
+import { PortalActivatePage } from '@/pages/portal/PortalActivatePage';
+import { PortalStatusPage } from '@/pages/portal/PortalStatusPage';
+import { PortalDocumentsPage } from '@/pages/portal/PortalDocumentsPage';
+import { PortalInterviewsPage } from '@/pages/portal/PortalInterviewsPage';
 
 // ── Role aliases for route guards ─────────────────
 
@@ -99,6 +106,24 @@ export function App() {
         <Route path="recruitment/candidates" element={<RoleGuard allowedRoles={Manager}><CandidatesPage /></RoleGuard>} />
         <Route path="recruitment/candidates/:id" element={<RoleGuard allowedRoles={Manager}><CandidateDetailPage /></RoleGuard>} />
         <Route path="recruitment/interviews" element={<RoleGuard allowedRoles={Manager}><InterviewsPage /></RoleGuard>} />
+      </Route>
+
+      {/* ── Candidate Self-Service Portal — entirely separate from the staff app above:
+          own auth store, own API client/JWT audience, no AppLayout/RoleGuard reuse. ── */}
+      <Route path="/portal/login" element={<PortalLoginPage />} />
+      <Route path="/portal/activate" element={<PortalActivatePage />} />
+      <Route
+        path="/portal"
+        element={
+          <CandidatePortalRoute>
+            <CandidatePortalLayout />
+          </CandidatePortalRoute>
+        }
+      >
+        <Route index element={<Navigate to="/portal/status" replace />} />
+        <Route path="status" element={<PortalStatusPage />} />
+        <Route path="documents" element={<PortalDocumentsPage />} />
+        <Route path="interviews" element={<PortalInterviewsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -177,4 +177,113 @@ public class InterviewService : IInterviewService
         var items = await query.OrderBy(i => i.ScheduledAt).ToListAsync();
         return items.Select(MapToResponse).ToList();
     }
+
+    private static InterviewSlotResponse MapSlotToResponse(InterviewSlot s) => new(
+        s.Id, s.InterviewerId, s.Interviewer.FullName, s.JobVacancyId, s.JobVacancy.Title,
+        s.ScheduledAt, s.DurationMinutes, s.Type.ToString(), s.Status.ToString());
+
+    public async Task<InterviewSlotResponse> CreateSlotAsync(CreateInterviewSlotRequest request)
+    {
+        _ = await _context.JobVacancies.FindAsync(request.JobVacancyId)
+            ?? throw new KeyNotFoundException("Job vacancy not found");
+        _ = await _context.Users.FindAsync(request.InterviewerId)
+            ?? throw new KeyNotFoundException("Interviewer not found");
+
+        if (!Enum.TryParse<InterviewType>(request.Type, true, out var type))
+            throw new InvalidOperationException($"Invalid interview type: {request.Type}");
+
+        await EnsureNoConflictAsync(request.InterviewerId, request.ScheduledAt, request.DurationMinutes);
+
+        var slot = new InterviewSlot
+        {
+            InterviewerId = request.InterviewerId,
+            JobVacancyId = request.JobVacancyId,
+            ScheduledAt = request.ScheduledAt,
+            DurationMinutes = request.DurationMinutes,
+            Type = type,
+            Status = InterviewSlotStatus.Open
+        };
+
+        _context.InterviewSlots.Add(slot);
+        await _context.SaveChangesAsync();
+
+        slot.Interviewer = await _context.Users.FindAsync(request.InterviewerId) ?? slot.Interviewer;
+        slot.JobVacancy = await _context.JobVacancies.FindAsync(request.JobVacancyId) ?? slot.JobVacancy;
+        return MapSlotToResponse(slot);
+    }
+
+    public async Task<IList<InterviewSlotResponse>> GetSlotsAsync(Guid? jobVacancyId, Guid? interviewerId, string? status)
+    {
+        var query = _context.InterviewSlots
+            .Include(s => s.Interviewer)
+            .Include(s => s.JobVacancy)
+            .AsQueryable();
+
+        if (jobVacancyId.HasValue)
+            query = query.Where(s => s.JobVacancyId == jobVacancyId.Value);
+        if (interviewerId.HasValue)
+            query = query.Where(s => s.InterviewerId == interviewerId.Value);
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<InterviewSlotStatus>(status, true, out var s2))
+            query = query.Where(s => s.Status == s2);
+
+        var items = await query.OrderBy(s => s.ScheduledAt).ToListAsync();
+        return items.Select(MapSlotToResponse).ToList();
+    }
+
+    public async Task CancelSlotAsync(Guid slotId)
+    {
+        var slot = await _context.InterviewSlots.FindAsync(slotId)
+            ?? throw new KeyNotFoundException("Interview slot not found");
+
+        if (slot.Status != InterviewSlotStatus.Open)
+            throw new InvalidOperationException("Only open slots can be cancelled");
+
+        slot.Status = InterviewSlotStatus.Cancelled;
+        slot.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<InterviewResponse> BookSlotAsync(Guid slotId, Guid candidateId)
+    {
+        var slot = await _context.InterviewSlots.FindAsync(slotId)
+            ?? throw new KeyNotFoundException("Interview slot not found");
+
+        if (slot.Status != InterviewSlotStatus.Open)
+            throw new InvalidOperationException("This slot is no longer available");
+
+        var candidate = await _context.Candidates.FindAsync(candidateId)
+            ?? throw new KeyNotFoundException("Candidate not found");
+
+        if (candidate.JobVacancyId != slot.JobVacancyId)
+            throw new InvalidOperationException("This slot is not for the candidate's vacancy");
+
+        // Re-check the interviewer conflict at booking time too (not just when the slot was
+        // opened) in case the interviewer picked up another interview in the meantime.
+        await EnsureNoConflictAsync(slot.InterviewerId, slot.ScheduledAt, slot.DurationMinutes);
+
+        // Same read-then-write pattern (and the same narrow TOCTOU race window) as
+        // EnsureNoConflictAsync above and CreateAsync's conflict check -- this codebase doesn't
+        // use transactions or concurrency tokens anywhere else, so two candidates racing to
+        // book the exact same slot in the same instant is an accepted, low-frequency edge case
+        // (worst case: both see it as booked and staff resolves manually), not a new gap.
+        var interview = new Interview
+        {
+            CandidateId = candidateId,
+            InterviewerId = slot.InterviewerId,
+            ScheduledAt = slot.ScheduledAt,
+            DurationMinutes = slot.DurationMinutes,
+            Type = slot.Type,
+            Status = InterviewStatus.Scheduled
+        };
+        _context.Interviews.Add(interview);
+
+        slot.Status = InterviewSlotStatus.Booked;
+        slot.BookedByCandidateId = candidateId;
+        slot.InterviewId = interview.Id;
+        slot.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return await GetByIdAsync(interview.Id);
+    }
 }

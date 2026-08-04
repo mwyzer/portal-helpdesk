@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Calendar, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Calendar, Sparkles, Loader2, CalendarPlus } from 'lucide-react';
 
 interface InterviewItem {
   id: string;
@@ -28,6 +28,21 @@ interface InterviewItem {
 interface CandidateOption {
   id: string;
   fullName: string;
+}
+
+interface VacancyOption {
+  id: string;
+  title: string;
+}
+
+interface SlotItem {
+  id: string;
+  interviewerName: string;
+  jobVacancyTitle: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  type: string;
+  status: string;
 }
 
 interface UserOption {
@@ -50,9 +65,11 @@ export function InterviewsPage() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [createSlotOpen, setCreateSlotOpen] = useState(false);
   const [completeId, setCompleteId] = useState<string | null>(null);
   const [aiQuestions, setAiQuestions] = useState<AIQuestion[]>([]);
   const [form, setForm] = useState({ candidateId: '', interviewerId: '', scheduledAt: '', durationMinutes: 60, type: 'Video' });
+  const [slotForm, setSlotForm] = useState({ interviewerId: '', jobVacancyId: '', scheduledAt: '', durationMinutes: 60, type: 'Video' });
   const [feedbackForm, setFeedbackForm] = useState({ feedback: '', rating: 3, recommendation: 'Yes' });
 
   const { data, isLoading } = useQuery<{ items: InterviewItem[] }>({
@@ -69,7 +86,18 @@ export function InterviewsPage() {
   const { data: users } = useQuery<{ items: UserOption[] }>({
     queryKey: ['users', 'for-interviews'],
     queryFn: () => api.get('/users', { params: { pageSize: 999 } }).then((r) => r.data),
-    enabled: createOpen,
+    enabled: createOpen || createSlotOpen,
+  });
+
+  const { data: vacancies } = useQuery<{ items: VacancyOption[] }>({
+    queryKey: ['vacancies', 'for-slots'],
+    queryFn: () => api.get('/job-vacancies', { params: { pageSize: 200 } }).then((r) => r.data),
+    enabled: createSlotOpen,
+  });
+
+  const { data: slotsData, isLoading: slotsLoading } = useQuery<SlotItem[]>({
+    queryKey: ['interview-slots'],
+    queryFn: () => api.get('/interviews/slots').then((r) => r.data),
   });
 
   const createMutation = useMutation({
@@ -101,6 +129,27 @@ export function InterviewsPage() {
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.post(`/interviews/${id}/cancel`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['interviews'] }),
+  });
+
+  const createSlotMutation = useMutation({
+    mutationFn: () =>
+      api.post('/interviews/slots', {
+        interviewerId: slotForm.interviewerId,
+        jobVacancyId: slotForm.jobVacancyId,
+        scheduledAt: new Date(slotForm.scheduledAt).toISOString(),
+        durationMinutes: slotForm.durationMinutes,
+        type: slotForm.type,
+      }),
+    onSuccess: () => {
+      setCreateSlotOpen(false);
+      setSlotForm({ interviewerId: '', jobVacancyId: '', scheduledAt: '', durationMinutes: 60, type: 'Video' });
+      queryClient.invalidateQueries({ queryKey: ['interview-slots'] });
+    },
+  });
+
+  const cancelSlotMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/interviews/slots/${id}/cancel`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['interview-slots'] }),
   });
 
   const questionsMutation = useMutation({
@@ -225,6 +274,101 @@ export function InterviewsPage() {
                 </div>
               ))}
               {items.length === 0 && <div className="text-center py-8 text-muted-foreground">No interviews found</div>}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle className="text-base">Interview Slots</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Open time slots for candidates to book themselves via the candidate portal
+            </p>
+          </div>
+          <Dialog open={createSlotOpen} onOpenChange={setCreateSlotOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline"><CalendarPlus className="mr-2 h-4 w-4" /> Open Slot</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Open Interview Slot</DialogTitle></DialogHeader>
+              <div className="space-y-4 mt-2">
+                <div className="space-y-2">
+                  <Label>Vacancy</Label>
+                  <Select value={slotForm.jobVacancyId} onValueChange={(v) => setSlotForm((p) => ({ ...p, jobVacancyId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select vacancy..." /></SelectTrigger>
+                    <SelectContent>
+                      {vacancies?.items?.map((v) => <SelectItem key={v.id} value={v.id}>{v.title}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Interviewer</Label>
+                  <Select value={slotForm.interviewerId} onValueChange={(v) => setSlotForm((p) => ({ ...p, interviewerId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select interviewer..." /></SelectTrigger>
+                    <SelectContent>
+                      {users?.items?.map((u) => <SelectItem key={u.id} value={u.id}>{u.fullName}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Date & Time</Label>
+                    <Input type="datetime-local" value={slotForm.scheduledAt} onChange={(e) => setSlotForm((p) => ({ ...p, scheduledAt: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Duration (min)</Label>
+                    <Input type="number" min={15} value={slotForm.durationMinutes} onChange={(e) => setSlotForm((p) => ({ ...p, durationMinutes: Number(e.target.value) || 60 }))} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Type</Label>
+                  <Select value={slotForm.type} onValueChange={(v) => setSlotForm((p) => ({ ...p, type: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Phone">Phone</SelectItem>
+                      <SelectItem value="Video">Video</SelectItem>
+                      <SelectItem value="OnSite">On-Site</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={() => createSlotMutation.mutate()}
+                  disabled={!slotForm.jobVacancyId || !slotForm.interviewerId || !slotForm.scheduledAt || createSlotMutation.isPending}
+                >
+                  {createSlotMutation.isPending ? <Spinner /> : 'Open Slot'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {slotsLoading ? (
+            <div className="flex justify-center py-8"><Spinner className="h-8 w-8" /></div>
+          ) : (
+            <div className="space-y-3">
+              {(slotsData ?? []).map((s) => (
+                <div key={s.id} className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <p className="font-medium">{s.jobVacancyTitle}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {s.type} with {s.interviewerName} · {new Date(s.scheduledAt).toLocaleString()} ({s.durationMinutes}m)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className={s.status === 'Open' ? 'bg-info/10 text-info' : s.status === 'Booked' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}>
+                      {s.status}
+                    </Badge>
+                    {s.status === 'Open' && (
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => cancelSlotMutation.mutate(s.id)}>Cancel</Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {(slotsData ?? []).length === 0 && <div className="text-center py-8 text-muted-foreground">No interview slots opened yet</div>}
             </div>
           )}
         </CardContent>

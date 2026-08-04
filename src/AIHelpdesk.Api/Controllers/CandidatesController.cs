@@ -105,4 +105,11 @@ public class CandidatesController : ControllerBase
         var result = await _aiService.SummarizeCvAsync(id);
         return Ok(result);
     }
+
+    [HttpPost("{id:guid}/portal-invite")]
+    public async Task<ActionResult<CandidatePortalInviteResponse>> RegenerateInvite(Guid id)
+    {
+        var result = await _service.RegenerateInviteAsync(id);
+        return Ok(result);
+    }
 }

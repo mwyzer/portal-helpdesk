@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Upload, Download, Sparkles, Clock, Calendar, FileText, Loader2 } from 'lucide-react';
+import { ArrowLeft, Upload, Download, Sparkles, Clock, Calendar, FileText, Loader2, Link2 } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface CandidateDocument {
   id: string;
@@ -93,6 +94,21 @@ export function CandidateDetailPage() {
     },
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+
+  const inviteMutation = useMutation({
+    mutationFn: () => api.post(`/candidates/${id}/portal-invite`).then((r) => r.data as { setupToken: string; expiresAt: string }),
+    onSuccess: async (data) => {
+      const link = `${window.location.origin}/portal/activate?token=${data.setupToken}`;
+      try {
+        await navigator.clipboard.writeText(link);
+        addToast({ title: 'Portal invite link copied to clipboard', message: `Expires ${new Date(data.expiresAt).toLocaleDateString()}`, type: 'success' });
+      } catch {
+        addToast({ title: 'Portal invite link generated', message: link, type: 'success' });
+      }
+    },
+  });
+
   const summarizeMutation = useMutation({
     mutationFn: () => api.post(`/candidates/${id}/ai-summarize`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['candidate', id] }),
@@ -134,6 +150,10 @@ export function CandidateDetailPage() {
             </Link>
           </p>
         </div>
+        <Button variant="outline" size="sm" onClick={() => inviteMutation.mutate()} disabled={inviteMutation.isPending}>
+          {inviteMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
+          Copy Portal Invite Link
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
