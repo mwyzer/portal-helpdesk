@@ -1,0 +1,87 @@
+# Example TLS-terminating reverse proxy config for docker-compose.prod.yml's `nginx` service.
+#
+# Setup:
+#   1. Copy this file to nginx-ssl.conf (git-ignored, or just edit in place) and replace
+#      YOUR_DOMAIN with your real domain.
+#   2. First-time cert issuance (before this config can be loaded, since it references
+#      certs that don't exist yet):
+#        docker compose -f docker-compose.prod.yml up -d nginx   # will fail to start with TLS on — that's expected
+#      Easiest path: temporarily serve only the :80 server block (comment out the 443 block
+#      and the redirect below), start nginx, run certbot's webroot flow once against
+#      /var/www/certbot, then uncomment and reload. See documentation/deployment-runbook.md.
+#   3. Reference this file (or your renamed copy) from docker-compose.prod.yml's nginx volumes.
+#
+# Renewal is handled by the `certbot` service in docker-compose.prod.yml (checks twice daily).
+# After a renewal, nginx needs a reload to pick up the new cert — cron this on the host:
+#   docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
+
+server {
+    listen 80;
+    server_name YOUR_DOMAIN;
+
+    # Let's Encrypt HTTP-01 challenge path — must stay reachable over plain HTTP.
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Everything else redirects to HTTPS.
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name YOUR_DOMAIN;
+
+    ssl_certificate     /etc/letsencrypt/live/YOUR_DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/YOUR_DOMAIN/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    client_max_body_size 20m; # matches the largest [RequestSizeLimit] in the API (KB doc upload)
+
+    # Static SPA + all non-API/non-hub routes go to the frontend container's own nginx,
+    # which handles the try_files/index.html fallback.
+    location / {
+        proxy_pass http://frontend:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # API traffic goes straight to the backend container, bypassing the frontend image's
+    # own /api/ proxy entirely (avoids a redundant hop).
+    location /api/ {
+        proxy_pass http://backend:8080/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # SignalR hub — needs the WebSocket upgrade headers and a long read timeout, same as
+    # frontend/nginx.conf's /hubs/ block (see that file's comment for the backstory).
+    location /hubs/ {
+        proxy_pass http://backend:8080/hubs/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 3600s;
+    }
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+}
