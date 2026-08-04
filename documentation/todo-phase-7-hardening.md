@@ -24,6 +24,19 @@
 > notification path could never actually connect in local dev or Docker Compose, silently
 > falling back to 30s polling with no visible error. Fixed both configs; also added the
 > matching `/hubs/` route to the new `docker/production/nginx-ssl.conf.example`.
+>
+> **E2E suite actually run (2026-08-04)** against a live Docker Compose stack rebuilt from
+> current code — this is what caught the Super Admin bug above, plus a second, separate one:
+> `authStore.user` never got populated on a hard page load (`loadUser()` was defined but never
+> called anywhere), so even after fixing the role-string bug, direct navigation to any admin
+> route still bounced Super Admin to `/dashboard` because `RoleGuard` read a `null` user. Fixed
+> by reading the persisted user from `localStorage` synchronously at store creation. First run:
+> 18/50 passing; after both fixes: 42/50. The remaining 8 failures are all the general rate
+> limiter's bucket getting exhausted by 50 back-to-back logins on one shared demo account in a
+> single serial run, not app bugs. Also fixed three unrelated test/UI-copy mismatches found
+> along the way (missing `title` attribute on `LeaveTypesPage` row actions, a test expecting
+> "Cancel" on a dialog button actually labeled "Close", an ambiguous `text=` locator matching
+> both a heading and an empty-state row). Full writeup: `test-coverage-report.md`.
 
 ## Security Hardening
 

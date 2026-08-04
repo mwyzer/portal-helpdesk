@@ -171,14 +171,15 @@ npm run test:e2e:ui
 
 **Backend (279 tests):** xUnit + Moq + FluentAssertions + Bogus, run and passing as of 2026-08-04.
 No frontend (Vitest) unit tests exist yet for any phase.
-**E2E (23 smoke + 27 interaction):** written and — as of their last actual run on 2026-07-14 —
-passing, but **not re-run since** (no Docker/Postgres available in this environment to stand up
-the full stack). They predate Phases 3–7 entirely and predate a real bug fixed on 2026-08-04
-(`RoleGuard` redirected Super Admin users away from every admin-only page — see
-[`todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md)), which would have failed
-most of the Phase 1 admin-page smoke assertions (`expect(h1).toContainText(...)`) had it run
-against current code. Treat the E2E numbers as "last known good," not "currently verified" —
-re-run `npm run test:e2e` before trusting them for a release decision.  
+**E2E (23 smoke + 27 interaction):** actually run 2026-08-04 against a live Docker Compose stack
+rebuilt from current code — **42/50 passing.** The remaining 8 all fail for one shared reason:
+the Phase 7 general rate limiter (100 req/min, one bucket per user across the whole API) gets
+exhausted by 50 back-to-back logins sharing a single demo account in one serial run — not an app
+bug. Getting here from the first run (18/50) surfaced and fixed two real bugs: `RoleGuard`
+checked `'SuperAdmin'` (no space) against the actual `"Super Admin"` role, and `authStore.user`
+never got populated on a hard page load since nothing called the `loadUser()` function that set
+it — see [`test-coverage-report.md`](test-coverage-report.md) for the full writeup and the three
+additional test/UI-copy mismatches fixed along the way.  
 **Phase 3 Code Coverage (coverlet):**
 - Services: MeetingService 93.6%, ActionItemService 97.8%, DocumentService 93.8%
 - Domain entities: Meeting, MeetingNote, MeetingParticipant, ActionItem, DocumentTemplate, DocumentRequest, GeneratedDocument — **all 100%**
@@ -254,6 +255,13 @@ re-run `npm run test:e2e` before trusting them for a release decision.
 | POST | `/api/leave-types` | Create leave type |
 | PUT | `/api/leave-types/{id}` | Update leave type |
 | DELETE | `/api/leave-types/{id}` | Soft-delete leave type |
+
+### Leave Balances
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/leave-balances/my` | Get current user's leave balances |
+| GET | `/api/leave-balances/employee/{employeeId}` | Get an employee's leave balances (Manager/HRD) |
+| POST | `/api/leave-balances/adjust` | Adjust leave balance (HRD/Super Admin) |
 
 ### Leave Requests
 | Method | Endpoint | Description |
@@ -336,6 +344,126 @@ re-run `npm run test:e2e` before trusting them for a release decision.
 | POST | `/api/document-requests/{id}/reject` | Reject with reason |
 | POST | `/api/document-requests/{id}/generate-final` | Generate final document with letter number |
 | GET | `/api/document-requests/{id}/download` | Download generated document |
+
+## API Endpoints (Phase 4 — AI Helpdesk Chat)
+
+### AI Chat
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/ai/chat` | Send a message, returns the full session detail |
+| POST | `/api/ai/chat/stream` | Send a message with a streaming (SSE) response |
+| GET | `/api/ai/conversations` | List chat sessions (paginated) |
+| GET | `/api/ai/conversations/{id}` | Get session detail with messages |
+| PUT | `/api/ai/conversations/{id}` | Rename / update a session |
+| DELETE | `/api/ai/conversations/{id}` | Soft-delete a session |
+| POST | `/api/ai/conversations/{sessionId}/escalate` | Escalate conversation to a human agent |
+| POST | `/api/ai/responses/{messageId}/feedback` | Submit thumbs up/down feedback |
+| GET | `/api/ai/health` | Health check (verifies DB connectivity) |
+| GET | `/api/ai/usage` | AI usage statistics (Super Admin only) |
+
+### Knowledge Base
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/knowledge-documents` | List documents (paginated, filterable by status) |
+| GET | `/api/knowledge-documents/{id}` | Get document detail with chunks |
+| POST | `/api/knowledge-documents` | Upload PDF/DOCX/TXT (max 20 MB, Secretary/HR Admin/Super Admin) |
+| POST | `/api/knowledge-documents/{id}/index` | (Re)index a document into embeddings |
+| POST | `/api/knowledge-documents/search` | Semantic search over the knowledge base |
+| DELETE | `/api/knowledge-documents/{id}` | Delete document (Super Admin only) |
+
+## API Endpoints (Phase 5 — Ticketing System)
+
+### Tickets
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/tickets` | List my tickets (paginated, filterable by status/priority) |
+| GET | `/api/tickets/assigned` | List tickets assigned to the current agent |
+| GET | `/api/tickets/department/{departmentId}` | List department tickets (Manager/Super Admin) |
+| GET | `/api/tickets/queue` | Get agent queue (filterable by department/status/priority) |
+| GET | `/api/tickets/stats` | Ticket statistics (agent/manager) |
+| GET | `/api/tickets/sla-report` | SLA compliance report (Manager/Super Admin) |
+| GET | `/api/tickets/{id}` | Get ticket detail with comments & attachments |
+| POST | `/api/tickets` | Create ticket |
+| PUT | `/api/tickets/{id}` | Update ticket |
+| PUT | `/api/tickets/{id}/status` | Update ticket status |
+| POST | `/api/tickets/{id}/assign` | Assign ticket to an agent |
+| POST | `/api/tickets/{id}/comment` | Add a comment |
+| POST | `/api/tickets/{id}/resolve` | Resolve ticket |
+| POST | `/api/tickets/{id}/close` | Close ticket |
+| POST | `/api/tickets/{id}/reopen` | Reopen ticket |
+| POST | `/api/tickets/{id}/upload` | Upload attachment (max 10 MB) |
+| GET | `/api/tickets/{id}/attachments/{attachmentId}/download` | Download attachment |
+| DELETE | `/api/tickets/{id}/attachments/{attachmentId}` | Delete attachment |
+| GET | `/api/tickets/export` | Export tickets to Excel |
+| POST | `/api/tickets/ai-suggestion` | Get AI category & priority suggestion |
+
+### Ticket Categories
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/ticket-categories` | List categories (filterable by department) |
+| GET | `/api/ticket-categories/{id}` | Get category detail |
+| POST | `/api/ticket-categories` | Create category (Super Admin/Manager) |
+| PUT | `/api/ticket-categories/{id}` | Update category (Super Admin/Manager) |
+| DELETE | `/api/ticket-categories/{id}` | Delete category (Super Admin) |
+
+### Escalations
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/escalations` | List escalations (paginated, filterable by department/status) |
+| GET | `/api/escalations/pending` | Get pending escalations for a department |
+| POST | `/api/escalations` | Create an escalation for a ticket |
+| POST | `/api/escalations/{id}/accept` | Accept escalation |
+| POST | `/api/escalations/{id}/resolve` | Resolve escalation |
+| POST | `/api/escalations/{id}/decline` | Decline escalation |
+
+### Agent Assignments
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/agent-assignments` | List all agent assignments |
+| GET | `/api/agent-assignments/department/{departmentId}` | List assignments for a department |
+| POST | `/api/agent-assignments` | Create assignment (Super Admin) |
+| PUT | `/api/agent-assignments/{id}` | Update assignment (Super Admin) |
+| DELETE | `/api/agent-assignments/{id}` | Delete assignment (Super Admin) |
+
+## API Endpoints (Phase 6 — Recruitment)
+
+### Job Vacancies
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/job-vacancies` | List vacancies (paginated, filterable by status/department) |
+| GET | `/api/job-vacancies/{id}` | Get vacancy detail |
+| POST | `/api/job-vacancies` | Create vacancy |
+| PUT | `/api/job-vacancies/{id}` | Update vacancy |
+| POST | `/api/job-vacancies/{id}/publish` | Publish vacancy |
+| POST | `/api/job-vacancies/{id}/close` | Close vacancy |
+| POST | `/api/job-vacancies/{id}/ai-match` | AI candidate matching against requirements |
+
+### Candidates
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/candidates` | List candidates (paginated, filterable by stage/vacancy) |
+| GET | `/api/candidates/stats` | Recruitment statistics |
+| GET | `/api/candidates/export` | Export candidates to Excel |
+| GET | `/api/candidates/{id}` | Get candidate detail |
+| POST | `/api/candidates` | Create candidate |
+| PUT | `/api/candidates/{id}` | Update candidate |
+| POST | `/api/candidates/{id}/cv` | Upload CV (max 5 MB) |
+| GET | `/api/candidates/{id}/cv/{documentId}` | Download candidate CV |
+| POST | `/api/candidates/{id}/advance-stage` | Advance to the next pipeline stage |
+| POST | `/api/candidates/{id}/reject` | Reject candidate |
+| POST | `/api/candidates/{id}/ai-summarize` | AI CV summarization |
+
+### Interviews
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/interviews` | List interviews (paginated, filterable by date range/candidate) |
+| GET | `/api/interviews/upcoming` | Get upcoming interviews (filterable by interviewer) |
+| GET | `/api/interviews/{id}` | Get interview detail |
+| POST | `/api/interviews` | Schedule interview |
+| PUT | `/api/interviews/{id}` | Update interview |
+| POST | `/api/interviews/{id}/complete` | Complete interview with feedback |
+| POST | `/api/interviews/{id}/cancel` | Cancel interview |
+| POST | `/api/interviews/{id}/ai-questions` | Generate AI interview questions |
 
 ## User Roles
 

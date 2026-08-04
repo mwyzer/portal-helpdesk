@@ -1,12 +1,15 @@
 # 🎭 E2E Testing — Playwright
 
 > **Framework:** Playwright 1.61.1  
-> **Test File:** `frontend/tests/e2e/all-phases.spec.ts`  
+> **Test Files:** `frontend/tests/e2e/all-phases.spec.ts` (23 smoke) + `frontend/tests/e2e/phase-2/*.spec.ts` (27 interaction) — 50 tests total  
 > **Config:** `frontend/playwright.config.ts`  
-> **Output:** `/screenshots/` (21 screenshots, git-ignored)  
-> **Last actually run:** 2026-07-14 — predates Phases 3–7 and the 2026-08-04 `RoleGuard`
-> Super Admin fix. Re-run before trusting current pass/fail status; see
-> `test-coverage-report.md` for the caveat.
+> **Output:** `/screenshots/` (23 screenshots, git-ignored)  
+> **Last actually run:** 2026-08-04, against a live Docker Compose stack rebuilt from current
+> code — 42/50 passing. The 8 failures are all the Phase 7 general rate limiter's bucket
+> getting exhausted by 50 back-to-back logins on one shared demo account within a single serial
+> run, not app bugs. This run is what caught and fixed two real bugs (`RoleGuard`'s Super Admin
+> role-string mismatch and `authStore.user` never loading on a hard page refresh) plus three
+> test/UI-copy mismatches — see `test-coverage-report.md` for the full writeup.
 
 ---
 
@@ -71,7 +74,13 @@ Key settings:
 
 ```
 frontend/tests/e2e/
-└── all-phases.spec.ts    # 17 tests covering Phase 1 (13) + Phase 2 (4)
+├── all-phases.spec.ts             # 23 smoke tests: Phase 1 (13) + Phase 2 (4) + Phase 3 (6)
+└── phase-2/
+    ├── employee.spec.ts           # 8 interaction tests
+    ├── leave-type.spec.ts         # 6 interaction tests
+    ├── leave-request.spec.ts      # 7 interaction tests
+    ├── leave-approvals.spec.ts    # 6 interaction tests
+    └── helpers.ts                 # Shared login/dialog/form helpers
 ```
 
 ### Helpers
@@ -178,22 +187,48 @@ npm run test:e2e:report  # view last report
 | 16 | Leave Requests | `/leave-requests` | h1 contains "Leave Requests" |
 | 17 | Leave Approvals | `/leave-approvals` | h1 contains "Leave Approvals" |
 
+### Phase 2 — HR Administration — Interaction Tests (27 tests)
+
+In addition to the smoke tests above, `frontend/tests/e2e/phase-2/` covers the Phase 2 pages
+with dialog/form/search/CRUD interaction tests:
+
+| Spec File | Tests | Covers |
+|-----------|-------|--------|
+| `employee.spec.ts` | 8 | Page load, toolbar buttons, add dialog, search, import, validation, form + cancel, export |
+| `leave-type.spec.ts` | 6 | Page load, buttons, add dialog, form fields, edit, refresh |
+| `leave-request.spec.ts` | 7 | Page load, buttons, balance cards, apply dialog, form fill, detail, refresh |
+| `leave-approvals.spec.ts` | 6 | Page load, refresh, table, approve detail, action buttons |
+
+### Phase 3 — Secretary Module (6 tests)
+
+| # | Test | URL | Assertion |
+|---|------|-----|-----------|
+| 18 | Meetings List | `/meetings` | h1 contains "Meetings" |
+| 19 | Meeting Detail | `/meetings` → first row | h1 visible |
+| 20 | Action Items | `/action-items` | h1 contains "Action Items" + create button |
+| 21 | Document Requests | `/documents/requests` | h1 contains "Document Requests" |
+| 22 | Document Templates | `/documents/templates` | h1 contains "Document Templates" |
+| 23 | Dashboard (Secretary) | `/dashboard` | h1 contains "Dashboard" |
+
+> Phases 4–6 have no E2E coverage yet. Add smoke tests to `all-phases.spec.ts` and interaction
+> tests under a new `frontend/tests/e2e/phase-{N}/` folder following the `phase-2/` pattern below.
+
 ## Adding Tests for a New Phase
 
-When Phase 3 (or later) is built, add tests by:
+When a new phase (e.g. Phase 4 — AI Helpdesk Chat) is built, add tests by:
 
 1. Open `frontend/tests/e2e/all-phases.spec.ts`
 2. Add a new `test.describe` block at the bottom:
 
 ```ts
-test.describe('Phase 3 — Secretary Module', () => {
+test.describe('Phase 4 — AI Helpdesk Chat', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
 
-  test('18-meeting-minutes', async ({ page }) => {
-    await snapshot(page, 'phase3-01-meeting-minutes.png', '/meeting-minutes');
-    await expect(page.locator('h1')).toContainText('Meeting Minutes');
+  test('24-ai-chat', async ({ page }) => {
+    await snapshot(page, 'phase4-01-ai-chat.png', '/ai/chat');
+    await expect(page.locator('h1')).toContainText('AI Chat');
   });
 
   // ... more tests
@@ -202,6 +237,9 @@ test.describe('Phase 3 — Secretary Module', () => {
 
 3. Follow the naming convention: `phase{N}-{NN}-{slug}.png`
 4. Run `npx playwright test` to verify
+5. For interaction-heavy pages (dialogs, forms, CRUD), add a spec under a new
+   `frontend/tests/e2e/phase-{N}/` folder that imports the shared helpers from
+   `frontend/tests/e2e/phase-2/helpers.ts`.
 
 ## Troubleshooting
 
@@ -219,7 +257,9 @@ test.describe('Phase 3 — Secretary Module', () => {
 | File | Purpose |
 |------|---------|
 | `frontend/playwright.config.ts` | Playwright configuration |
-| `frontend/tests/e2e/all-phases.spec.ts` | All E2E tests |
+| `frontend/tests/e2e/all-phases.spec.ts` | 23 smoke tests (Phase 1–3) |
+| `frontend/tests/e2e/phase-2/*.spec.ts` | 27 interaction tests (Phase 2) |
+| `frontend/tests/e2e/phase-2/helpers.ts` | Shared login/dialog/form helpers |
 | `frontend/package.json` | npm scripts (`test:e2e`, etc.) |
 | `screenshots/` | Output directory (git-ignored) |
 | `documentation/screenshots.md` | Screenshot gallery & feature checklists |
