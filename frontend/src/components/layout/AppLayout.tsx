@@ -143,7 +143,7 @@ const employeeNav: NavItem[] = [
 // ── Resolve nav items from user roles ─────────────
 
 function resolveNavItems(roles: string[]): NavItem[] {
-  if (roles.includes('SuperAdmin') || roles.includes('HRD')) return adminNav;
+  if (roles.includes('Super Admin') || roles.includes('HRD')) return adminNav;
   if (roles.includes('Secretary')) return secretaryNav;
   if (roles.includes('Manager')) return managerNav;
   return employeeNav;

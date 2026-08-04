@@ -96,10 +96,10 @@ const statusColor = (status: string) => {
 export function DashboardPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const isHRD = user?.roles?.includes('HRD') || user?.roles?.includes('SuperAdmin');
+  const isHRD = user?.roles?.includes('HRD') || user?.roles?.includes('Super Admin');
   const isManager = user?.roles?.includes('Manager');
   const isAdmin = isHRD || isManager;
-  const isSecretary = user?.roles?.includes('Secretary') || user?.roles?.includes('SuperAdmin') || user?.roles?.includes('Manager');
+  const isSecretary = user?.roles?.includes('Secretary') || user?.roles?.includes('Super Admin') || user?.roles?.includes('Manager');
 
   const { data: employeesData } = useQuery<EmployeeListResponse>({
     queryKey: ['employees', 'dashboard'],
