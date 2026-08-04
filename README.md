@@ -12,6 +12,20 @@ AI Helpdesk centralizes administrative and HR services into a single application
 - **HR Assistant** — Manage employee data, process leave & permits, assist recruitment, answer policy questions, generate HR documents
 - **AI-Powered Chat** — Conversational interface for employees to ask questions, submit requests, and search internal knowledge
 
+## Demo Accounts
+
+Login at <http://localhost:5173/login>.
+
+> **Important:** These credentials are seeded by the backend on first startup (`DbSeeder`).
+
+| Role | Email | Password |
+|------|-------|----------|
+| **Super Admin** | `admin@aihelpdesk.com` | `Admin@123` |
+| **HRD** | `hrd@aihelpdesk.com` | `Hrd@12345` |
+| **Secretary** | `secretary@aihelpdesk.com` | `Secretary@123` |
+| **Manager** | `manager@aihelpdesk.com` | `Manager@123` |
+| **Employee** | `employee@aihelpdesk.com` | `Employee@123` |
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -63,7 +77,7 @@ frontend/src/
 ### Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (for local development)
+- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) (for local development)
 - [Node.js 18+](https://nodejs.org/) (for local frontend development)
 
 ### Quick Start (Docker)
@@ -130,7 +144,7 @@ cd frontend
 # Install Playwright browsers (first time only)
 npx playwright install chromium
 
-# Run all 17 E2E tests (headless)
+# Run all 50 E2E tests (headless)
 npm run test:e2e
 
 # Interactive UI mode
@@ -146,24 +160,33 @@ npm run test:e2e:ui
 
 | Phase | Backend (xUnit) | E2E Smoke | E2E Interaction | Status |
 |-------|-----------------|-----------|-----------------|--------|
-| Phase 1 — Foundation MVP | 31 | 13 | — | ✅ All passing |
-| Phase 2 — HR Administration | 46 | 4 | 26 | ✅ All passing |
-| Phase 3 — Secretary Module | 54 | 6 | — | ✅ All passing |
-| Phase 4 — AI Helpdesk Chat | 56 | — | — | ✅ All passing (no E2E yet) |
-| Phase 5 — Ticketing | 49 | — | — | ✅ All passing (no E2E yet) |
-| Phase 6 — Recruitment | 37 | — | — | ✅ All passing (no E2E yet) |
+| Phase 1 — Foundation MVP | 31 | 13 | — | ✅ Backend passing |
+| Phase 2 — HR Administration | 46 | 4 | 27 | ✅ Backend passing |
+| Phase 3 — Secretary Module | 54 | 6 | — | ✅ Backend passing |
+| Phase 4 — AI Helpdesk Chat | 56 | — | — | ✅ Backend passing (no E2E yet) |
+| Phase 5 — Ticketing | 49 | — | — | ✅ Backend passing (no E2E yet) |
+| Phase 6 — Recruitment | 37 | — | — | ✅ Backend passing (no E2E yet) |
 | Phase 7 — Hardening & Deployment | 6 | — | — | 🔧 In progress (see below) |
-| **Total** | **279** | **23** | **26** | — |
+| **Total** | **279** | **23** | **27** | — |
 
-**Backend (279 tests):** xUnit + Moq + FluentAssertions + Bogus. No frontend (Vitest) unit tests exist yet for any phase — only backend unit tests and the Playwright E2E suite above.  
+**Backend (279 tests):** xUnit + Moq + FluentAssertions + Bogus, run and passing as of 2026-08-04.
+No frontend (Vitest) unit tests exist yet for any phase.
+**E2E (23 smoke + 27 interaction):** written and — as of their last actual run on 2026-07-14 —
+passing, but **not re-run since** (no Docker/Postgres available in this environment to stand up
+the full stack). They predate Phases 3–7 entirely and predate a real bug fixed on 2026-08-04
+(`RoleGuard` redirected Super Admin users away from every admin-only page — see
+[`todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md)), which would have failed
+most of the Phase 1 admin-page smoke assertions (`expect(h1).toContainText(...)`) had it run
+against current code. Treat the E2E numbers as "last known good," not "currently verified" —
+re-run `npm run test:e2e` before trusting them for a release decision.  
 **Phase 3 Code Coverage (coverlet):**
 - Services: MeetingService 93.6%, ActionItemService 97.8%, DocumentService 93.8%
 - Domain entities: Meeting, MeetingNote, MeetingParticipant, ActionItem, DocumentTemplate, DocumentRequest, GeneratedDocument — **all 100%**
 - Contracts: 21 request/response DTOs — 8 at 100%, remainder partial (no integration tests)
 - Controllers: 37 action methods — 0% (integration tests planned but not yet written)
 - 3 uncovered service methods: `GetNotesAsync`, `GenerateSummaryAsync`, `GetTeamActionItemsAsync`, `DownloadDocumentAsync`  
-**E2E (49 tests):** 23 smoke (screenshot + heading) across all pages + 26 interaction (dialog, form, search, CRUD) for Phase 2  
-**Grand total:** 162 tests
+**E2E (50 tests):** 23 smoke (screenshot + heading) across all pages + 27 interaction (dialog, form, search, CRUD) for Phase 2  
+**Grand total:** 329 tests
 
 ## API Endpoints (Phase 1 — Foundation MVP)
 
@@ -244,12 +267,12 @@ npm run test:e2e:ui
 | POST | `/api/leave-requests/{id}/reject` | Reject leave request |
 | POST | `/api/leave-requests/{id}/cancel` | Cancel leave request |
 
-### Leave Approvals
+### Leave Approvals (Pending Queue)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/leave-approvals` | List pending approvals for current user |
-| POST | `/api/leave-approvals/{id}/approve` | Approve a leave approval step |
-| POST | `/api/leave-approvals/{id}/reject` | Reject a leave approval step |
+| GET | `/api/leave-requests/pending-approval` | List pending approvals for current user |
+
+> Approve/reject actions use the `POST /api/leave-requests/{id}/approve` and `POST /api/leave-requests/{id}/reject` endpoints listed above.
 
 ### Notifications
 | Method | Endpoint | Description |
@@ -258,7 +281,6 @@ npm run test:e2e:ui
 | GET | `/api/notifications/unread-count` | Get unread count |
 | PUT | `/api/notifications/{id}/read` | Mark notification as read |
 | PUT | `/api/notifications/read-all` | Mark all as read |
-| DELETE | `/api/notifications/{id}` | Delete notification |
 
 ## API Endpoints (Phase 3 — Secretary Module)
 
@@ -488,28 +510,3 @@ which doesn't exist yet. Full breakdown: [`documentation/todo-phase-7-hardening.
 
 See [`LICENSE`](LICENSE) — proprietary, all rights reserved (placeholder terms pending a
 final decision from the project owner).
-
-
-## Demo Account **IMPORTANT MUST READ**
-
-http://localhost:5173/login
-
-**Super Admin:**
--   Email: `admin@aihelpdesk.com`
--   Password: `Admin@123`
-
-**HRD:**
--   Email: `hrd@aihelpdesk.com`
--   Password: `Hrd@12345`
-
-**Secretary:**
--   Email: `secretary@aihelpdesk.com`
--   Password: `Secretary@123`
-
-**Manager:**
--   Email: `manager@aihelpdesk.com`
--   Password: `Manager@123`
-
-**Employee:**
--   Email: `employee@aihelpdesk.com`
--   Password: `Employee@123`

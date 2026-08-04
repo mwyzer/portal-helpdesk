@@ -1,8 +1,8 @@
 # AIHelpdesk — Test Coverage Report
 
-**Generated:** 2026-07-14, refreshed 2026-08-04 (three passes — the second adds Phases 5–6 and several bugfix-driven test additions to Phases 1/3/4; the third adds Phase 7's rate-limiting middleware tests)  
-**Total Tests:** 328  
-**Overall Status:** ✅ All Passing (counts below verified via `dotnet test --filter` per phase, cross-checked against `[Fact]`/`[Theory]` attribute counts; a filter substring collision between `AIServiceTests` and `RecruitmentAIServiceTests` was caught and corrected during the second pass)
+**Generated:** 2026-07-14, refreshed 2026-08-04 (four passes — the second adds Phases 5–6 and several bugfix-driven test additions to Phases 1/3/4; the third adds Phase 7's rate-limiting middleware tests; the fourth corrects an undercount in the Phase 2 `employee.spec.ts` E2E count, 7 documented vs. 8 actual)  
+**Total Tests:** 329  
+**Overall Status:** ✅ Backend (279 tests) confirmed passing via `dotnet test` as of 2026-08-04; counts below cross-checked against `[Fact]`/`[Theory]` attribute counts (a filter substring collision between `AIServiceTests` and `RecruitmentAIServiceTests` was caught and corrected during the second pass). ⚠️ E2E (50 tests) **last actually run 2026-07-14** — not re-executed since (no Docker/Postgres in this environment). They predate Phases 3–7 and predate the 2026-08-04 `RoleGuard` Super Admin fix (see `todo-phase-7-hardening.md`), which would have broken most Phase 1 admin-page smoke assertions had it run against current code. Re-run `npm run test:e2e` before relying on the E2E numbers.
 
 ---
 
@@ -11,13 +11,13 @@
 | Phase | Backend Unit Tests | Frontend E2E Smoke | Frontend E2E Interaction | Total |
 |-------|-------------------|--------------------|--------------------------|-------|
 | Phase 1 — Foundation MVP | 31 | 13 | 0 | **44** |
-| Phase 2 — HR Administration | 46 | 4 | 26 | **76** |
+| Phase 2 — HR Administration | 46 | 4 | 27 | **77** |
 | Phase 3 — Secretary Module | 54 | 6 | 0 | **60** |
 | Phase 4 — AI Helpdesk Chat | 56 | 0 | 0 | **56** |
 | Phase 5 — Ticketing | 49 | 0 | 0 | **49** |
 | Phase 6 — Recruitment | 37 | 0 | 0 | **37** |
 | Phase 7 — Hardening & Deployment | 6 | 0 | 0 | **6** |
-| **TOTAL** | **279** | **23** | **26** | **328** |
+| **TOTAL** | **279** | **23** | **27** | **329** |
 
 ---
 
@@ -87,11 +87,11 @@
 | 16 | Leave Requests | `phase2-03-leave-requests.png` |
 | 17 | Leave Approvals | `phase2-04-approvals.png` |
 
-### Frontend E2E Interaction Tests (26 tests)
+### Frontend E2E Interaction Tests (27 tests)
 
 | Spec File | Tests | What It Covers |
 |-----------|-------|----------------|
-| `employee.spec.ts` | 7 | Dialog open/close, search, import, export download, form fields, validation |
+| `employee.spec.ts` | 8 | Smoke load, toolbar buttons, dialog open/close, search, import, export download, form fields, validation |
 | `leave-type.spec.ts` | 6 | Dialog open/close, form fields, edit existing row, refresh |
 | `leave-request.spec.ts` | 7 | Balance cards, apply dialog, date pickers, leave type select, view detail, refresh |
 | `leave-approvals.spec.ts` | 6 | Approve/Reject buttons, approval timeline dialog, table display, refresh |
