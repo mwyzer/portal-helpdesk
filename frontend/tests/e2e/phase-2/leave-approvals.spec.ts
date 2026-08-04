@@ -9,7 +9,7 @@ test.describe('Phase 2 — Leave Approvals E2E', () => {
 
   test('smoke — page loads with heading and pending approvals', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('Leave Approvals');
-    await expect(page.locator('text=Pending Approvals')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Pending Approvals/ })).toBeVisible();
   });
 
   test('should see Refresh button', async ({ page }) => {
@@ -61,6 +61,6 @@ test.describe('Phase 2 — Leave Approvals E2E', () => {
   test('should refresh the page', async ({ page }) => {
     await page.click('button:has-text("Refresh")');
     await page.waitForTimeout(500);
-    await expect(page.locator('text=Pending Approvals')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Pending Approvals/ })).toBeVisible();
   });
 });

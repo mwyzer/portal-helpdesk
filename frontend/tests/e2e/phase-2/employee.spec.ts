@@ -38,7 +38,10 @@ test.describe('Phase 2 — Employees E2E', () => {
     await openDialog(page, 'Import');
     await expect(page.locator('[role="dialog"]')).toContainText('Import Employees');
     await expect(page.locator('[role="dialog"]')).toContainText('xlsx');
-    await cancelDialog(page);
+    // The import dialog's dismiss button is labeled "Close", not "Cancel" like the
+    // create/edit dialogs — it's not a form to cancel, just an info panel to dismiss.
+    await page.click('[role="dialog"] button:has-text("Close")');
+    await expect(page.locator('[role="dialog"]')).not.toBeVisible();
   });
 
   test('create employee — should show validation on empty submit', async ({ page }) => {
