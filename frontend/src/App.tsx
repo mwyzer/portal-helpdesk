@@ -36,10 +36,10 @@ import { InterviewsPage } from '@/pages/InterviewsPage';
 
 // ── Role aliases for route guards ─────────────────
 
-const Admin    = ['SuperAdmin', 'HRD'];
-const Manager  = ['SuperAdmin', 'HRD', 'Manager'];
-const Secretary = ['SuperAdmin', 'HRD', 'Manager', 'Secretary'];
-const Agent    = ['SuperAdmin', 'HRD', 'Manager', 'Agent'];
+const Admin    = ['Super Admin', 'HRD'];
+const Manager  = ['Super Admin', 'HRD', 'Manager'];
+const Secretary = ['Super Admin', 'HRD', 'Manager', 'Secretary'];
+const Agent    = ['Super Admin', 'HRD', 'Manager', 'Agent'];
 
 export function App() {
   return (

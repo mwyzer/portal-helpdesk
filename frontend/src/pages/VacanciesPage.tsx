@@ -52,7 +52,7 @@ export function VacanciesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', requirements: '', departmentId: '', openingsCount: 1 });
 
-  const canManage = user?.roles?.some((r) => ['HRD', 'Manager', 'SuperAdmin'].includes(r));
+  const canManage = user?.roles?.some((r) => ['HRD', 'Manager', 'Super Admin'].includes(r));
 
   const { data, isLoading } = useQuery<{ items: VacancyItem[]; totalCount: number }>({
     queryKey: ['job-vacancies', statusFilter],
