@@ -62,6 +62,8 @@ public static class DependencyInjection
         services.AddScoped<ICandidateService, CandidateService>();
         services.AddScoped<IInterviewService, InterviewService>();
         services.AddScoped<IRecruitmentAIService, RecruitmentAIService>();
+        // Phase 8: Candidate Self-Service Portal
+        services.AddScoped<ICandidatePortalService, CandidatePortalService>();
         services.Configure<AIOptions>(configuration.GetSection(AIOptions.SectionName));
 
         services.AddHttpClient<IAIService, AIService>(client =>

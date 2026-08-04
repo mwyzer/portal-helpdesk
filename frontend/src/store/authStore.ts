@@ -61,7 +61,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
-        await api.post('/auth/logout', { refreshToken });
+        // AuthController.Logout binds [FromBody] string -- a raw JSON string body, not an
+        // object. Posting { refreshToken } here previously meant the token was never actually
+        // revoked server-side on logout (model binding silently produced null).
+        await api.post('/auth/logout', JSON.stringify(refreshToken), {
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
     } finally {
       localStorage.clear();

@@ -284,7 +284,7 @@
 
 ### 20.1 Continuous Integration
 - [ ] Create `.github/workflows/ci.yml` with backend job
-- [ ] CI: Setup .NET 8, restore, build
+- [ ] CI: Setup .NET 9, restore, build
 - [ ] CI: Run unit tests with PostgreSQL service container
 - [ ] CI: Run integration tests with PostgreSQL
 - [ ] CI: Upload backend coverage artifacts

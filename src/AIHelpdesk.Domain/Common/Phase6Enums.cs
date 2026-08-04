@@ -45,3 +45,10 @@ public enum InterviewRecommendation
     No,
     StrongNo
 }
+
+public enum InterviewSlotStatus
+{
+    Open,
+    Booked,
+    Cancelled
+}

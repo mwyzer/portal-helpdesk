@@ -76,4 +76,28 @@ public class InterviewsController : ControllerBase
         var result = await _aiService.GenerateInterviewQuestionsAsync(id);
         return Ok(result);
     }
+
+    // ── Interview slots: staff opens them, candidates book them via the self-service portal ──
+
+    [HttpGet("slots")]
+    public async Task<ActionResult<IList<InterviewSlotResponse>>> GetSlots(
+        [FromQuery] Guid? jobVacancyId = null, [FromQuery] Guid? interviewerId = null, [FromQuery] string? status = null)
+    {
+        var result = await _service.GetSlotsAsync(jobVacancyId, interviewerId, status);
+        return Ok(result);
+    }
+
+    [HttpPost("slots")]
+    public async Task<ActionResult<InterviewSlotResponse>> CreateSlot([FromBody] CreateInterviewSlotRequest request)
+    {
+        var result = await _service.CreateSlotAsync(request);
+        return Ok(result);
+    }
+
+    [HttpPost("slots/{slotId:guid}/cancel")]
+    public async Task<IActionResult> CancelSlot(Guid slotId)
+    {
+        await _service.CancelSlotAsync(slotId);
+        return NoContent();
+    }
 }

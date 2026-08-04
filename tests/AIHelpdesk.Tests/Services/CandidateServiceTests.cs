@@ -6,6 +6,7 @@ using AIHelpdesk.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AIHelpdesk.Tests.Services;
 
@@ -23,7 +24,7 @@ public class CandidateServiceTests
             .AddInMemoryCollection(new Dictionary<string, string?> { ["Recruitment:UploadPath"] = uploadsPath })
             .Build();
 
-        return (new CandidateService(context, configuration, new ExcelService()), context);
+        return (new CandidateService(context, configuration, new ExcelService(), NullLogger<CandidateService>.Instance), context);
     }
 
     private static async Task<Guid> SeedUserAsync(ApplicationDbContext context)

@@ -3,7 +3,7 @@
 > **Date:** 2026-07-13  
 > **Browser:** http://localhost:5173  
 > **User:** Super Admin (`admin@aihelpdesk.com`)  
-> **Automation:** Playwright 1.61.1 — `frontend/tests/e2e/all-phases.spec.ts` (17 tests)
+> **Automation:** Playwright 1.61.1 — `frontend/tests/e2e/all-phases.spec.ts` (23 tests)
 
 ---
 
@@ -28,13 +28,13 @@
 **URL:** `/action-items` | ![phase1-06-action-items](screenshots/phase1-06-action-items.png)
 
 ### 7. Document Requests
-**URL:** `/document-requests` | ![phase1-07-document-requests](screenshots/phase1-07-document-requests.png)
+**URL:** `/documents/requests` | ![phase1-07-document-requests](screenshots/phase1-07-document-requests.png)
 
 ### 8. Document Templates
-**URL:** `/document-templates` | ![phase1-08-document-templates](screenshots/phase1-08-document-templates.png)
+**URL:** `/documents/templates` | ![phase1-08-document-templates](screenshots/phase1-08-document-templates.png)
 
 ### 9. AI Chat
-**URL:** `/chat` | ![phase1-09-ai-chat](screenshots/phase1-09-ai-chat.png)
+**URL:** `/ai/chat` | ![phase1-09-ai-chat](screenshots/phase1-09-ai-chat.png)
 
 ### 10. Knowledge Base
 **URL:** `/knowledge-base` | ![phase1-10-knowledge-base](screenshots/phase1-10-knowledge-base.png)

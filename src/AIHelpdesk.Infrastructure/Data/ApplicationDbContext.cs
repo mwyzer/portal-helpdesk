@@ -54,6 +54,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Interview> Interviews => Set<Interview>();
     public DbSet<InterviewQuestion> InterviewQuestions => Set<InterviewQuestion>();
 
+    // ─────── Phase 8: Candidate Self-Service Portal ───────
+    public DbSet<CandidateAccount> CandidateAccounts => Set<CandidateAccount>();
+    public DbSet<InterviewSlot> InterviewSlots => Set<InterviewSlot>();
+    public DbSet<CandidatePortalRefreshToken> CandidatePortalRefreshTokens => Set<CandidatePortalRefreshToken>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -446,6 +451,38 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(e => e.ContentType).HasMaxLength(200).IsRequired();
             entity.HasOne(e => e.Candidate).WithMany(c => c.Documents).HasForeignKey(e => e.CandidateId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.UploadedBy).WithMany().HasForeignKey(e => e.UploadedById).OnDelete(DeleteBehavior.Restrict);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        // ─────── Phase 8: Candidate Self-Service Portal ───────
+
+        builder.Entity<CandidateAccount>(entity =>
+        {
+            entity.Property(e => e.PasswordHash).HasMaxLength(500);
+            entity.Property(e => e.SetupToken).HasMaxLength(200);
+            entity.HasOne(e => e.Candidate).WithOne().HasForeignKey<CandidateAccount>(e => e.CandidateId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.CandidateId).IsUnique();
+            entity.HasIndex(e => e.SetupToken);
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<InterviewSlot>(entity =>
+        {
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
+            entity.HasOne(e => e.Interviewer).WithMany().HasForeignKey(e => e.InterviewerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.JobVacancy).WithMany(v => v.InterviewSlots).HasForeignKey(e => e.JobVacancyId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.BookedByCandidate).WithMany().HasForeignKey(e => e.BookedByCandidateId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Interview).WithOne().HasForeignKey<InterviewSlot>(e => e.InterviewId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(e => new { e.InterviewerId, e.ScheduledAt });
+            entity.HasIndex(e => new { e.JobVacancyId, e.Status });
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        builder.Entity<CandidatePortalRefreshToken>(entity =>
+        {
+            entity.Property(e => e.Token).HasMaxLength(500).IsRequired();
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasOne(e => e.Candidate).WithMany().HasForeignKey(e => e.CandidateId).OnDelete(DeleteBehavior.Cascade);
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 

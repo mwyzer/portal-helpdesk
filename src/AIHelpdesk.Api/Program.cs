@@ -45,6 +45,25 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
+})
+// Separate scheme + audience for the candidate self-service portal (see
+// TokenService.GenerateCandidatePortalToken) -- a staff-issued token is rejected here (wrong
+// audience) and a candidate-issued token is rejected by the default scheme above, so a
+// candidate JWT cannot satisfy [Authorize] on any internal endpoint even if one were
+// misconfigured without a role check.
+.AddJwtBearer(AIHelpdesk.Infrastructure.Services.TokenService.CandidatePortalScheme, options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ValidateIssuer = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidateAudience = true,
+        ValidAudience = AIHelpdesk.Infrastructure.Services.TokenService.CandidatePortalAudience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
 });
 
 builder.Services.AddAuthorization();

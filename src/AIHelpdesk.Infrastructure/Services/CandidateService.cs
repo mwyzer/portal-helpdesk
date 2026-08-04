@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using AIHelpdesk.Application.Interfaces;
 using AIHelpdesk.Contracts.Excel;
 using AIHelpdesk.Contracts.Recruitment;
@@ -6,6 +7,7 @@ using AIHelpdesk.Domain.Entities;
 using AIHelpdesk.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace AIHelpdesk.Infrastructure.Services;
 
@@ -20,20 +22,29 @@ public class CandidateService : ICandidateService
         CandidateStage.Interview, CandidateStage.Offering, CandidateStage.Hired
     ];
 
-    private static readonly HashSet<string> AllowedCvExtensions = new(StringComparer.OrdinalIgnoreCase) { ".pdf", ".docx" };
-    private const long MaxCvSizeBytes = 5 * 1024 * 1024; // 5 MB
+    private static readonly TimeSpan SetupTokenLifetime = TimeSpan.FromDays(7);
 
     private readonly ApplicationDbContext _context;
     private readonly IExcelService _excel;
+    private readonly ILogger<CandidateService> _logger;
     private readonly string _uploadPath;
 
-    public CandidateService(ApplicationDbContext context, IConfiguration configuration, IExcelService excel)
+    public CandidateService(ApplicationDbContext context, IConfiguration configuration, IExcelService excel, ILogger<CandidateService> logger)
     {
         _context = context;
         _excel = excel;
+        _logger = logger;
         _uploadPath = configuration["Recruitment:UploadPath"]
             ?? Path.Combine(Directory.GetCurrentDirectory(), "uploads", "candidates");
         Directory.CreateDirectory(_uploadPath);
+    }
+
+    private static string GenerateSetupToken()
+    {
+        var bytes = new byte[32];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(bytes);
+        return Convert.ToBase64String(bytes).Replace('+', '-').Replace('/', '_').TrimEnd('=');
     }
 
     private static CandidateResponse MapToResponse(Candidate c) => new(
@@ -73,7 +84,7 @@ public class CandidateService : ICandidateService
             c.Id, c.JobVacancyId, c.JobVacancy.Title, c.FullName, c.Email, c.Phone, c.Source,
             c.Stage.ToString(), c.AISummaryJson, c.RejectionReason,
             c.Documents.Select(d => new CandidateDocumentResponse(
-                d.Id, d.FileName, d.FileSize, d.ContentType, d.UploadedById, d.UploadedBy.FullName, d.CreatedAt)).ToList(),
+                d.Id, d.FileName, d.FileSize, d.ContentType, d.UploadedById, d.UploadedBy?.FullName ?? "Candidate (self-uploaded)", d.CreatedAt)).ToList(),
             c.StageHistory.OrderByDescending(h => h.CreatedAt).Select(h => new CandidateStageHistoryResponse(
                 h.Id, h.FromStage.ToString(), h.ToStage.ToString(), h.ChangedById, h.ChangedBy.FullName, h.Notes, h.CreatedAt)).ToList(),
             c.Interviews.OrderByDescending(i => i.ScheduledAt).Select(i => new InterviewSummaryResponse(
@@ -99,8 +110,48 @@ public class CandidateService : ICandidateService
         _context.Candidates.Add(candidate);
         await _context.SaveChangesAsync();
 
+        var account = new CandidateAccount
+        {
+            CandidateId = candidate.Id,
+            IsActive = false,
+            InvitedAt = DateTime.UtcNow,
+            SetupToken = GenerateSetupToken(),
+            SetupTokenExpiresAt = DateTime.UtcNow.Add(SetupTokenLifetime)
+        };
+        _context.CandidateAccounts.Add(account);
+        await _context.SaveChangesAsync();
+
+        // No SMTP provider is configured yet (same limitation as AuthService.ForgotPasswordAsync)
+        // -- log the setup token so the portal invite flow is testable end-to-end, and staff can
+        // also fetch/regenerate it via RegenerateInviteAsync to copy into a manually-sent message.
+        _logger.LogInformation(
+            "Candidate portal invite created for {Email}. Setup token: {Token}", candidate.Email, account.SetupToken);
+
         candidate.JobVacancy = vacancy;
         return MapToResponse(candidate);
+    }
+
+    public async Task<CandidatePortalInviteResponse> RegenerateInviteAsync(Guid candidateId)
+    {
+        var candidate = await _context.Candidates.FindAsync(candidateId)
+            ?? throw new KeyNotFoundException("Candidate not found");
+
+        var account = await _context.CandidateAccounts.FirstOrDefaultAsync(a => a.CandidateId == candidateId);
+        if (account == null)
+        {
+            account = new CandidateAccount { CandidateId = candidateId, IsActive = false };
+            _context.CandidateAccounts.Add(account);
+        }
+
+        account.SetupToken = GenerateSetupToken();
+        account.SetupTokenExpiresAt = DateTime.UtcNow.Add(SetupTokenLifetime);
+        account.InvitedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Candidate portal invite regenerated for {Email}. Setup token: {Token}", candidate.Email, account.SetupToken);
+
+        return new CandidatePortalInviteResponse(account.SetupToken, account.SetupTokenExpiresAt.Value);
     }
 
     public async Task<CandidateResponse> UpdateAsync(Guid id, UpdateCandidateRequest request)
@@ -123,13 +174,9 @@ public class CandidateService : ICandidateService
         var candidate = await _context.Candidates.FindAsync(candidateId)
             ?? throw new KeyNotFoundException("Candidate not found");
 
+        RecruitmentFileValidation.EnsureValid(fileName, fileStream);
+
         var extension = Path.GetExtension(fileName);
-        if (string.IsNullOrEmpty(extension) || !AllowedCvExtensions.Contains(extension))
-            throw new InvalidOperationException("Only PDF and DOCX files are allowed for CVs");
-
-        if (fileStream.CanSeek && fileStream.Length > MaxCvSizeBytes)
-            throw new InvalidOperationException("CV file exceeds the maximum allowed size of 5 MB");
-
         var safeFileName = $"{Guid.NewGuid()}{extension}";
         var filePath = Path.Combine(_uploadPath, safeFileName);
         await using (var output = File.Create(filePath))

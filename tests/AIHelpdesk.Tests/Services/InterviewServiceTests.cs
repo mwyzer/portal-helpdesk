@@ -137,4 +137,112 @@ public class InterviewServiceTests
 
         result.Should().ContainSingle(i => i.Id == withinWindow.Id);
     }
+
+    [Fact]
+    public async Task CreateSlotAsync_ShouldCreateOpenSlot()
+    {
+        var (service, context) = CreateService();
+        var (candidateId, interviewerId) = await SeedCandidateAsync(context);
+        var vacancyId = (await context.Candidates.FindAsync(candidateId))!.JobVacancyId;
+
+        var result = await service.CreateSlotAsync(new CreateInterviewSlotRequest(
+            interviewerId, vacancyId, DateTime.UtcNow.AddDays(1), 60, "Video"));
+
+        result.Status.Should().Be("Open");
+        result.Type.Should().Be("Video");
+    }
+
+    [Fact]
+    public async Task CreateSlotAsync_ShouldThrow_WhenConflictsWithExistingInterview()
+    {
+        var (service, context) = CreateService();
+        var (candidateId, interviewerId) = await SeedCandidateAsync(context);
+        var vacancyId = (await context.Candidates.FindAsync(candidateId))!.JobVacancyId;
+        var start = DateTime.UtcNow.AddDays(1).Date.AddHours(10);
+        await service.CreateAsync(new CreateInterviewRequest(candidateId, interviewerId, start, 60, "Video"));
+
+        var act = () => service.CreateSlotAsync(new CreateInterviewSlotRequest(interviewerId, vacancyId, start.AddMinutes(30), 60, "Phone"));
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task GetSlotsAsync_ShouldFilterByStatus()
+    {
+        var (service, context) = CreateService();
+        var (candidateId, interviewerId) = await SeedCandidateAsync(context);
+        var vacancyId = (await context.Candidates.FindAsync(candidateId))!.JobVacancyId;
+        var slot = await service.CreateSlotAsync(new CreateInterviewSlotRequest(interviewerId, vacancyId, DateTime.UtcNow.AddDays(1), 60, "Video"));
+        await service.CancelSlotAsync(slot.Id);
+        await service.CreateSlotAsync(new CreateInterviewSlotRequest(interviewerId, vacancyId, DateTime.UtcNow.AddDays(2), 60, "Phone"));
+
+        var openSlots = await service.GetSlotsAsync(vacancyId, null, "Open");
+
+        openSlots.Should().ContainSingle().Which.Type.Should().Be("Phone");
+    }
+
+    [Fact]
+    public async Task CancelSlotAsync_ShouldThrow_WhenNotOpen()
+    {
+        var (service, context) = CreateService();
+        var (candidateId, interviewerId) = await SeedCandidateAsync(context);
+        var vacancyId = (await context.Candidates.FindAsync(candidateId))!.JobVacancyId;
+        var slot = await service.CreateSlotAsync(new CreateInterviewSlotRequest(interviewerId, vacancyId, DateTime.UtcNow.AddDays(1), 60, "Video"));
+        await service.CancelSlotAsync(slot.Id);
+
+        var act = () => service.CancelSlotAsync(slot.Id);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task BookSlotAsync_ShouldCreateInterviewAndMarkSlotBooked()
+    {
+        var (service, context) = CreateService();
+        var (candidateId, interviewerId) = await SeedCandidateAsync(context);
+        var vacancyId = (await context.Candidates.FindAsync(candidateId))!.JobVacancyId;
+        var slot = await service.CreateSlotAsync(new CreateInterviewSlotRequest(interviewerId, vacancyId, DateTime.UtcNow.AddDays(1), 60, "Video"));
+
+        var interview = await service.BookSlotAsync(slot.Id, candidateId);
+
+        interview.Status.Should().Be("Scheduled");
+        interview.CandidateId.Should().Be(candidateId);
+        var slots = await service.GetSlotsAsync(vacancyId, null, "Booked");
+        slots.Should().ContainSingle(s => s.Id == slot.Id);
+    }
+
+    [Fact]
+    public async Task BookSlotAsync_ShouldThrow_WhenSlotNotOpen()
+    {
+        var (service, context) = CreateService();
+        var (candidateId, interviewerId) = await SeedCandidateAsync(context);
+        var vacancyId = (await context.Candidates.FindAsync(candidateId))!.JobVacancyId;
+        var slot = await service.CreateSlotAsync(new CreateInterviewSlotRequest(interviewerId, vacancyId, DateTime.UtcNow.AddDays(1), 60, "Video"));
+        await service.BookSlotAsync(slot.Id, candidateId);
+
+        var act = () => service.BookSlotAsync(slot.Id, candidateId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task BookSlotAsync_ShouldThrow_WhenCandidateFromDifferentVacancy()
+    {
+        var (service, context) = CreateService();
+        var (candidateId, interviewerId) = await SeedCandidateAsync(context);
+        var vacancyId = (await context.Candidates.FindAsync(candidateId))!.JobVacancyId;
+        var slot = await service.CreateSlotAsync(new CreateInterviewSlotRequest(interviewerId, vacancyId, DateTime.UtcNow.AddDays(1), 60, "Video"));
+
+        var otherPoster = TestDataFactory.CreateUser($"{Guid.NewGuid()}@test.com");
+        context.Users.Add(otherPoster);
+        var otherVacancy = new JobVacancy { Title = "Other Role", Description = "d", Requirements = "r", PostedById = otherPoster.Id };
+        context.JobVacancies.Add(otherVacancy);
+        var otherCandidate = new Candidate { JobVacancyId = otherVacancy.Id, JobVacancy = otherVacancy, FullName = "Other", Email = "o@test.com" };
+        context.Candidates.Add(otherCandidate);
+        await context.SaveChangesAsync();
+
+        var act = () => service.BookSlotAsync(slot.Id, otherCandidate.Id);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
 }

@@ -14,4 +14,12 @@ public interface ICandidateService
     Task<CandidateResponse> RejectAsync(Guid id, Guid userId, RejectCandidateRequest request);
     Task<RecruitmentStatsResponse> GetStatsAsync();
     Task<byte[]> ExportToExcelAsync(Guid? jobVacancyId, string? stage);
+
+    /// <summary>
+    /// (Re)issues the candidate's self-service portal setup token, e.g. because the original
+    /// invite link expired or was lost. Staff copies the returned token into a link to share
+    /// with the candidate through whatever channel they'd otherwise email/message it via --
+    /// no SMTP is configured in this environment (same limitation as AuthService.ForgotPasswordAsync).
+    /// </summary>
+    Task<CandidatePortalInviteResponse> RegenerateInviteAsync(Guid candidateId);
 }
