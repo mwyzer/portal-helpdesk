@@ -82,8 +82,16 @@ public class EmployeesController : ControllerBase
 
     [HttpPost("import")]
     [Authorize(Roles = "Super Admin,HRD")]
+    [RequestSizeLimit(10 * 1024 * 1024)] // 10 MB
     public async Task<ActionResult<EmployeeImportResult>> ImportEmployees(IFormFile file)
     {
+        if (file == null || file.Length == 0)
+            return BadRequest("No file provided");
+
+        var extension = Path.GetExtension(file.FileName);
+        if (!string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest("Only .xlsx files are supported");
+
         using var stream = file.OpenReadStream();
         var result = await _employeeService.ImportFromExcelAsync(stream);
         return Ok(result);

@@ -35,6 +35,7 @@ public class KnowledgeBaseController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "Secretary,HR Admin,Super Admin")]
+    [RequestSizeLimit(20 * 1024 * 1024)] // 20 MB
     public async Task<ActionResult<KnowledgeDocumentResponse>> Upload(
         [FromForm] string title, IFormFile file, [FromForm] Guid? departmentId = null)
     {

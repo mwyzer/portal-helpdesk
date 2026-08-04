@@ -126,9 +126,32 @@ app.MapHub<AIHelpdesk.Api.Hubs.NotificationHub>("/hubs/notifications");
 app.MapGet("/api/health", async (ApplicationDbContext db) =>
 {
     var databaseHealthy = await db.Database.CanConnectAsync();
-    var status = databaseHealthy ? "Healthy" : "Unhealthy";
-    var payload = new { status, database = databaseHealthy, timestamp = DateTime.UtcNow };
-    return databaseHealthy ? Results.Ok(payload) : Results.Json(payload, statusCode: StatusCodes.Status503ServiceUnavailable);
+
+    double? diskUsedPercent = null;
+    var diskHealthy = true;
+    try
+    {
+        var drive = new DriveInfo(Path.GetPathRoot(Directory.GetCurrentDirectory()) ?? "/");
+        if (drive.IsReady)
+        {
+            diskUsedPercent = Math.Round(100.0 * (1 - (double)drive.AvailableFreeSpace / drive.TotalSize), 1);
+            diskHealthy = diskUsedPercent < 95; // matches the "disk usage > 85%" alert threshold with headroom before failing health
+        }
+    }
+    catch
+    {
+        // disk info unavailable (e.g. unsupported platform/path) — don't fail health over it
+    }
+
+    var healthy = databaseHealthy && diskHealthy;
+    var payload = new
+    {
+        status = healthy ? "Healthy" : "Unhealthy",
+        database = databaseHealthy,
+        diskUsedPercent,
+        timestamp = DateTime.UtcNow
+    };
+    return healthy ? Results.Ok(payload) : Results.Json(payload, statusCode: StatusCodes.Status503ServiceUnavailable);
 }).AllowAnonymous();
 
 app.Run();
