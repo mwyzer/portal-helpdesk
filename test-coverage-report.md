@@ -23,19 +23,25 @@
 
 ## Phase 1 — Foundation MVP
 
-### Backend Unit Tests (23 tests)
+### Backend Unit Tests (31 tests)
 
 | Test Class | Tests | File |
 |------------|-------|------|
 | `UserServiceTests` | 5 | `tests/AIHelpdesk.Tests/Services/UserServiceTests.cs` |
 | `RoleServiceTests` | 4 | `tests/AIHelpdesk.Tests/Services/RoleServiceTests.cs` |
 | `DepartmentServiceTests` | 5 | `tests/AIHelpdesk.Tests/Services/DepartmentServiceTests.cs` |
+| `AuthServiceTests` | 8 | `tests/AIHelpdesk.Tests/Services/AuthServiceTests.cs` |
 | `DepartmentTests` (Domain) | 2 | `tests/AIHelpdesk.Tests/Domain/DepartmentTests.cs` |
 | `RefreshTokenTests` (Domain) | 3 | `tests/AIHelpdesk.Tests/Domain/RefreshTokenTests.cs` |
 | `AuthContractsTests` | 3 | `tests/AIHelpdesk.Tests/Contracts/AuthContractsTests.cs` |
 | `UnitTest1` | 1 | `tests/AIHelpdesk.Tests/UnitTest1.cs` |
 
-**Covered:** User CRUD, Roles, Departments, Positions, Refresh Tokens, Auth Contracts
+**Covered:** User CRUD, Roles, Departments, Positions, Refresh Tokens, Auth Contracts, and
+(`AuthServiceTests`) login/refresh-token/forgot-password flows — this file tests Phase 1
+functionality but was written during the later Phase 5 pass, since Phase 1 originally shipped
+with zero coverage on `AuthService` and writing these tests is what caught two critical bugs
+(broken refresh-token validation, no-op `ForgotPasswordAsync`). Counted here because it tests
+Phase 1 code, matching the top-level summary table.
 
 ### Frontend E2E Smoke Tests (13 tests)
 
