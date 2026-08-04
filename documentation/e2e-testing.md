@@ -3,7 +3,10 @@
 > **Framework:** Playwright 1.61.1  
 > **Test File:** `frontend/tests/e2e/all-phases.spec.ts`  
 > **Config:** `frontend/playwright.config.ts`  
-> **Output:** `/screenshots/` (21 screenshots, git-ignored)
+> **Output:** `/screenshots/` (21 screenshots, git-ignored)  
+> **Last actually run:** 2026-07-14 — predates Phases 3–7 and the 2026-08-04 `RoleGuard`
+> Super Admin fix. Re-run before trusting current pass/fail status; see
+> `test-coverage-report.md` for the caveat.
 
 ---
 

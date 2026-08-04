@@ -17,12 +17,16 @@ tests/AIHelpdesk.Tests/
 ├── Domain/               # Entity / value object tests
 │   ├── DepartmentTests.cs
 │   └── RefreshTokenTests.cs
-├── Services/             # Application / Infrastructure service tests
+├── Middleware/           # ASP.NET Core middleware tests
+│   └── RateLimitingMiddlewareTests.cs
+├── Services/             # Application / Infrastructure service tests (26 files as of Phase 7,
+│   │                     # one per service — e.g. UserServiceTests.cs, TicketServiceTests.cs,
+│   │                     # CandidateServiceTests.cs — see test-coverage-report.md for the full list)
 │   ├── UserServiceTests.cs
 │   ├── RoleServiceTests.cs
 │   └── DepartmentServiceTests.cs
 ├── TestDataFactory.cs    # Shared test data builder (Bogus)
-└── UnitTest1.cs          # Placeholder (can be deleted)
+└── UnitTest1.cs          # Placeholder (still present, not yet removed)
 ```
 
 ## Prerequisites
@@ -202,7 +206,13 @@ Shared factory methods provide pre-configured entities with sensible defaults. A
 
 ## Current Test Coverage
 
-### Services (3 files)
+The tables below (Services/Domain/Contracts, 6 files, 23 tests) were the Phase 1 snapshot from
+this doc's original writing and are kept as worked examples for the patterns above — they are
+**not** the current total. The suite has since grown across Phases 2–7 (ticketing, recruitment,
+AI guardrails, rate limiting, etc.); see [`test-coverage-report.md`](../test-coverage-report.md)
+for the authoritative, per-phase, up-to-date count (279 backend tests as of 2026-08-04).
+
+### Services (3 files) — Phase 1 example subset
 
 | File | Tests | Focus |
 |------|-------|-------|
@@ -210,20 +220,20 @@ Shared factory methods provide pre-configured entities with sensible defaults. A
 | `RoleServiceTests.cs` | 4 | Create, list, delete, permissions |
 | `DepartmentServiceTests.cs` | 6 | CRUD, positions, department filtering |
 
-### Domain (2 files)
+### Domain (2 files) — Phase 1 example subset
 
 | File | Tests | Focus |
 |------|-------|-------|
 | `DepartmentTests.cs` | 2 | Entity creation, position relationship |
 | `RefreshTokenTests.cs` | 3 | IsActive, IsRevoked, IsExpired |
 
-### Contracts (1 file)
+### Contracts (1 file) — Phase 1 example subset
 
 | File | Tests | Focus |
 |------|-------|-------|
 | `AuthContractsTests.cs` | 3 | LoginRequest, UserInfo, AuthResponse |
 
-**Total: 23 tests across 6 files**
+**Phase 1 subset shown here: 23 tests across 6 files.**
 
 ## Writing New Tests
 
