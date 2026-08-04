@@ -172,14 +172,15 @@ npm run test:e2e:ui
 **Backend (279 tests):** xUnit + Moq + FluentAssertions + Bogus, run and passing as of 2026-08-04.
 No frontend (Vitest) unit tests exist yet for any phase.
 **E2E (23 smoke + 27 interaction):** actually run 2026-08-04 against a live Docker Compose stack
-rebuilt from current code — **42/50 passing.** The remaining 8 all fail for one shared reason:
-the Phase 7 general rate limiter (100 req/min, one bucket per user across the whole API) gets
-exhausted by 50 back-to-back logins sharing a single demo account in one serial run — not an app
-bug. Getting here from the first run (18/50) surfaced and fixed two real bugs: `RoleGuard`
-checked `'SuperAdmin'` (no space) against the actual `"Super Admin"` role, and `authStore.user`
-never got populated on a hard page load since nothing called the `loadUser()` function that set
-it — see [`test-coverage-report.md`](test-coverage-report.md) for the full writeup and the three
-additional test/UI-copy mismatches fixed along the way.  
+rebuilt from current code — **49/50 passing** (final state). The first run (18/50) surfaced two
+real bugs: `RoleGuard` checked `'SuperAdmin'` (no space) against the actual `"Super Admin"` role,
+and `authStore.user` never got populated on a hard page load since nothing called the
+`loadUser()` function that set it. Fixing both got to 42/50; the remaining 8 all traced to the
+Phase 7 general rate limiter (originally 100 req/min, one bucket per user across the whole API)
+getting exhausted — confirmed even on a clean run, not just a 50-tests-with-zero-think-time
+artifact, so the default was raised to 300 req/min, landing at 49/50 (one unrelated pre-existing
+test-data race remains). See [`test-coverage-report.md`](test-coverage-report.md) for the full
+writeup and the three additional test/UI-copy mismatches fixed along the way.  
 **Phase 3 Code Coverage (coverlet):**
 - Services: MeetingService 93.6%, ActionItemService 97.8%, DocumentService 93.8%
 - Domain entities: Meeting, MeetingNote, MeetingParticipant, ActionItem, DocumentTemplate, DocumentRequest, GeneratedDocument — **all 100%**

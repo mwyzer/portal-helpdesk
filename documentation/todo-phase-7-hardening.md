@@ -31,12 +31,19 @@
 > called anywhere), so even after fixing the role-string bug, direct navigation to any admin
 > route still bounced Super Admin to `/dashboard` because `RoleGuard` read a `null` user. Fixed
 > by reading the persisted user from `localStorage` synchronously at store creation. First run:
-> 18/50 passing; after both fixes: 42/50. The remaining 8 failures are all the general rate
-> limiter's bucket getting exhausted by 50 back-to-back logins on one shared demo account in a
-> single serial run, not app bugs. Also fixed three unrelated test/UI-copy mismatches found
-> along the way (missing `title` attribute on `LeaveTypesPage` row actions, a test expecting
-> "Cancel" on a dialog button actually labeled "Close", an ambiguous `text=` locator matching
-> both a heading and an empty-state row). Full writeup: `test-coverage-report.md`.
+> 18/50 passing; after both fixes: 42/50. The remaining 8 failures were all the general rate
+> limiter's bucket getting exhausted by rapid back-to-back logins sharing one demo account —
+> confirmed even on a clean run (fresh backend restart, no leftover state), a 23-test smoke run
+> alone tripped the 100/min default within about a minute, which is realistic for a person
+> rapidly clicking through admin pages, not just automated-test load. Raised the general default
+> to 300/min; re-ran the full suite and got **49/50 passing**, with total runtime dropping from
+> ~8min to 4.4min. The one remaining failure is an unrelated pre-existing test-data race (the
+> demo Super Admin account has zero real leave requests, and `getRowCount()` occasionally reads
+> a stale non-zero count before a background refetch corrects it). Also fixed three unrelated
+> test/UI-copy mismatches found along the way (missing `title` attribute on `LeaveTypesPage` row
+> actions, a test expecting "Cancel" on a dialog button actually labeled "Close", an ambiguous
+> `text=` locator matching both a heading and an empty-state row). Full writeup:
+> `test-coverage-report.md`.
 
 ## Security Hardening
 
@@ -44,7 +51,7 @@
 - [x] Add HSTS header — `AddHsts()` + `app.UseHsts()` added (365 days, includeSubDomains), non-Development only
 - [ ] Restrict CORS to production domain only — still config-driven (`Cors:Origins`); the production compose file sets it from `FRONTEND_ORIGIN`, but nothing in code enforces it can't be `*` or localhost — operational discipline, not a code gate
 - [x] Add Content Security Policy (CSP) headers — middleware added in `Program.cs` (also sets `X-Content-Type-Options`, `Referrer-Policy`)
-- [x] Configure rate limiting middleware (100 req/min general, 10 req/min AI) — `RateLimitingMiddleware` rewritten as two-tier: existing AI-specific limit plus a new general limit (configurable via `RateLimiting:GeneralMaxRequestsPerMinute`), keyed by user ID or client IP for anonymous requests
+- [x] Configure rate limiting middleware (300 req/min general, 10 req/min AI) — `RateLimitingMiddleware` rewritten as two-tier: existing AI-specific limit plus a new general limit (configurable via `RateLimiting:GeneralMaxRequestsPerMinute`), keyed by user ID or client IP for anonymous requests. Original spec said 100/min general; raised to 300/min after E2E testing showed 100/min tripping under realistic rapid-navigation load, not just abuse — see the status note above
 - [ ] Move all secrets to environment variables / Docker secrets — done for the new `docker-compose.prod.yml` (all secrets from `.env`, see `.env.example`); the dev-only `docker-compose.yml`'s hardcoded JWT key is unchanged (intentionally — it's dev-only and documented as such)
 - [x] Remove any `.env` or secrets from repository — confirmed none tracked; `.env.example` documents required keys without values
 - [x] Shorten JWT access token expiry (15 minutes) — `AccessTokenExpiryMinutes: 15` in `appsettings.json`

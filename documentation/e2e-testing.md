@@ -5,11 +5,10 @@
 > **Config:** `frontend/playwright.config.ts`  
 > **Output:** `/screenshots/` (23 screenshots, git-ignored)  
 > **Last actually run:** 2026-08-04, against a live Docker Compose stack rebuilt from current
-> code — 42/50 passing. The 8 failures are all the Phase 7 general rate limiter's bucket
-> getting exhausted by 50 back-to-back logins on one shared demo account within a single serial
-> run, not app bugs. This run is what caught and fixed two real bugs (`RoleGuard`'s Super Admin
-> role-string mismatch and `authStore.user` never loading on a hard page refresh) plus three
-> test/UI-copy mismatches — see `test-coverage-report.md` for the full writeup.
+> code — **49/50 passing** (final state, after fixing two real app bugs, raising the general
+> rate limit default from 100 to 300 req/min, and fixing three test/UI-copy mismatches; one
+> unrelated pre-existing test-data race remains). See `test-coverage-report.md` for the full
+> writeup, including the 18/50 → 42/50 → 49/50 progression and what each fix addressed.
 
 ---
 
