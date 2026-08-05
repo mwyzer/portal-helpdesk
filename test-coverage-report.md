@@ -1,8 +1,8 @@
 # AIHelpdesk — Test Coverage Report
 
-**Generated:** 2026-07-14, refreshed 2026-08-05 (seven passes — the second adds Phases 5–6 and several bugfix-driven test additions to Phases 1/3/4; the third adds Phase 7's rate-limiting middleware tests; the fourth corrects an undercount in the Phase 2 `employee.spec.ts` E2E count; the fifth actually runs the full E2E suite against a live Docker stack, finding and fixing two real app bugs plus three test/UI mismatches; the sixth raises the general rate limit default after E2E testing showed it was too tight for realistic usage; the seventh adds Phase 8's candidate portal plus the deferred `AI:ApiKey` validation fix — see below)  
-**Total Tests:** 351  
-**Overall Status:** ✅ Backend (301 tests) confirmed passing via `dotnet test` as of 2026-08-05; counts below cross-checked against `[Fact]`/`[Theory]` attribute counts. ✅ E2E (50 tests) **actually run 2026-08-04** against a live Docker Compose stack (postgres+backend+frontend, rebuilt from current code) — **49/50 passing** (final state, after all fixes below; re-confirmed unaffected 2026-08-05 after the Phase 8 rebuild). The first run scored 18/50 and surfaced two real, previously-undiscovered application bugs:
+**Generated:** 2026-07-14, refreshed 2026-08-05 (eight passes — the second adds Phases 5–6 and several bugfix-driven test additions to Phases 1/3/4; the third adds Phase 7's rate-limiting middleware tests; the fourth corrects an undercount in the Phase 2 `employee.spec.ts` E2E count; the fifth actually runs the full E2E suite against a live Docker stack, finding and fixing two real app bugs plus three test/UI mismatches; the sixth raises the general rate limit default after E2E testing showed it was too tight for realistic usage; the seventh adds Phase 8's candidate portal plus the deferred `AI:ApiKey` validation fix; the eighth adds 7 Phase 8 E2E tests, finding and fixing a real test-data flake in the process — see below)  
+**Total Tests:** 358  
+**Overall Status:** ✅ Backend (301 tests) confirmed passing via `dotnet test` as of 2026-08-05; counts below cross-checked against `[Fact]`/`[Theory]` attribute counts. ✅ E2E (57 tests) **actually run 2026-08-05** against a live Docker Compose stack (postgres+backend+frontend, rebuilt from current code) — **56/57 passing**. The original 50-test suite's history: first run scored 18/50 and surfaced two real, previously-undiscovered application bugs:
 
 - `RoleGuard` compared roles against `'SuperAdmin'` (no space) while the seeded/JWT role is `"Super Admin"` (with a space) — Super Admin users were blocked from nearly every admin page. (Fixed earlier the same day, before this E2E pass.)
 - `authStore`'s `user` field never got populated on a hard page load (`loadUser()` was defined but never called anywhere) — even after the fix above, direct navigation to any admin route still bounced Super Admin to `/dashboard` because `RoleGuard` read a `null` user. Fixed by reading the persisted user from `localStorage` synchronously at store creation.
@@ -10,6 +10,11 @@
 Fixing both got the run to 42/50; the remaining 8 all failed the same way — the Phase 7 general rate limiter (originally 100 req/min, one bucket per user across the whole API) getting exhausted. This wasn't just an automated-test artifact: a clean 23-test smoke-only run (fresh backend restart, no leftover state) also tripped it within about a minute of real request activity, which is realistic for a person clicking through many admin pages quickly. Raised the general default to 300 req/min; the full suite then passed 49/50, with total runtime dropping from ~8min to 4.4min. The one remaining failure is an unrelated pre-existing test-data race (the demo Super Admin account has zero real leave requests; `getRowCount()` occasionally reads a stale non-zero count before a background refetch corrects it to empty).
 
 Three more E2E failures along the way were test-file/UI-copy mismatches unrelated to app logic (fixed): `LeaveTypesPage`'s row-action buttons were missing the `title` attribute the test helper clicks by; the employee import dialog's dismiss button is labeled "Close" not "Cancel"; and a `text=Pending Approvals` locator ambiguously matched both the heading and the "No pending approvals" empty-state row.
+
+The 7 Phase 8 candidate-portal E2E tests added 2026-08-05 brought the suite to 57 tests, **56/57
+passing** — the pre-existing leave-request race above is the only failure; see the Phase 8
+section below for the one new flake found and fixed along the way (an interviewer-conflict
+collision from a fixed test-slot time offset).
 
 ---
 
@@ -24,8 +29,8 @@ Three more E2E failures along the way were test-file/UI-copy mismatches unrelate
 | Phase 5 — Ticketing | 49 | 0 | 0 | **49** |
 | Phase 6 — Recruitment | 37 | 0 | 0 | **37** |
 | Phase 7 — Hardening & Deployment | 6 | 0 | 0 | **6** |
-| Phase 8 — Candidate Portal | 19 | 0 | 0 | **19** |
-| **TOTAL** | **301** | **23** | **27** | **351** |
+| Phase 8 — Candidate Portal | 19 | 0 | 7 | **26** |
+| **TOTAL** | **301** | **23** | **34** | **358** |
 
 ---
 
@@ -232,9 +237,26 @@ itself. Five cases confirmed via curl against the rebuilt stack: candidate token
 correct data returned), staff token → staff endpoint (200), no token → candidate-portal endpoint
 (401).
 
-**Frontend E2E:** none written this pass (new `/portal/*` routes confirmed not to collide with
-existing routes by re-running the full existing suite — still 49/50, same pre-existing failure —
-noted as a follow-up in `documentation/context-candidate.md`).
+### Frontend E2E (7 tests)
+
+**File:** `frontend/tests/e2e/phase-8/candidate-portal.spec.ts` (+ `phase-8/helpers.ts`)
+
+Each test provisions its own throwaway job vacancy + candidate via the API (mirroring how staff
+would create them) so tests stay independent without needing cleanup, then drives the actual
+`/portal/*` UI: route-guard redirect when unauthenticated, activation (incl. a mismatched-password
+rejection case), login/logout round-trip, document upload, interview slot booking (Available
+Times → Your Interviews), and the staff-side "Copy Portal Invite Link" button on the candidate
+detail page.
+
+One flake was found and fixed while writing these: the slot-booking test originally scheduled its
+test slot at a fixed "+2 days" offset using the staff admin as interviewer; re-running the suite
+within about 30 minutes left a real committed `Interview` row from the previous run at nearly the
+same time, tripping the interviewer double-booking conflict check. Fixed by randomizing the
+offset across 30–330 days out so repeated runs don't collide with their own leftover data.
+
+**Confirmed not to collide with the existing suite** by re-running the full 57-test suite —
+**56/57 passing** (all 7 new tests pass; the one remaining failure is the pre-existing unrelated
+`leave-request` test-data race documented above, present before this phase).
 
 ---
 

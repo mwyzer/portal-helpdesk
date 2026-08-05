@@ -144,7 +144,7 @@ cd frontend
 # Install Playwright browsers (first time only)
 npx playwright install chromium
 
-# Run all 50 E2E tests (headless)
+# Run all 57 E2E tests (headless)
 npm run test:e2e
 
 # Interactive UI mode
@@ -167,8 +167,8 @@ npm run test:e2e:ui
 | Phase 5 — Ticketing | 49 | — | — | ✅ Backend passing (no E2E yet) |
 | Phase 6 — Recruitment | 37 | — | — | ✅ Backend passing (no E2E yet) |
 | Phase 7 — Hardening & Deployment | 6 | — | — | 🔧 In progress (see below) |
-| Phase 8 — Candidate Portal | 19 | — | — | ✅ Backend passing (no E2E yet) |
-| **Total** | **301** | **23** | **27** | — |
+| Phase 8 — Candidate Portal | 19 | — | 7 | ✅ Backend + E2E passing |
+| **Total** | **301** | **23** | **34** | — |
 
 **Backend (301 tests):** xUnit + Moq + FluentAssertions + Bogus, run and passing as of 2026-08-05.
 No frontend (Vitest) unit tests exist yet for any phase.
@@ -179,24 +179,27 @@ verified 2026-08-05 against a rebuilt Docker stack: candidate token → staff en
 token → candidate-portal endpoint (401), each token → its own endpoints (200). See
 [`documentation/context-candidate.md`](documentation/context-candidate.md) for the design and
 [`test-coverage-report.md`](test-coverage-report.md) for the full test breakdown.
-**E2E (23 smoke + 27 interaction):** actually run 2026-08-04 against a live Docker Compose stack
-rebuilt from current code — **49/50 passing** (final state). The first run (18/50) surfaced two
-real bugs: `RoleGuard` checked `'SuperAdmin'` (no space) against the actual `"Super Admin"` role,
-and `authStore.user` never got populated on a hard page load since nothing called the
-`loadUser()` function that set it. Fixing both got to 42/50; the remaining 8 all traced to the
-Phase 7 general rate limiter (originally 100 req/min, one bucket per user across the whole API)
-getting exhausted — confirmed even on a clean run, not just a 50-tests-with-zero-think-time
-artifact, so the default was raised to 300 req/min, landing at 49/50 (one unrelated pre-existing
-test-data race remains). See [`test-coverage-report.md`](test-coverage-report.md) for the full
-writeup and the three additional test/UI-copy mismatches fixed along the way.  
+**E2E (23 smoke + 34 interaction):** actually run 2026-08-05 against a live Docker Compose stack
+rebuilt from current code — **56/57 passing**. The original 50-test suite's first run (18/50)
+surfaced two real bugs: `RoleGuard` checked `'SuperAdmin'` (no space) against the actual
+`"Super Admin"` role, and `authStore.user` never got populated on a hard page load since nothing
+called the `loadUser()` function that set it. Fixing both got to 42/50; the remaining 8 all
+traced to the Phase 7 general rate limiter (originally 100 req/min, one bucket per user across
+the whole API) getting exhausted — confirmed even on a clean run, not just a
+50-tests-with-zero-think-time artifact, so the default was raised to 300 req/min, landing at
+49/50 (one unrelated pre-existing test-data race remains). The 7 Phase 8 candidate-portal tests
+added 2026-08-05 all pass, bringing the suite to 56/57. See
+[`test-coverage-report.md`](test-coverage-report.md) for the full writeup, the three test/UI-copy
+mismatches fixed along the way, and the interviewer-conflict test flake found and fixed while
+adding the Phase 8 tests.  
 **Phase 3 Code Coverage (coverlet):**
 - Services: MeetingService 93.6%, ActionItemService 97.8%, DocumentService 93.8%
 - Domain entities: Meeting, MeetingNote, MeetingParticipant, ActionItem, DocumentTemplate, DocumentRequest, GeneratedDocument — **all 100%**
 - Contracts: 21 request/response DTOs — 8 at 100%, remainder partial (no integration tests)
 - Controllers: 37 action methods — 0% (integration tests planned but not yet written)
 - 3 uncovered service methods: `GetNotesAsync`, `GenerateSummaryAsync`, `GetTeamActionItemsAsync`, `DownloadDocumentAsync`  
-**E2E (50 tests):** 23 smoke (screenshot + heading) across all pages + 27 interaction (dialog, form, search, CRUD) for Phase 2  
-**Grand total:** 351 tests
+**E2E (57 tests):** 23 smoke (screenshot + heading) across all pages + 27 interaction (dialog, form, search, CRUD) for Phase 2 + 7 full-flow tests (login, activation, documents, interview booking) for Phase 8  
+**Grand total:** 358 tests
 
 ## API Endpoints (Phase 1 — Foundation MVP)
 

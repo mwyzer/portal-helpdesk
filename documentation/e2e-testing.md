@@ -1,14 +1,14 @@
 # 🎭 E2E Testing — Playwright
 
 > **Framework:** Playwright 1.61.1  
-> **Test Files:** `frontend/tests/e2e/all-phases.spec.ts` (23 smoke) + `frontend/tests/e2e/phase-2/*.spec.ts` (27 interaction) — 50 tests total  
+> **Test Files:** `frontend/tests/e2e/all-phases.spec.ts` (23 smoke) + `frontend/tests/e2e/phase-2/*.spec.ts` (27 interaction) + `frontend/tests/e2e/phase-8/candidate-portal.spec.ts` (7 full-flow) — 57 tests total  
 > **Config:** `frontend/playwright.config.ts`  
 > **Output:** `/screenshots/` (23 screenshots, git-ignored)  
-> **Last actually run:** 2026-08-04, against a live Docker Compose stack rebuilt from current
-> code — **49/50 passing** (final state, after fixing two real app bugs, raising the general
-> rate limit default from 100 to 300 req/min, and fixing three test/UI-copy mismatches; one
-> unrelated pre-existing test-data race remains). See `test-coverage-report.md` for the full
-> writeup, including the 18/50 → 42/50 → 49/50 progression and what each fix addressed.
+> **Last actually run:** 2026-08-05, against a live Docker Compose stack rebuilt from current
+> code — **56/57 passing** (all 7 Phase 8 tests pass; the pre-existing unrelated leave-request
+> test-data race is the only remaining failure). See `test-coverage-report.md` for the full
+> writeup, including the original 18/50 → 42/50 → 49/50 progression and the interviewer-conflict
+> test flake found and fixed while adding the Phase 8 tests.
 
 ---
 
@@ -74,12 +74,15 @@ Key settings:
 ```
 frontend/tests/e2e/
 ├── all-phases.spec.ts             # 23 smoke tests: Phase 1 (13) + Phase 2 (4) + Phase 3 (6)
-└── phase-2/
-    ├── employee.spec.ts           # 8 interaction tests
-    ├── leave-type.spec.ts         # 6 interaction tests
-    ├── leave-request.spec.ts      # 7 interaction tests
-    ├── leave-approvals.spec.ts    # 6 interaction tests
-    └── helpers.ts                 # Shared login/dialog/form helpers
+├── phase-2/
+│   ├── employee.spec.ts           # 8 interaction tests
+│   ├── leave-type.spec.ts         # 6 interaction tests
+│   ├── leave-request.spec.ts      # 7 interaction tests
+│   ├── leave-approvals.spec.ts    # 6 interaction tests
+│   └── helpers.ts                 # Shared login/dialog/form helpers
+└── phase-8/
+    ├── candidate-portal.spec.ts   # 7 full-flow tests (login, activate, status, documents, interviews)
+    └── helpers.ts                 # API setup (vacancy/candidate/slot) + activateViaUi
 ```
 
 ### Helpers
@@ -209,8 +212,25 @@ with dialog/form/search/CRUD interaction tests:
 | 22 | Document Templates | `/documents/templates` | h1 contains "Document Templates" |
 | 23 | Dashboard (Secretary) | `/dashboard` | h1 contains "Dashboard" |
 
-> Phases 4–6 have no E2E coverage yet. Add smoke tests to `all-phases.spec.ts` and interaction
+> Phases 4–7 have no E2E coverage yet. Add smoke tests to `all-phases.spec.ts` and interaction
 > tests under a new `frontend/tests/e2e/phase-{N}/` folder following the `phase-2/` pattern below.
+
+### Phase 8 — Candidate Portal (7 tests)
+
+| Test | Assertion |
+|------|-----------|
+| Unauthenticated redirect | Visiting `/portal/status` redirects to `/portal/login` |
+| Activate account | `/portal/activate?token=...` → fill password → lands on `/portal/status` with vacancy/stage shown |
+| Activation validation | Mismatched password confirmation is rejected, stays on `/portal/activate` |
+| Logout + login | Logs out via header button, logs back in with the password just set |
+| Document upload | Uploads a PDF on `/portal/documents`, appears in the list |
+| Book interview slot | Books an API-seeded open slot on `/portal/interviews`; moves from Available Times to Your Interviews with a "Scheduled" badge |
+| Staff portal-invite button | "Copy Portal Invite Link" on the staff candidate detail page succeeds |
+
+Each test provisions its own throwaway job vacancy + candidate via the API
+(`frontend/tests/e2e/phase-8/helpers.ts`) rather than relying on seeded data, so tests stay
+independent without needing cleanup. See `test-coverage-report.md` for the interviewer-conflict
+test flake this surfaced and how it was fixed.
 
 ## Adding Tests for a New Phase
 
