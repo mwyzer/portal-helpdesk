@@ -1,8 +1,8 @@
 # AIHelpdesk — Test Coverage Report
 
-**Generated:** 2026-07-14, refreshed 2026-08-04 (six passes — the second adds Phases 5–6 and several bugfix-driven test additions to Phases 1/3/4; the third adds Phase 7's rate-limiting middleware tests; the fourth corrects an undercount in the Phase 2 `employee.spec.ts` E2E count; the fifth actually runs the full E2E suite against a live Docker stack, finding and fixing two real app bugs plus three test/UI mismatches; the sixth raises the general rate limit default after E2E testing showed it was too tight for realistic usage — see below)  
-**Total Tests:** 329  
-**Overall Status:** ✅ Backend (279 tests) confirmed passing via `dotnet test` as of 2026-08-04; counts below cross-checked against `[Fact]`/`[Theory]` attribute counts. ✅ E2E (50 tests) **actually run 2026-08-04** against a live Docker Compose stack (postgres+backend+frontend, rebuilt from current code) — **49/50 passing** (final state, after all fixes below). The first run scored 18/50 and surfaced two real, previously-undiscovered application bugs:
+**Generated:** 2026-07-14, refreshed 2026-08-05 (seven passes — the second adds Phases 5–6 and several bugfix-driven test additions to Phases 1/3/4; the third adds Phase 7's rate-limiting middleware tests; the fourth corrects an undercount in the Phase 2 `employee.spec.ts` E2E count; the fifth actually runs the full E2E suite against a live Docker stack, finding and fixing two real app bugs plus three test/UI mismatches; the sixth raises the general rate limit default after E2E testing showed it was too tight for realistic usage; the seventh adds Phase 8's candidate portal plus the deferred `AI:ApiKey` validation fix — see below)  
+**Total Tests:** 351  
+**Overall Status:** ✅ Backend (301 tests) confirmed passing via `dotnet test` as of 2026-08-05; counts below cross-checked against `[Fact]`/`[Theory]` attribute counts. ✅ E2E (50 tests) **actually run 2026-08-04** against a live Docker Compose stack (postgres+backend+frontend, rebuilt from current code) — **49/50 passing** (final state, after all fixes below; re-confirmed unaffected 2026-08-05 after the Phase 8 rebuild). The first run scored 18/50 and surfaced two real, previously-undiscovered application bugs:
 
 - `RoleGuard` compared roles against `'SuperAdmin'` (no space) while the seeded/JWT role is `"Super Admin"` (with a space) — Super Admin users were blocked from nearly every admin page. (Fixed earlier the same day, before this E2E pass.)
 - `authStore`'s `user` field never got populated on a hard page load (`loadUser()` was defined but never called anywhere) — even after the fix above, direct navigation to any admin route still bounced Super Admin to `/dashboard` because `RoleGuard` read a `null` user. Fixed by reading the persisted user from `localStorage` synchronously at store creation.
@@ -20,12 +20,12 @@ Three more E2E failures along the way were test-file/UI-copy mismatches unrelate
 | Phase 1 — Foundation MVP | 31 | 13 | 0 | **44** |
 | Phase 2 — HR Administration | 46 | 4 | 27 | **77** |
 | Phase 3 — Secretary Module | 54 | 6 | 0 | **60** |
-| Phase 4 — AI Helpdesk Chat | 56 | 0 | 0 | **56** |
+| Phase 4 — AI Helpdesk Chat | 59 | 0 | 0 | **59** |
 | Phase 5 — Ticketing | 49 | 0 | 0 | **49** |
 | Phase 6 — Recruitment | 37 | 0 | 0 | **37** |
 | Phase 7 — Hardening & Deployment | 6 | 0 | 0 | **6** |
 | Phase 8 — Candidate Portal | 19 | 0 | 0 | **19** |
-| **TOTAL** | **298** | **23** | **27** | **348** |
+| **TOTAL** | **301** | **23** | **27** | **351** |
 
 ---
 
@@ -155,16 +155,16 @@ Phase 1 code, matching the top-level summary table.
 
 ## Phase 4 — AI Helpdesk Chat
 
-### Backend Unit Tests (56 tests)
+### Backend Unit Tests (59 tests)
 
 | Test Class | Tests | File |
 |------------|-------|------|
-| `AIServiceTests` | 10 | `tests/AIHelpdesk.Tests/Services/AIServiceTests.cs` |
+| `AIServiceTests` | 13 | `tests/AIHelpdesk.Tests/Services/AIServiceTests.cs` |
 | `ChatServiceTests` | 19 | `tests/AIHelpdesk.Tests/Services/ChatServiceTests.cs` |
 | `KnowledgeBaseServiceTests` | 19 | `tests/AIHelpdesk.Tests/Services/KnowledgeBaseServiceTests.cs` |
 | `PiiRedactorTests` | 8 | `tests/AIHelpdesk.Tests/Services/PiiRedactorTests.cs` |
 
-**Covered:** token estimation, embedding generation, chat response generation (incl. streaming callback and history), chat session CRUD (create/append/rename/soft-delete), feedback submission, escalation, knowledge document upload/list/delete, TXT indexing, keyword search, department-scoped search filtering, PII redaction (email/NIK/phone/credit-card patterns) — the last two added 2026-08-04 alongside the guardrails fix.
+**Covered:** token estimation, embedding generation, chat response generation (incl. streaming callback and history), chat session CRUD (create/append/rename/soft-delete), feedback submission, escalation, knowledge document upload/list/delete, TXT indexing, keyword search, department-scoped search filtering, PII redaction (email/NIK/phone/credit-card patterns) — the last two added 2026-08-04 alongside the guardrails fix. Also covers deferred `AI:ApiKey` validation (2026-08-05): the constructor no longer throws when the key is missing (so controllers that only sometimes need `IAIService` still construct for their non-AI actions), only the two network-calling methods throw `InvalidOperationException` on use.
 
 **Not covered:** PDF/DOCX text extraction quality (extraction itself is a lightweight best-effort approach, not a full parser), chunk boundary/overlap behavior, permission-aware filtering beyond department scoping, rate limiting.
 
@@ -266,7 +266,7 @@ tests/
 │   │   ├── ActionItemReminderBackgroundServiceTests.cs (Phase 5 · 4 tests)
 │   │   ├── ActionItemServiceTests.cs      (Phase 3 · 11 tests)
 │   │   ├── AgentAssignmentServiceTests.cs (Phase 5 · 8 tests)
-│   │   ├── AIServiceTests.cs             (Phase 4 · 10 tests)
+│   │   ├── AIServiceTests.cs             (Phase 4 · 13 tests)
 │   │   ├── AuthServiceTests.cs           (Phase 1 · 8 tests)
 │   │   ├── CandidateServiceTests.cs      (Phase 6 · 13 tests)
 │   │   ├── ChatServiceTests.cs           (Phase 4 · 19 tests)

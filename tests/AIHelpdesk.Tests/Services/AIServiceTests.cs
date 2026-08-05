@@ -54,6 +54,32 @@ public class AIServiceTests
         return mock;
     }
 
+    // ── Deferred AI:ApiKey validation ──
+
+    [Fact]
+    public void Constructor_ShouldNotThrow_WhenApiKeyMissing()
+    {
+        var options = CreateOptions(apiKey: "");
+        var act = () => CreateService(options);
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task GenerateEmbeddingAsync_ShouldThrowInvalidOperation_WhenApiKeyMissing()
+    {
+        var service = CreateService(CreateOptions(apiKey: ""));
+        var act = () => service.GenerateEmbeddingAsync("test");
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("AI:ApiKey not configured");
+    }
+
+    [Fact]
+    public async Task GenerateChatResponseAsync_ShouldThrowInvalidOperation_WhenApiKeyMissing()
+    {
+        var service = CreateService(CreateOptions(apiKey: ""));
+        var act = () => service.GenerateChatResponseAsync("system", "user", new());
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("AI:ApiKey not configured");
+    }
+
     // ── EstimateTokenCount ──
 
     [Fact]
