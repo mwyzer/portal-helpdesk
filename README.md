@@ -72,6 +72,613 @@ frontend/src/
 └── store/                     # Zustand stores (auth, etc.)
 ```
 
+## Data & Architecture Diagrams
+
+### Data Flow Diagram
+
+Two client surfaces — the internal React SPA (staff, default JWT scheme) and the external
+candidate portal (separate `CandidatePortalScheme` audience, so one token can never satisfy the
+other's `[Authorize]`) — talk to eight processes inside `AIHelpdesk.Api`. All persistent state
+lands in one PostgreSQL instance; files never touch the database, only the shared
+`/app/uploads` volume. The AI API is called directly by four processes rather than through a
+shared gateway. **The dashed nodes/edges (Redis, message queue) are proposed, not present in the
+codebase today** — `docker-compose.yml` defines only `postgres`/`backend`/`frontend`.
+
+```mermaid
+flowchart TD
+    STAFF["Staff user\nReact SPA"]
+    CAND["Candidate\nCandidate Portal"]
+    AI["OpenAI-compatible API\nchat completions + embeddings"]
+
+    subgraph PROC["AIHelpdesk.Api — processes"]
+        direction TB
+        P1(["1.0 Auth & Identity\ndual JWT schemes"])
+        P2(["2.0 HR & Leave"])
+        P3(["3.0 Secretary\nmeetings & documents"])
+        P4(["4.0 Knowledge Base & AI Chat\nRAG pipeline"])
+        P5(["5.0 Ticketing & SLA"])
+        P6(["6.0 Recruitment\ninternal staff view"])
+        P7(["7.0 Candidate Portal\nexternal self-service"])
+        P8(["8.0 Background jobs\nSLA + reminder scan"])
+    end
+
+    subgraph STORE["PostgreSQL — ApplicationDbContext"]
+        direction TB
+        DS1[("Identity, Org\n& Notifications")]
+        DS2[("HR & Leave")]
+        DS3[("Secretary:\nMeetings & Docs")]
+        DS4[("Knowledge, Chat\n& AI Usage")]
+        DS5[("Tickets & SLA")]
+        DS6[("Recruitment\n& Candidates")]
+    end
+
+    FILES[("Local disk\n/app/uploads volume")]
+
+    STAFF -->|credentials| P1
+    P1 -->|JWT + refresh token| STAFF
+    P1 <--> DS1
+
+    STAFF -->|leave / employee actions| P2
+    P2 <--> DS2
+    P2 -->|approval alerts| DS1
+
+    STAFF -->|meeting / letter requests| P3
+    P3 <--> DS3
+    P3 -->|summary / draft prompt| AI
+    AI -->|generated text| P3
+
+    STAFF -->|chat message, KB upload| P4
+    P4 <--> DS4
+    P4 -->|source files| FILES
+    P4 -->|embedding / completion request| AI
+    AI -->|embeddings / completions| P4
+    P4 -->|streamed answer| STAFF
+
+    STAFF -->|create / update ticket, comment| P5
+    P5 <--> DS5
+    P5 -->|attachment files| FILES
+    P5 -->|category / priority prompt| AI
+
+    STAFF -->|vacancy / candidate / interview mgmt| P6
+    P6 <--> DS6
+    P6 -->|CV / offer files| FILES
+    P6 -->|match / summarize / question-gen prompt| AI
+
+    CAND -->|activate, login, upload, book slot| P7
+    P7 <--> DS6
+    P7 -->|CV files| FILES
+    P7 -->|candidate-scoped JWT| CAND
+
+    P8 -->|breach scan| DS5
+    P8 -->|overdue scan| DS3
+    P8 -->|writes alerts| DS1
+
+    subgraph PROPOSED["Proposed additions — not in the codebase today"]
+        direction TB
+        QUEUE[["Message queue\n(proposed)"]]
+        REDIS[("Redis\n(proposed)")]
+    end
+
+    P3 -.->|enqueue AI job| QUEUE
+    P4 -.->|enqueue AI job| QUEUE
+    P5 -.->|enqueue AI job| QUEUE
+    P6 -.->|enqueue AI job| QUEUE
+    QUEUE -.->|dispatch| AI
+    QUEUE -.->|publish notification event| REDIS
+    P8 -.->|publish overdue / breach event| QUEUE
+
+    P1 -.->|distributed rate-limit counters| REDIS
+    P4 -.->|cache KB search results| REDIS
+    REDIS -.->|SignalR backplane: push to connected clients| STAFF
+
+    classDef proposed stroke-dasharray: 4 3,stroke-width:1.5px;
+    class QUEUE,REDIS proposed;
+```
+
+| Addition | Would replace / enable | Why it fits here |
+| --- | --- | --- |
+| Message queue | Synchronous, blocking AI calls (chat, embeddings, ticket triage, meeting summaries, recruitment matching) | `AIService` is a typed `HttpClient` with a 2-minute timeout called inline from 4 controllers — a queue would let those requests return immediately and complete async |
+| Redis | The `NotificationHub` SignalR backplane, which is wired but currently passive | `NotificationService` only writes a `Notification` row today; nothing calls `IHubContext<NotificationHub>` to push it |
+| Redis | In-process rate-limit counters and hot-path caches | `RateLimitingMiddleware` and KB search currently have no shared store, so counters/caches reset per instance and can't be load-balanced correctly |
+
+### Entity Relationship Diagrams
+
+All 33 entities reachable from `ApplicationDbContext`, grouped into six modules so each diagram
+stays legible. Cross-module foreign keys (`ApplicationUser`, `Department`, `Position`,
+`Employee`) appear as ID-only stubs inside a module and in full where they're owned. Every
+entity also carries `BaseEntity` fields not repeated below: `CreatedAt`, `CreatedBy`,
+`UpdatedAt`, `UpdatedBy`, `IsDeleted` — the last enforced as a global EF Core soft-delete query
+filter on nearly every table.
+
+#### 1. Identity & Access
+
+Backs both ASP.NET Identity (`ApplicationUser`/`ApplicationRole` extend `IdentityUser<Guid>`/
+`IdentityRole<Guid>`) and org structure. Every other module hangs off `ApplicationUser` and/or
+`Department`/`Position`.
+
+```mermaid
+erDiagram
+    Department ||--o{ Position : "has"
+    Department ||--o{ ApplicationUser : "assigns (nullable)"
+    Position ||--o{ ApplicationUser : "assigns (nullable)"
+    ApplicationUser ||--o{ RefreshToken : "issues"
+    ApplicationRole }o--o{ Permission : "RolePermissions"
+    ApplicationUser }o--o{ ApplicationRole : "AspNetUserRoles"
+
+    Department {
+        guid Id PK
+        string Name
+        string Code UK
+        bool IsActive
+    }
+    Position {
+        guid Id PK
+        string Name
+        guid DepartmentId FK
+        bool IsActive
+    }
+    ApplicationUser {
+        guid Id PK
+        string FullName
+        string NIK
+        guid DepartmentId FK
+        guid PositionId FK
+        bool IsActive
+    }
+    ApplicationRole {
+        guid Id PK
+        string Name
+        string Description
+        bool IsActive
+    }
+    Permission {
+        guid Id PK
+        string Name UK
+        string Group
+    }
+    RefreshToken {
+        guid Id PK
+        guid UserId FK
+        string Token UK
+        datetime ExpiresAt
+        bool IsRevoked
+    }
+```
+
+#### 2. HR & Leave
+
+`Employee` is a distinct record from `ApplicationUser` — optionally linked, since not every
+employee has a login and not every user is an employee. `Employee.ManagerId` self-references
+for the reporting line.
+
+```mermaid
+erDiagram
+    Department ||--o{ Employee : "has (nullable)"
+    Position ||--o{ Employee : "has (nullable)"
+    ApplicationUser ||--o| Employee : "linked login (nullable)"
+    Employee ||--o{ Employee : "manages (self, nullable)"
+    Employee ||--o{ LeaveBalance : "has"
+    Employee ||--o{ LeaveRequest : "submits"
+    LeaveType ||--o{ LeaveBalance : "tracked as"
+    LeaveType ||--o{ LeaveRequest : "categorizes"
+    LeaveRequest ||--o{ LeaveApproval : "requires"
+    ApplicationUser ||--o{ LeaveApproval : "approves"
+    ApplicationUser ||--o{ Notification : "receives"
+
+    Employee {
+        guid Id PK
+        string EmployeeNo UK
+        string FullName
+        guid UserId FK
+        guid DepartmentId FK
+        guid PositionId FK
+        guid ManagerId FK
+        string EmploymentStatus
+    }
+    LeaveType {
+        guid Id PK
+        string Name
+        string Code UK
+        int DaysPerYear
+        bool IsPaid
+    }
+    LeaveBalance {
+        guid Id PK
+        guid EmployeeId FK
+        guid LeaveTypeId FK
+        int Year
+        decimal TotalDays
+        decimal UsedDays
+        decimal PendingDays
+    }
+    LeaveRequest {
+        guid Id PK
+        guid EmployeeId FK
+        guid LeaveTypeId FK
+        date StartDate
+        date EndDate
+        decimal TotalDays
+        string Status
+    }
+    LeaveApproval {
+        guid Id PK
+        guid LeaveRequestId FK
+        guid ApproverId FK
+        string Status
+        datetime ApprovedAt
+    }
+    Notification {
+        guid Id PK
+        guid UserId FK
+        string Title
+        string Type
+        bool IsRead
+    }
+    Department {
+        guid Id PK
+    }
+    Position {
+        guid Id PK
+    }
+    ApplicationUser {
+        guid Id PK
+    }
+```
+
+*Delete rules:* Employee → LeaveBalance/LeaveRequest cascade; LeaveType and Approver restrict delete.
+
+#### 3. Secretary — Meetings & Documents
+
+Two independent flows sharing a module: meeting logistics (with an optional AI-generated
+summary written into `MeetingNote`), and templated-letter generation (`DocumentTemplate` →
+draft → approval → `GeneratedDocument` file).
+
+```mermaid
+erDiagram
+    ApplicationUser ||--o{ Meeting : "organizes"
+    Meeting ||--o{ MeetingParticipant : "has"
+    ApplicationUser ||--o{ MeetingParticipant : "attends"
+    Meeting ||--o{ MeetingNote : "has"
+    Meeting ||--o{ ActionItem : "generates (nullable)"
+    ApplicationUser ||--o{ ActionItem : "assigned to"
+    Employee ||--o{ DocumentRequest : "requests"
+    DocumentTemplate ||--o{ DocumentRequest : "used by"
+    DocumentRequest ||--o{ GeneratedDocument : "produces"
+
+    Meeting {
+        guid Id PK
+        string Title
+        date Date
+        guid OrganizerId FK
+        string Status
+        string TranscriptUrl
+    }
+    MeetingParticipant {
+        guid Id PK
+        guid MeetingId FK
+        guid EmployeeId FK
+        string Role
+        string AttendanceStatus
+    }
+    MeetingNote {
+        guid Id PK
+        guid MeetingId FK
+        string Title
+        text Content
+        bool IsAISummary
+    }
+    ActionItem {
+        guid Id PK
+        guid MeetingId FK
+        string Title
+        guid AssignedToId FK
+        date DueDate
+        string Status
+    }
+    DocumentTemplate {
+        guid Id PK
+        string Name
+        string Code UK
+        text ContentTemplate
+    }
+    DocumentRequest {
+        guid Id PK
+        guid EmployeeId FK
+        guid TemplateId FK
+        string Title
+        string Status
+        string LetterNumber
+    }
+    GeneratedDocument {
+        guid Id PK
+        guid DocumentRequestId FK
+        string FileName
+        string FilePath
+        string FileFormat
+        int Version
+    }
+    ApplicationUser {
+        guid Id PK
+    }
+    Employee {
+        guid Id PK
+    }
+```
+
+*Delete rules:* Meeting → Participant/Note cascade; Meeting → ActionItem sets null.
+
+#### 4. AI Chat & Knowledge Base
+
+The RAG ingestion path: files are chunked into `KnowledgeChunk`, each chunk's embedding stored
+as a JSON string (a `vector` Postgres extension is registered but not yet used as a native
+column type). `ChatMessage`↔`AIResponse` is a strict one-to-one carrying token/cost/latency
+metrics.
+
+```mermaid
+erDiagram
+    Department ||--o{ KnowledgeDocument : "scopes (nullable = global)"
+    KnowledgeDocument ||--o{ KnowledgeChunk : "chunked into"
+    ApplicationUser ||--o{ ChatSession : "owns"
+    ChatSession ||--o{ ChatMessage : "contains"
+    ChatMessage ||--o| AIResponse : "generates (1:1, nullable)"
+    ApplicationUser ||--o{ AIUsageLog : "incurs (nullable)"
+
+    KnowledgeDocument {
+        guid Id PK
+        string Title
+        string FileName
+        string Status
+        guid DepartmentId FK
+        int ChunkCount
+    }
+    KnowledgeChunk {
+        guid Id PK
+        guid DocumentId FK
+        text Content
+        int ChunkIndex
+        text EmbeddingJson
+    }
+    ChatSession {
+        guid Id PK
+        guid UserId FK
+        string Title
+        string Status
+    }
+    ChatMessage {
+        guid Id PK
+        guid SessionId FK
+        string Role
+        text Content
+        text Sources
+    }
+    AIResponse {
+        guid Id PK
+        guid MessageId FK
+        string ModelUsed
+        int PromptTokens
+        int CompletionTokens
+        long LatencyMs
+        int FeedbackScore
+    }
+    AIUsageLog {
+        guid Id PK
+        guid UserId FK
+        string Endpoint
+        int TokensUsed
+        decimal Cost
+    }
+    Department {
+        guid Id PK
+    }
+    ApplicationUser {
+        guid Id PK
+    }
+```
+
+#### 5. Ticketing
+
+The largest module: five child tables cascade from `Ticket` (comments, attachments, history,
+SLA records, escalations), while its three user references (`AssignedTo`, `AssignedAgent`,
+`SubmittedBy`) restrict or set-null on delete so removing a user never silently deletes ticket
+history. `AgentAssignment` tracks per-agent, per-department capacity for auto-assignment.
+
+```mermaid
+erDiagram
+    Department ||--o{ TicketCategory : "scopes (nullable)"
+    TicketCategory ||--o{ Ticket : "categorizes"
+    Department ||--o{ Ticket : "routes to (nullable)"
+    ApplicationUser ||--o{ Ticket : "assigned to / agent / submitted by"
+    Ticket ||--o{ TicketComment : "has"
+    ApplicationUser ||--o{ TicketComment : "authors"
+    Ticket ||--o{ TicketAttachment : "has"
+    ApplicationUser ||--o{ TicketAttachment : "uploads"
+    Ticket ||--o{ TicketHistory : "logs"
+    ApplicationUser ||--o{ TicketHistory : "changes"
+    Ticket ||--o{ TicketSLA : "tracks"
+    TicketCategory ||--o{ TicketSLA : "defines target for"
+    Ticket ||--o{ Escalation : "escalates"
+    ApplicationUser ||--o{ Escalation : "escalated by / assigned to"
+    ApplicationUser ||--o{ AgentAssignment : "staffs"
+    Department ||--o{ AgentAssignment : "capacity for"
+
+    TicketCategory {
+        guid Id PK
+        string Name UK
+        string DefaultPriority
+        int SLAHours
+        guid DepartmentId FK
+    }
+    Ticket {
+        guid Id PK
+        string Title
+        guid CategoryId FK
+        string Priority
+        string Status
+        guid AssignedToId FK
+        guid AssignedAgentId FK
+        guid SubmittedById FK
+        guid DepartmentId FK
+        string SLAStatus
+        datetime SLADeadline
+    }
+    TicketComment {
+        guid Id PK
+        guid TicketId FK
+        guid AuthorId FK
+        text Content
+        bool IsInternal
+    }
+    TicketAttachment {
+        guid Id PK
+        guid TicketId FK
+        string FileName
+        string FilePath
+        guid UploadedById FK
+    }
+    TicketHistory {
+        guid Id PK
+        guid TicketId FK
+        string Field
+        guid ChangedById FK
+    }
+    TicketSLA {
+        guid Id PK
+        guid TicketId FK
+        guid CategoryId FK
+        int TargetHours
+        datetime BreachedAt
+    }
+    Escalation {
+        guid Id PK
+        guid TicketId FK
+        guid EscalatedById FK
+        guid AssignedToId FK
+        string Status
+    }
+    AgentAssignment {
+        guid Id PK
+        guid UserId FK
+        guid DepartmentId FK
+        int MaxTickets
+        int CurrentLoad
+    }
+    Department {
+        guid Id PK
+    }
+    ApplicationUser {
+        guid Id PK
+    }
+```
+
+*Delete rules:* Ticket → Comment/Attachment/History/SLA/Escalation cascade; Ticket → Category,
+AssignedTo, SubmittedBy restrict; Ticket → AssignedAgent, Department set null.
+
+#### 6. Recruitment & Candidate Portal
+
+`Candidate` cannot foreign-key into `AspNetUsers`, so the candidate portal keeps its own
+parallel `CandidateAccount` (1:1 login) and `CandidatePortalRefreshToken` rather than reusing
+`ApplicationUser`/`RefreshToken`. Booking an `InterviewSlot` converts it into an `Interview`
+row — the portal never creates `Interview` rows directly.
+
+```mermaid
+erDiagram
+    Department ||--o{ JobVacancy : "owns (nullable)"
+    Position ||--o{ JobVacancy : "targets (nullable)"
+    ApplicationUser ||--o{ JobVacancy : "posts"
+    JobVacancy ||--o{ Candidate : "receives"
+    Candidate ||--o{ CandidateStageHistory : "logs"
+    ApplicationUser ||--o{ CandidateStageHistory : "changes"
+    Candidate ||--o{ CandidateDocument : "uploads"
+    ApplicationUser ||--o{ CandidateDocument : "uploads (staff, nullable)"
+    Candidate ||--o{ Interview : "attends"
+    ApplicationUser ||--o{ Interview : "interviews"
+    Interview ||--o{ InterviewQuestion : "has"
+    Candidate ||--o| CandidateAccount : "portal login (1:1)"
+    Candidate ||--o{ CandidatePortalRefreshToken : "issues"
+    ApplicationUser ||--o{ InterviewSlot : "opens"
+    JobVacancy ||--o{ InterviewSlot : "scopes"
+    Candidate ||--o{ InterviewSlot : "books (nullable)"
+    Interview ||--o| InterviewSlot : "fulfills (1:1, nullable)"
+
+    JobVacancy {
+        guid Id PK
+        string Title
+        guid DepartmentId FK
+        guid PositionId FK
+        guid PostedById FK
+        string Status
+        int OpeningsCount
+    }
+    Candidate {
+        guid Id PK
+        guid JobVacancyId FK
+        string FullName
+        string Email
+        string Stage
+        text AISummaryJson
+    }
+    CandidateStageHistory {
+        guid Id PK
+        guid CandidateId FK
+        string FromStage
+        string ToStage
+        guid ChangedById FK
+    }
+    CandidateDocument {
+        guid Id PK
+        guid CandidateId FK
+        string FileName
+        string FilePath
+        guid UploadedById FK
+    }
+    Interview {
+        guid Id PK
+        guid CandidateId FK
+        guid InterviewerId FK
+        datetime ScheduledAt
+        string Type
+        string Status
+        int Rating
+    }
+    InterviewQuestion {
+        guid Id PK
+        guid InterviewId FK
+        text Question
+        bool IsAIGenerated
+    }
+    CandidateAccount {
+        guid Id PK
+        guid CandidateId FK
+        string PasswordHash
+        bool IsActive
+        string SetupToken
+    }
+    InterviewSlot {
+        guid Id PK
+        guid InterviewerId FK
+        guid JobVacancyId FK
+        datetime ScheduledAt
+        string Status
+        guid BookedByCandidateId FK
+        guid InterviewId FK
+    }
+    CandidatePortalRefreshToken {
+        guid Id PK
+        guid CandidateId FK
+        string Token UK
+        bool IsRevoked
+    }
+    Department {
+        guid Id PK
+    }
+    Position {
+        guid Id PK
+    }
+    ApplicationUser {
+        guid Id PK
+    }
+```
+
 ## Getting Started
 
 ### Prerequisites
