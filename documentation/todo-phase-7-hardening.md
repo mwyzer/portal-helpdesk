@@ -80,15 +80,32 @@
 - [x] Write k6 load test: peak load (200 users, 5 min) — `tests/load/peak-load.js`
 - [x] Write k6 load test: stress test (ramp to 500 users) — `tests/load/stress-test.js`
 - [x] Write k6 load test: AI endpoint (10 concurrent chats) — `tests/load/ai-endpoint.js`
-- [x] Run load tests and analyze results — **`normal-load.js` actually run 2026-08-05** (k6
-  installed via winget). First run: 92.6% failure. Root cause was a real bug, not capacity: the
-  general rate limiter was registered before `UseAuthentication()` in `Program.cs`, so every
-  request fell back to per-IP keying regardless of the authenticated user — 50 concurrent users
-  from one IP shared one 300/min bucket. Fixed the middleware order and the k6 scripts (which
-  had also been sharing one login token across all VUs — a second, compounding instance of the
-  same "not actually 50 independent identities" problem, now fixed via `credentialsForVU()` in
-  `helpers.js` using DbSeeder's 50 seeded accounts). Re-run: 100% success, p95 latency 41ms.
-  `peak-load.js`/`stress-test.js`/`ai-endpoint.js` are fixed the same way but not yet run.
+- [x] Run load tests and analyze results — **three of four scripts actually run 2026-08-05** (k6
+  installed via winget), finding and fixing four real bugs:
+  - Rate limiter registered before `UseAuthentication()` in `Program.cs`, so every request fell
+    back to per-IP keying regardless of the authenticated user — `normal-load.js`'s first run
+    saw 92.6% failure with all 50 VUs sharing one IP's 300/min bucket. Fixed the middleware
+    order. Re-run: **100% success, p95 41ms**.
+  - The k6 scripts had the same bug independently (`setup()` runs once for the whole test, not
+    once per VU, so all VUs shared one login token). Fixed via `credentialsForVU()` in
+    `helpers.js`, using DbSeeder's 50 seeded accounts.
+  - `peak-load.js` then surfaced a k6-only measurement issue: `/api/employees` correctly 403s
+    for roles without access, but k6's `http_req_failed` didn't know that was intentional.
+    Fixed with `responseCallback: http.expectedStatuses(200, 403)`. Re-run: **97% success
+    (3.01% failure), p95 645ms** — residual is 200 VUs sharing only 50 real rate-limit buckets.
+  - `stress-test.js` (500 VUs) then found a real Postgres connection-exhaustion bug: default
+    `max_connections=100` with an uncapped app pool meant the app could exhaust Postgres
+    entirely under peak load, and — worse — Postgres then rejected the app's own health checks
+    too, so it stayed degraded (`database: false`) even minutes after load stopped, needing a
+    manual restart. Fixed in two independently-verified steps: capped the app's pool
+    (`Maximum Pool Size=50`, fixed the no-self-recovery problem) and raised Postgres's
+    `max_connections` to 200 (eliminated the exhaustion — 0 "too many clients" errors, down
+    from 189). Re-run: Postgres survived the full 11-minute run cleanly; the script's own loose
+    threshold still "fails" (~66%) but that's login/health saturating one shared per-IP bucket
+    from 500 fake identities behind this one test machine's real IP, not an app problem (the
+    authenticated `tickets` check passed throughout).
+  - `ai-endpoint.js` not yet run — needs `AI:ApiKey` configured, which this dev environment
+    doesn't have. Full writeup: `tests/load/README.md`.
 - [ ] Fix N+1 query issues (EF Core `.Include()` / `.ThenInclude()`) — not audited this pass
 - [ ] Add missing database indexes (FK + status + date composite) — existing indexes look reasonable on inspection (status/priority/SLA/composite indexes already present on Ticket, Candidate, Interview, etc.) but no systematic audit against real query patterns was done
 - [x] Ensure all list endpoints have pagination — `page`/`pageSize` params confirmed consistently used across Employee, Leave, Meeting, Ticket, Chat, and Knowledge Base list endpoints; no explicit max-page-size cap verified

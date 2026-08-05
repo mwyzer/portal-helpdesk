@@ -643,10 +643,12 @@ general rate limiting, response compression, upload validation, CI build+test pi
 Dependabot, k6 load tests, production Docker Compose + Nginx + TLS templates, backup/restore
 scripts, deployment/admin/user manuals). Items 4 (monitoring/alerting), 6 (staging/approval
 gates), and 8 (UAT) are not started — they require a live staging/production environment,
-which doesn't exist yet. `normal-load.js` was actually run 2026-08-05 and caught a real bug:
-the general rate limiter was registered before `UseAuthentication()`, so it silently rate-limited
-by IP instead of by user for every authenticated request — see
-[`tests/load/README.md`](tests/load/README.md) for the full writeup and fix. Full breakdown:
+which doesn't exist yet. Three of the four k6 scripts were actually run 2026-08-05 and caught
+four real bugs: the general rate limiter was registered before `UseAuthentication()`, so it
+silently rate-limited by IP instead of by user for every authenticated request; and Postgres's
+connection pool was exhaustible by the app alone under real concurrent load, with no
+self-recovery once exhausted — see [`tests/load/README.md`](tests/load/README.md) for the full
+writeup and fixes. Full breakdown:
 [`documentation/todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md),
 [`documentation/deployment-runbook.md`](documentation/deployment-runbook.md).
 

@@ -24,7 +24,16 @@ export default function () {
   const tickets = http.get(`${BASE_URL}/api/tickets?page=1&pageSize=20`, params);
   check(tickets, { 'tickets: 200': (r) => r.status === 200 });
 
-  const employees = http.get(`${BASE_URL}/api/employees?page=1&pageSize=20`, params);
+  // /api/employees is Super Admin/HRD/Manager only -- 20 of the 50 seeded accounts (Secretary,
+  // Employee) correctly get 403 here. Without expectedStatuses, k6's http_req_failed metric
+  // counts any non-2xx as a failure regardless of what the check considers a pass, which
+  // inflated the threshold-tracked failure rate to ~21% even though the app was behaving
+  // exactly as designed (checks_succeeded was 99.78%). expectedStatuses tells k6 both codes
+  // are legitimate outcomes for this specific request.
+  const employees = http.get(`${BASE_URL}/api/employees?page=1&pageSize=20`, {
+    ...params,
+    responseCallback: http.expectedStatuses(200, 403),
+  });
   check(employees, { 'employees: 200 or 403': (r) => r.status === 200 || r.status === 403 });
 
   sleep(Math.random() + 0.5); // shorter think time to simulate a busier peak
