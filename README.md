@@ -168,9 +168,9 @@ npm run test:e2e:ui
 | Phase 6 — Recruitment | 37 | — | — | ✅ Backend passing (no E2E yet) |
 | Phase 7 — Hardening & Deployment | 6 | — | — | 🔧 In progress (see below) |
 | Phase 8 — Candidate Portal | 19 | — | — | ✅ Backend passing (no E2E yet) |
-| **Total** | **298** | **23** | **27** | — |
+| **Total** | **301** | **23** | **27** | — |
 
-**Backend (298 tests):** xUnit + Moq + FluentAssertions + Bogus, run and passing as of 2026-08-05.
+**Backend (301 tests):** xUnit + Moq + FluentAssertions + Bogus, run and passing as of 2026-08-05.
 No frontend (Vitest) unit tests exist yet for any phase.
 **Phase 8 audience isolation:** the candidate self-service portal (`/api/candidate-portal/*`)
 uses a fully separate JWT audience (`AIHelpdesk-CandidatePortal` vs the staff `AIHelpdesk`) so a
@@ -196,7 +196,7 @@ writeup and the three additional test/UI-copy mismatches fixed along the way.
 - Controllers: 37 action methods — 0% (integration tests planned but not yet written)
 - 3 uncovered service methods: `GetNotesAsync`, `GenerateSummaryAsync`, `GetTeamActionItemsAsync`, `DownloadDocumentAsync`  
 **E2E (50 tests):** 23 smoke (screenshot + heading) across all pages + 27 interaction (dialog, form, search, CRUD) for Phase 2  
-**Grand total:** 348 tests
+**Grand total:** 351 tests
 
 ## API Endpoints (Phase 1 — Foundation MVP)
 
