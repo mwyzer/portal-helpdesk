@@ -1,6 +1,6 @@
 # AIHelpdesk — Test Coverage Report
 
-**Generated:** 2026-07-14, refreshed 2026-08-05 (eight passes — the second adds Phases 5–6 and several bugfix-driven test additions to Phases 1/3/4; the third adds Phase 7's rate-limiting middleware tests; the fourth corrects an undercount in the Phase 2 `employee.spec.ts` E2E count; the fifth actually runs the full E2E suite against a live Docker stack, finding and fixing two real app bugs plus three test/UI mismatches; the sixth raises the general rate limit default after E2E testing showed it was too tight for realistic usage; the seventh adds Phase 8's candidate portal plus the deferred `AI:ApiKey` validation fix; the eighth adds 7 Phase 8 E2E tests, finding and fixing a real test-data flake in the process — see below)  
+**Generated:** 2026-07-14, refreshed 2026-08-05 (nine passes — the second adds Phases 5–6 and several bugfix-driven test additions to Phases 1/3/4; the third adds Phase 7's rate-limiting middleware tests; the fourth corrects an undercount in the Phase 2 `employee.spec.ts` E2E count; the fifth actually runs the full E2E suite against a live Docker stack, finding and fixing two real app bugs plus three test/UI mismatches; the sixth raises the general rate limit default after E2E testing showed it was too tight for realistic usage; the seventh adds Phase 8's candidate portal plus the deferred `AI:ApiKey` validation fix; the eighth adds 7 Phase 8 E2E tests, finding and fixing a real test-data flake in the process; the ninth actually runs all four k6 load test scripts, finding and fixing four real bugs — a rate limiter silently keyed by IP instead of user, the k6 scripts sharing one login token across every VU, a k6 threshold not accounting for an intentional 403, and Postgres connection exhaustion under real concurrent load — see below)  
 **Total Tests:** 358  
 **Overall Status:** ✅ Backend (301 tests) confirmed passing via `dotnet test` as of 2026-08-05; counts below cross-checked against `[Fact]`/`[Theory]` attribute counts. ✅ E2E (57 tests) **actually run 2026-08-05** against a live Docker Compose stack (postgres+backend+frontend, rebuilt from current code) — **56/57 passing**. The original 50-test suite's history: first run scored 18/50 and surfaced two real, previously-undiscovered application bugs:
 
@@ -283,8 +283,32 @@ compounding bug in the k6 scripts themselves: they logged in once via `setup()` 
 once for the whole test, not once per VU) and shared that single token across all VUs — the
 same "not actually N independent identities" mistake. Rewrote `tests/load/helpers.js` so each
 VU authenticates as one of DbSeeder's 50 seeded accounts. Re-run: **100% success, p95 latency
-40.83ms**. `peak-load.js`/`stress-test.js`/`ai-endpoint.js` use the same fixed helper but have
-not yet been run themselves — see `tests/load/README.md`.
+40.83ms**.
+
+`peak-load.js` (200 users) then found a third, smaller issue: `/api/employees` correctly 403s
+for the 20/50 seeded accounts without Super Admin/HRD/Manager access, but k6's `http_req_failed`
+metric doesn't know an intended 403 isn't a failure — annotated that request with
+`responseCallback: http.expectedStatuses(200, 403)`. Re-run: 97% success (3.01% failure, under
+the 5% threshold), p95 latency 645ms; the residual is 200 VUs sharing only 50 real rate-limit
+buckets, a realistic finding rather than a bug.
+
+`stress-test.js` (ramp to 500 users) then found a fourth, more serious bug: at 500 concurrent
+VUs, Postgres's default `max_connections=100` was exhausted (the app's Npgsql pool had no
+explicit cap), and Postgres began rejecting *all* new connections — including the app's own
+health checks — so the app stayed degraded (`database: false`) even minutes after the load
+stopped, needing a manual container restart to recover. Fixed in two steps, each independently
+confirmed by re-running: capping the app's pool (`Maximum Pool Size=50` in the connection
+string) stopped the *no self-recovery* problem (app returned to healthy on its own afterward),
+and raising Postgres's `max_connections` to 200 eliminated the exhaustion entirely (0 "too many
+clients" errors, down from 189). After both fixes, Postgres survived the full 11-minute run
+cleanly; the script's own loose threshold (`rate<0.20`) still "fails" at ~66%, but that's
+entirely the `login`/`health` checks saturating one shared per-IP bucket from 500 fake
+identities behind this one test machine's real IP — the authenticated `tickets reachable` check
+passed the whole time, confirming real app capacity is fine. This is a test-methodology ceiling
+(one IP can't simulate 500 independent public IPs), not an app bug.
+
+`ai-endpoint.js` uses the same fixed helper but has not been run — needs `AI:ApiKey` configured,
+which this dev environment doesn't have. Full writeup: `tests/load/README.md`.
 
 **Not covered by automated tests** (not code that fits a unit-test harness — see
 `documentation/todo-phase-7-hardening.md` and `documentation/deployment-runbook.md` for

@@ -4,6 +4,11 @@ services:
     build:
       context: .
       dockerfile: docker/postgres/Dockerfile
+    # Default max_connections (100) plus the app's 50-connection pool cap left almost no
+    # headroom for admin/health-check connections; raised so a single app instance's pool
+    # never gets close to the ceiling. See tests/load/README.md for the load test that found
+    # this (500 concurrent VUs exhausted the default before this was raised).
+    command: postgres -c max_connections=200
     environment:
       POSTGRES_DB: aihelpdesk
       POSTGRES_USER: helpdesk
@@ -25,7 +30,7 @@ services:
       dockerfile: src/AIHelpdesk.Api/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=aihelpdesk;Username=helpdesk;Password=helpdesk123
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=aihelpdesk;Username=helpdesk;Password=helpdesk123;Maximum Pool Size=50
       - Jwt__Key=ThisIsASuperSecretKeyForDevOnly1234567890!
       - Jwt__Issuer=AIHelpdesk
       - Jwt__Audience=AIHelpdesk

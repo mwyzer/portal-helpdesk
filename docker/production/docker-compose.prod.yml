@@ -36,7 +36,7 @@ services:
       -c effective_cache_size=6GB
       -c work_mem=16MB
       -c maintenance_work_mem=256MB
-      -c max_connections=100
+      -c max_connections=200
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -57,7 +57,7 @@ services:
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=${POSTGRES_DB:-aihelpdesk};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=${POSTGRES_DB:-aihelpdesk};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Maximum Pool Size=50
       - Jwt__Key=${JWT_KEY}
       - Jwt__Issuer=${JWT_ISSUER:-AIHelpdesk}
       - Jwt__Audience=${JWT_AUDIENCE:-AIHelpdesk}
