@@ -177,8 +177,15 @@ Carried over from `documentation/todo-phase-7-hardening.md` — these are real, 
 - **Staging environment / CI approval gates** are not set up — CI (`.github/workflows/ci.yml`)
   builds and tests on every push/PR but there's no staging auto-deploy or production approval
   gate.
-- **k6 load test scripts exist but have not been executed** against a live environment (k6
-  wasn't available in the environment they were authored in) — see `tests/load/README.md`.
+- **k6 `normal-load.js` (50 users) actually run 2026-08-05** against a live Docker Compose
+  stack — found and fixed a real bug in the process (see `tests/load/README.md`): the general
+  rate limiter's own doc comment says it keys by authenticated user ID, but it was registered
+  in `Program.cs` *before* `UseAuthentication()`, so `context.User` was never populated when it
+  ran — every request silently fell back to per-IP keying regardless of auth. 50 concurrent
+  users behind one IP (or one NAT/corporate network in production) shared a single 300/min
+  bucket instead of getting 50 separate ones. Fixed by moving the middleware registration after
+  `UseAuthentication()`. Re-run after the fix: 100% success, p95 latency 41ms. `peak-load.js`
+  and `stress-test.js` have not yet been run.
 
 None of these block a first production deploy, but they should be prioritized before
 handling sensitive data at scale or opening the system to a large user base.

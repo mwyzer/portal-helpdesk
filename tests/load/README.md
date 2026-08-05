@@ -9,10 +9,18 @@ Four scripts matching the scenarios in `documentation/todo-phase-7-hardening.md`
 | `stress-test.js` | Ramp to 500 concurrent users |
 | `ai-endpoint.js` | 10 concurrent AI chat conversations |
 
-**Not yet run against a live environment** — k6 isn't available in the environment these were
-written in. They're believed correct against the actual API routes/response shapes (verified by
-reading the controllers, not by execution) but should be smoke-tested against a real running
-instance before relying on the results.
+**`normal-load.js` actually run 2026-08-05** against a live Docker Compose stack. First run:
+92.6% failure, but not a capacity problem — the general rate limiter (`RateLimitingMiddleware`)
+was registered before `UseAuthentication()` in `Program.cs`, so `context.User` was never
+populated when it checked the request's identity, and every request silently fell back to
+per-IP keying. All 50 VUs ran from one IP, so they shared one 300/min bucket instead of 50.
+Separately, these scripts also shared a single login token across every VU (via `setup()`,
+which runs once for the whole test, not once per VU) — the same "not actually N independent
+identities" mistake, compounding the first bug. Fixed both: moved the middleware after
+`UseAuthentication()` in `Program.cs`, and rewrote `helpers.js` so each VU logs in as one of
+DbSeeder's 50 distinct seeded accounts (`credentialsForVU()`), caching the token per VU. Re-run
+of `normal-load.js`: **100% success, p95 latency 40.83ms**. `peak-load.js`, `stress-test.js`,
+and `ai-endpoint.js` use the same fixed helper but have not yet been run themselves.
 
 ## Prerequisites
 

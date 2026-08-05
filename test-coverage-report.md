@@ -265,14 +265,32 @@ offset across 30–330 days out so repeated runs don't collide with their own le
 **File:** `tests/Middleware/RateLimitingMiddlewareTests.cs` (6 tests)
 
 **Covered:** general per-user/per-IP rate limit enforcement, the separate AI-endpoint limit,
-and that requests under the limit pass through untouched.
+and that requests under the limit pass through untouched. These tests construct `HttpContext`
+directly with `User` already populated, testing the middleware's internal logic correctly — but
+that's exactly why they couldn't catch the real pipeline-ordering bug below, which only showed
+up when the middleware ran inside the actual registered pipeline order.
+
+**k6 `normal-load.js` actually run 2026-08-05** (k6 wasn't available when these were originally
+written; installed via winget) — and found a real, previously-undiscovered bug on the first
+run: 50 VUs logged in as 50 distinct seeded accounts still saw 92.6% failure. Root cause:
+`RateLimitingMiddleware` was registered in `Program.cs` *before* `app.UseAuthentication()`, so
+`context.User` was never populated when it ran — despite the middleware's own doc comment
+saying it keys by authenticated user ID, every request silently fell back to per-IP keying.
+50 concurrent users behind one IP (as in this test, and as would happen behind any shared
+NAT/corporate proxy in production) shared one 300 req/min bucket instead of 50 separate ones.
+Fixed by moving the middleware registration after `UseAuthentication()`. Also fixed a second,
+compounding bug in the k6 scripts themselves: they logged in once via `setup()` (which runs
+once for the whole test, not once per VU) and shared that single token across all VUs — the
+same "not actually N independent identities" mistake. Rewrote `tests/load/helpers.js` so each
+VU authenticates as one of DbSeeder's 50 seeded accounts. Re-run: **100% success, p95 latency
+40.83ms**. `peak-load.js`/`stress-test.js`/`ai-endpoint.js` use the same fixed helper but have
+not yet been run themselves — see `tests/load/README.md`.
 
 **Not covered by automated tests** (not code that fits a unit-test harness — see
 `documentation/todo-phase-7-hardening.md` and `documentation/deployment-runbook.md` for
 details): HTTPS/HSTS/CSP header presence (would need an integration test host, not written
-this pass), the k6 load-test scripts (written but not executed against a live environment),
-backup/restore scripts (shell scripts, would need a real Postgres+Docker environment to
-exercise), and the CI pipeline itself (validated by it running successfully on push, not by
+this pass), backup/restore scripts (shell scripts, would need a real Postgres+Docker environment
+to exercise), and the CI pipeline itself (validated by it running successfully on push, not by
 a test suite).
 
 **Frontend E2E:** none.

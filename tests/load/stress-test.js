@@ -18,12 +18,11 @@ export const options = {
   },
 };
 
-export function setup() {
-  return { token: login() };
-}
+let token; // module-level = isolated per VU in k6, cached across this VU's iterations
 
-export default function (data) {
-  const params = authHeaders(data.token);
+export default function () {
+  if (!token) token = login();
+  const params = authHeaders(token);
 
   const health = http.get(`${BASE_URL}/api/health`);
   check(health, { 'health check reachable': (r) => r.status === 200 || r.status === 503 });
