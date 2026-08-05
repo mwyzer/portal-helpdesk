@@ -497,7 +497,7 @@ adding the Phase 8 tests.
 | **Phase 4** | AI Helpdesk Chat — AI-powered RAG chat & knowledge base | ✅ Done |
 | **Phase 5** | Ticketing System — Request tracking, SLA, agent workflows | ✅ Done |
 | **Phase 6** | Recruitment — Job postings, candidate pipeline, AI CV parsing | ✅ Done |
-| **Phase 7** | Hardening & Deployment — Security, performance, CI/CD, monitoring | 🔧 In progress (~38% of checklist — see [`documentation/todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md)) |
+| **Phase 7** | Hardening & Deployment — Security, performance, CI/CD, monitoring | 🔧 In progress (~39% of checklist — see [`documentation/todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md)) |
 
 Detailed documentation for each phase is available in the [`documentation/`](documentation/) directory.
 
@@ -638,12 +638,16 @@ Detailed documentation for each phase is available in the [`documentation/`](doc
 | 7 | Documentation | User manual, admin manual, API docs, deployment runbook |
 | 8 | UAT & go-live | User acceptance testing, bug fixes, production deployment, sign-off |
 
-**Status (2026-08-04):** items 1–3, 5, and 7 are partially implemented (HTTPS/HSTS/CSP,
+**Status (2026-08-05):** items 1–3, 5, and 7 are partially implemented (HTTPS/HSTS/CSP,
 general rate limiting, response compression, upload validation, CI build+test pipeline,
-Dependabot, k6 scripts, production Docker Compose + Nginx + TLS templates, backup/restore
+Dependabot, k6 load tests, production Docker Compose + Nginx + TLS templates, backup/restore
 scripts, deployment/admin/user manuals). Items 4 (monitoring/alerting), 6 (staging/approval
 gates), and 8 (UAT) are not started — they require a live staging/production environment,
-which doesn't exist yet. Full breakdown: [`documentation/todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md),
+which doesn't exist yet. `normal-load.js` was actually run 2026-08-05 and caught a real bug:
+the general rate limiter was registered before `UseAuthentication()`, so it silently rate-limited
+by IP instead of by user for every authenticated request — see
+[`tests/load/README.md`](tests/load/README.md) for the full writeup and fix. Full breakdown:
+[`documentation/todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md),
 [`documentation/deployment-runbook.md`](documentation/deployment-runbook.md).
 
 ## License

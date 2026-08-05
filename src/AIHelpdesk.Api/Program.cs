@@ -111,7 +111,6 @@ using (var scope = app.Services.CreateScope())
 await DbSeeder.SeedAsync(app.Services);
 
 app.UseMiddleware<ExceptionMiddleware>();
-app.UseMiddleware<RateLimitingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -138,6 +137,15 @@ app.Use(async (context, next) =>
 
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
+// Registered after UseAuthentication() specifically so context.User carries the authenticated
+// identity by the time this runs -- registering it earlier (as originally written) meant
+// context.User was always the unauthenticated default here, so the "per-user" bucket the
+// middleware's own doc comment describes silently never applied to any authenticated request;
+// every request fell back to per-IP keying regardless of which user was signed in. Caught via
+// k6 load testing 2026-08-05: 50 concurrent VUs logged in as 50 distinct seeded accounts still
+// throttled at ~7.4% success (~5 req/s allowed / ~67 req/s combined demand), matching one
+// shared bucket for the whole run instead of 50 separate ones.
+app.UseMiddleware<RateLimitingMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<AIHelpdesk.Api.Hubs.NotificationHub>("/hubs/notifications");

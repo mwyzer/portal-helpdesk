@@ -1,23 +1,12 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { BASE_URL, authHeaders } from './helpers.js';
+import { BASE_URL, login, authHeaders } from './helpers.js';
 
 // AI endpoint load: 10 concurrent chat conversations.
 //
-// Only 5 demo accounts are seeded (see README.md "Demo Account" section), and the AI
-// rate limiter (AIOptions.RateLimit, default 30/min) is keyed per-user — so more than 5
-// truly independent VUs will start sharing a rate-limit bucket with another VU using the
-// same account. This cycles through the 5 demo accounts round-robin by VU ID; for a
-// realistic 10-distinct-user test, seed 10 real accounts first and list them in
-// DEMO_ACCOUNTS via -e AI_ACCOUNTS_JSON=... instead.
-const DEMO_ACCOUNTS = [
-  { email: 'admin@aihelpdesk.com', password: 'Admin@123' },
-  { email: 'hrd@aihelpdesk.com', password: 'Hrd@12345' },
-  { email: 'secretary@aihelpdesk.com', password: 'Secretary@123' },
-  { email: 'manager@aihelpdesk.com', password: 'Manager@123' },
-  { email: 'employee@aihelpdesk.com', password: 'Employee@123' },
-];
-
+// The AI rate limiter (AIOptions.RateLimit, default 30/min) is keyed per-user, same as the
+// general limiter — helpers.js's credentialsForVU() gives each of these 10 VUs one of
+// DbSeeder's 50 distinct seeded accounts, so all 10 get their own bucket with room to spare.
 export const options = {
   scenarios: {
     concurrent_chats: {
@@ -32,19 +21,10 @@ export const options = {
   },
 };
 
-function loginAs(account) {
-  const res = http.post(
-    `${BASE_URL}/api/auth/login`,
-    JSON.stringify(account),
-    { headers: { 'Content-Type': 'application/json' } },
-  );
-  check(res, { 'login succeeded': (r) => r.status === 200 });
-  return res.json('accessToken');
-}
+let token; // module-level = isolated per VU in k6, cached across this VU's iterations
 
 export default function () {
-  const account = DEMO_ACCOUNTS[__VU % DEMO_ACCOUNTS.length];
-  const token = loginAs(account);
+  if (!token) token = login();
   const params = authHeaders(token);
 
   const res = http.post(

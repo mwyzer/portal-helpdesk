@@ -15,12 +15,11 @@ export const options = {
   },
 };
 
-export function setup() {
-  return { token: login() };
-}
+let token; // module-level = isolated per VU in k6, cached across this VU's iterations
 
-export default function (data) {
-  const params = authHeaders(data.token);
+export default function () {
+  if (!token) token = login();
+  const params = authHeaders(token);
 
   const dashboard = http.get(`${BASE_URL}/api/leave-requests?page=1&pageSize=10`, params);
   check(dashboard, { 'leave requests: 200': (r) => r.status === 200 });

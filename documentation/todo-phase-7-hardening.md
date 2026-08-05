@@ -1,8 +1,9 @@
 # Phase 7 — Hardening & Production Deployment — TODO Checklist
 
-> **Status (2026-08-04): 39/103 tasks done (~38%)** (103, not 102 — one item, the CI pipeline itself, was added as a prerequisite not in the original list). This pass implemented HTTPS/HSTS/CSP,
+> **Status (2026-08-05): 40/103 tasks done (~39%)** (103, not 102 — one item, the CI pipeline itself, was added as a prerequisite not in the original list). This pass implemented HTTPS/HSTS/CSP,
 > general rate limiting, response compression, upload validation/size limits, Dependabot, a
-> CI pipeline, expanded health checks, k6 load test scripts (unexecuted), production
+> CI pipeline, expanded health checks, k6 load tests (now actually executed — see Performance
+> Testing below, which found and fixed a real rate-limiter bug), production
 > docker-compose + nginx templates (including a previously-missing SignalR `/hubs` proxy —
 > see below), backup/restore scripts, and the deployment/admin/user manual docs. Still not
 > started: Redis caching, audit logging, ClamAV scanning, formal security testing
@@ -79,7 +80,15 @@
 - [x] Write k6 load test: peak load (200 users, 5 min) — `tests/load/peak-load.js`
 - [x] Write k6 load test: stress test (ramp to 500 users) — `tests/load/stress-test.js`
 - [x] Write k6 load test: AI endpoint (10 concurrent chats) — `tests/load/ai-endpoint.js`
-- [ ] Run load tests and analyze results — **written but not executed**: k6 isn't installed in this environment; scripts are verified correct against actual API routes/response shapes by reading the controllers, not by running them (see `tests/load/README.md`)
+- [x] Run load tests and analyze results — **`normal-load.js` actually run 2026-08-05** (k6
+  installed via winget). First run: 92.6% failure. Root cause was a real bug, not capacity: the
+  general rate limiter was registered before `UseAuthentication()` in `Program.cs`, so every
+  request fell back to per-IP keying regardless of the authenticated user — 50 concurrent users
+  from one IP shared one 300/min bucket. Fixed the middleware order and the k6 scripts (which
+  had also been sharing one login token across all VUs — a second, compounding instance of the
+  same "not actually 50 independent identities" problem, now fixed via `credentialsForVU()` in
+  `helpers.js` using DbSeeder's 50 seeded accounts). Re-run: 100% success, p95 latency 41ms.
+  `peak-load.js`/`stress-test.js`/`ai-endpoint.js` are fixed the same way but not yet run.
 - [ ] Fix N+1 query issues (EF Core `.Include()` / `.ThenInclude()`) — not audited this pass
 - [ ] Add missing database indexes (FK + status + date composite) — existing indexes look reasonable on inspection (status/priority/SLA/composite indexes already present on Ticket, Candidate, Interview, etc.) but no systematic audit against real query patterns was done
 - [x] Ensure all list endpoints have pagination — `page`/`pageSize` params confirmed consistently used across Employee, Leave, Meeting, Ticket, Chat, and Knowledge Base list endpoints; no explicit max-page-size cap verified
