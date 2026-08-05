@@ -24,7 +24,8 @@ Three more E2E failures along the way were test-file/UI-copy mismatches unrelate
 | Phase 5 — Ticketing | 49 | 0 | 0 | **49** |
 | Phase 6 — Recruitment | 37 | 0 | 0 | **37** |
 | Phase 7 — Hardening & Deployment | 6 | 0 | 0 | **6** |
-| **TOTAL** | **279** | **23** | **27** | **329** |
+| Phase 8 — Candidate Portal | 19 | 0 | 0 | **19** |
+| **TOTAL** | **298** | **23** | **27** | **348** |
 
 ---
 
@@ -204,6 +205,36 @@ Phase 1 code, matching the top-level summary table.
 **Covered:** vacancy status transitions (Draft → Published → Closed/Filled, incl. auto-Filled detection), candidate pipeline stage advancement (forward-only, no skipping) and rejection (from any active stage), CV upload validation (type/size) + download round-trip, interview scheduling with interviewer double-booking conflict detection, interview complete/cancel, recruitment stats aggregation, Excel export, AI CV summarization/interview questions/candidate matching (all with mocked `IAIService`, success + failure-fallback paths).
 
 **Frontend E2E:** none.
+
+---
+
+## Phase 8 — Candidate Portal
+
+### Backend Unit Tests (19 tests)
+
+| Test Class | Tests | File |
+|------------|-------|------|
+| `CandidatePortalServiceTests` | 12 | `tests/AIHelpdesk.Tests/Services/CandidatePortalServiceTests.cs` |
+| `InterviewServiceTests` (slot CRUD additions) | 7 | `tests/AIHelpdesk.Tests/Services/InterviewServiceTests.cs` |
+
+**Covered:** candidate login/activation (incl. expired/consumed setup token rejection), status
+lookup, document upload validation (reusing the extracted `RecruitmentFileValidation`
+constants), available-slot listing scoped to the candidate's vacancy, slot booking (incl. the
+race-guard re-check and the interviewer double-booking conflict reused from the staff
+`InterviewService`), and staff-side slot create/cancel/list.
+
+**Manually verified against a live Docker stack** (not automated — see
+`documentation/context-candidate.md` §Verification): the core design goal, that a candidate JWT
+(`aud: AIHelpdesk-CandidatePortal`) is rejected on staff endpoints and a staff JWT is rejected on
+`/api/candidate-portal/*`, both by the `[Authorize(AuthenticationSchemes = ...)]` audience check
+itself. Five cases confirmed via curl against the rebuilt stack: candidate token → staff endpoint
+(401), staff token → candidate-portal endpoint (401), candidate token → its own endpoint (200,
+correct data returned), staff token → staff endpoint (200), no token → candidate-portal endpoint
+(401).
+
+**Frontend E2E:** none written this pass (new `/portal/*` routes confirmed not to collide with
+existing routes by re-running the full existing suite — still 49/50, same pre-existing failure —
+noted as a follow-up in `documentation/context-candidate.md`).
 
 ---
 
