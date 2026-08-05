@@ -167,10 +167,18 @@ npm run test:e2e:ui
 | Phase 5 — Ticketing | 49 | — | — | ✅ Backend passing (no E2E yet) |
 | Phase 6 — Recruitment | 37 | — | — | ✅ Backend passing (no E2E yet) |
 | Phase 7 — Hardening & Deployment | 6 | — | — | 🔧 In progress (see below) |
-| **Total** | **279** | **23** | **27** | — |
+| Phase 8 — Candidate Portal | 19 | — | — | ✅ Backend passing (no E2E yet) |
+| **Total** | **298** | **23** | **27** | — |
 
-**Backend (279 tests):** xUnit + Moq + FluentAssertions + Bogus, run and passing as of 2026-08-04.
+**Backend (298 tests):** xUnit + Moq + FluentAssertions + Bogus, run and passing as of 2026-08-05.
 No frontend (Vitest) unit tests exist yet for any phase.
+**Phase 8 audience isolation:** the candidate self-service portal (`/api/candidate-portal/*`)
+uses a fully separate JWT audience (`AIHelpdesk-CandidatePortal` vs the staff `AIHelpdesk`) so a
+candidate token cannot satisfy `[Authorize]` on any internal endpoint by construction. Manually
+verified 2026-08-05 against a rebuilt Docker stack: candidate token → staff endpoint (401), staff
+token → candidate-portal endpoint (401), each token → its own endpoints (200). See
+[`documentation/context-candidate.md`](documentation/context-candidate.md) for the design and
+[`test-coverage-report.md`](test-coverage-report.md) for the full test breakdown.
 **E2E (23 smoke + 27 interaction):** actually run 2026-08-04 against a live Docker Compose stack
 rebuilt from current code — **49/50 passing** (final state). The first run (18/50) surfaced two
 real bugs: `RoleGuard` checked `'SuperAdmin'` (no space) against the actual `"Super Admin"` role,
@@ -188,7 +196,7 @@ writeup and the three additional test/UI-copy mismatches fixed along the way.
 - Controllers: 37 action methods — 0% (integration tests planned but not yet written)
 - 3 uncovered service methods: `GetNotesAsync`, `GenerateSummaryAsync`, `GetTeamActionItemsAsync`, `DownloadDocumentAsync`  
 **E2E (50 tests):** 23 smoke (screenshot + heading) across all pages + 27 interaction (dialog, form, search, CRUD) for Phase 2  
-**Grand total:** 329 tests
+**Grand total:** 348 tests
 
 ## API Endpoints (Phase 1 — Foundation MVP)
 
