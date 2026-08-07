@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Ticket, Clock, AlertTriangle, CheckCircle, XCircle, RefreshCw, Download } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface TicketItem {
   id: string;
@@ -99,6 +100,12 @@ export function TicketsPage() {
     enabled: createOpen,
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const createMutation = useMutation({
     mutationFn: (body: { categoryId: string; title: string; description: string; priority?: string }) =>
       api.post('/tickets', body),
@@ -108,6 +115,7 @@ export function TicketsPage() {
       newTicket.title = '';
       newTicket.description = '';
     },
+    onError: onMutationError,
   });
 
   const [newTicket, setNewTicket] = useState({ title: '', description: '', categoryId: '', priority: '' });

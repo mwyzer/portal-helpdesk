@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { ApprovalTimeline, type ApprovalStage } from '@/components/domain/ApprovalTimeline';
 import { RefreshCw, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface LeaveRequestResponse {
   id: string;
@@ -61,6 +62,12 @@ export function LeaveApprovalsPage() {
     queryFn: () => api.get(`/leave-requests/pending-approval?page=${page}&pageSize=10`).then((r) => r.data),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   // Approving/rejecting changes the requester's UsedDays/PendingDays (see LeaveRequestsPage's
   // submit/cancel for the same gap), so their cached ['leave-balances'] needs invalidating too.
   const approveMutation = useMutation({
@@ -69,6 +76,7 @@ export function LeaveApprovalsPage() {
       queryClient.invalidateQueries({ queryKey: ['leaveApprovals'] });
       queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
     },
+    onError: onMutationError,
   });
 
   const rejectMutation = useMutation({
@@ -80,6 +88,7 @@ export function LeaveApprovalsPage() {
       queryClient.invalidateQueries({ queryKey: ['leaveApprovals'] });
       queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
     },
+    onError: onMutationError,
   });
 
   const onReject = () => {

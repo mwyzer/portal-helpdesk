@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Trash2, Edit } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface AgentAssignment {
   id: string;
@@ -52,22 +53,31 @@ export function AgentAssignmentsPage() {
     queryFn: () => api.get('/departments').then(r => r.data),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const saveMutation = useMutation({
     mutationFn: (body: any) => api.post('/agent-assignments', body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-assignments'] });
       setForm({ userId: '', departmentId: '', maxTickets: 10, isActive: true });
     },
+    onError: onMutationError,
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, ...body }: any) => api.put(`/agent-assignments/${id}`, body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['agent-assignments'] }),
+    onError: onMutationError,
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/agent-assignments/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['agent-assignments'] }),
+    onError: onMutationError,
   });
 
   if (isLoading) return <Spinner />;

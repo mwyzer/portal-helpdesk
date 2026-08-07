@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import api from '@/lib/axios';
+import { useToastStore } from '@/lib/useToast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,6 +42,12 @@ export function DepartmentsPage() {
     resolver: zodResolver(deptSchema),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: { name: string; code: string }) => api.post('/departments', data),
     onSuccess: () => {
@@ -48,6 +55,7 @@ export function DepartmentsPage() {
       reset();
       queryClient.invalidateQueries({ queryKey: ['departments'] });
     },
+    onError: onMutationError,
   });
 
   const updateMutation = useMutation({
@@ -58,6 +66,7 @@ export function DepartmentsPage() {
       reset();
       queryClient.invalidateQueries({ queryKey: ['departments'] });
     },
+    onError: onMutationError,
   });
 
   const onCreate = (data: z.infer<typeof deptSchema>) => createMutation.mutate(data);

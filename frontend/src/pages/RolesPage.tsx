@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import api from '@/lib/axios';
+import { useToastStore } from '@/lib/useToast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,9 +38,16 @@ export function RolesPage() {
     queryFn: () => api.get('/roles').then((r) => r.data),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/roles/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
+    onError: onMutationError,
   });
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<z.infer<typeof roleSchema>>({
@@ -47,18 +55,26 @@ export function RolesPage() {
   });
 
   const onCreate = async (data: z.infer<typeof roleSchema>) => {
-    await api.post('/roles', data);
-    setShowCreate(false);
-    reset();
-    queryClient.invalidateQueries({ queryKey: ['roles'] });
+    try {
+      await api.post('/roles', data);
+      setShowCreate(false);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+    } catch (err) {
+      onMutationError(err);
+    }
   };
 
   const onUpdate = async (data: z.infer<typeof roleSchema>) => {
     if (!editingRole) return;
-    await api.put(`/roles/${editingRole.id}`, { ...data, isActive: editingRole.isActive });
-    setEditingRole(null);
-    reset();
-    queryClient.invalidateQueries({ queryKey: ['roles'] });
+    try {
+      await api.put(`/roles/${editingRole.id}`, { ...data, isActive: editingRole.isActive });
+      setEditingRole(null);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+    } catch (err) {
+      onMutationError(err);
+    }
   };
 
   return (

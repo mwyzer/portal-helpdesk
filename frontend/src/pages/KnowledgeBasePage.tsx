@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/axios';
+import { useAuthStore } from '@/store/authStore';
+import { useToastStore } from '@/lib/useToast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,6 +49,10 @@ function formatSize(bytes: number): string {
 export function KnowledgeBasePage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const addToast = useToastStore((s) => s.addToast);
+  const canUpload = user?.roles?.some((r) => ['Secretary', 'HRD', 'Super Admin'].includes(r));
+  const canDelete = user?.roles?.includes('Super Admin');
   const [showUpload, setShowUpload] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -58,6 +64,11 @@ export function KnowledgeBasePage() {
     queryFn: () => api.get('/knowledge-documents', { params: { pageSize: 50, status: statusFilter || undefined } }).then(r => r.data),
   });
 
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const uploadMutation = useMutation({
     mutationFn: async () => {
       if (!uploadFile || !uploadTitle) return;
@@ -67,20 +78,24 @@ export function KnowledgeBasePage() {
       return api.post('/knowledge-documents', form, { headers: { 'Content-Type': 'multipart/form-data' } });
     },
     onSuccess: () => { setShowUpload(false); setUploadFile(null); setUploadTitle(''); queryClient.invalidateQueries({ queryKey: ['knowledge-documents'] }); },
+    onError: onMutationError,
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/knowledge-documents/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['knowledge-documents'] }),
+    onError: onMutationError,
   });
 
   const reindexMutation = useMutation({
     mutationFn: (id: string) => api.post(`/knowledge-documents/${id}/index`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['knowledge-documents'] }),
+    onError: onMutationError,
   });
 
   const searchMutation = useMutation({
     mutationFn: (q: string) => api.post('/knowledge-documents/search', { query: q, topK: 5 }),
+    onError: onMutationError,
   });
 
   const filtered = data?.items?.filter(d =>
@@ -94,9 +109,11 @@ export function KnowledgeBasePage() {
           <h1 className="text-3xl font-bold tracking-tight">Knowledge Base</h1>
           <p className="text-muted-foreground">Manage AI training documents</p>
         </div>
-        <Button onClick={() => { setUploadFile(null); setUploadTitle(''); setShowUpload(true); }}>
-          <Upload className="mr-2 h-4 w-4" /> Upload Document
-        </Button>
+        {canUpload && (
+          <Button onClick={() => { setUploadFile(null); setUploadTitle(''); setShowUpload(true); }}>
+            <Upload className="mr-2 h-4 w-4" /> Upload Document
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -167,14 +184,16 @@ export function KnowledgeBasePage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        {(d.status === 'Failed' || d.status === 'Ready') && (
+                        {canUpload && (d.status === 'Failed' || d.status === 'Ready') && (
                           <Button variant="ghost" size="icon" onClick={() => reindexMutation.mutate(d.id)} title="Re-index">
                             <RefreshCw className="h-4 w-4" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => { if (confirm('Delete?')) deleteMutation.mutate(d.id); }} aria-label="Delete document">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {canDelete && (
+                          <Button variant="ghost" size="icon" onClick={() => { if (confirm('Delete?')) deleteMutation.mutate(d.id); }} aria-label="Delete document">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

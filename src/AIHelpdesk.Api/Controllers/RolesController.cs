@@ -7,7 +7,7 @@ namespace AIHelpdesk.Api.Controllers;
 
 [ApiController]
 [Route("api/roles")]
-[Authorize(Roles = "Super Admin")]
+[Authorize(Roles = "Super Admin,HRD")]
 public class RolesController : ControllerBase
 {
     private readonly IRoleService _roleService;

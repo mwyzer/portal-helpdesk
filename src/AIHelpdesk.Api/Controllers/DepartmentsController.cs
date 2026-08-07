@@ -25,7 +25,7 @@ public class DepartmentsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD")]
     public async Task<ActionResult<DepartmentResponse>> CreateDepartment([FromBody] CreateDepartmentRequest request)
     {
         var result = await _departmentService.CreateDepartmentAsync(request);
@@ -33,7 +33,7 @@ public class DepartmentsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD")]
     public async Task<ActionResult<DepartmentResponse>> UpdateDepartment(Guid id, [FromBody] UpdateDepartmentRequest request)
     {
         var result = await _departmentService.UpdateDepartmentAsync(id, request);

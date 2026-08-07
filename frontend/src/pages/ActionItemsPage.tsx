@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, RefreshCw, CheckCircle2, XCircle, Pencil } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface ActionItemResponse {
   id: string;
@@ -34,6 +35,7 @@ interface ActionItemResponse {
 interface EmployeeOption {
   id: string;
   fullName: string;
+  userId: string | null;
 }
 
 interface MeetingOption {
@@ -92,20 +94,28 @@ export function ActionItemsPage() {
     resolver: zodResolver(actionItemSchema),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Save failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: ActionItemForm) => api.post('/action-items', {
       ...data,
-      meetingId: data.meetingId || null,
+      meetingId: data.meetingId && data.meetingId !== 'none' ? data.meetingId : null,
     }),
     onSuccess: () => { setShowCreate(false); reset(); queryClient.invalidateQueries({ queryKey: ['action-items'] }); },
+    onError: onMutationError,
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: ActionItemForm }) => api.put(`/action-items/${id}`, {
       ...data,
-      meetingId: data.meetingId || null,
+      meetingId: data.meetingId && data.meetingId !== 'none' ? data.meetingId : null,
     }),
     onSuccess: () => { setEditingItem(null); reset(); queryClient.invalidateQueries({ queryKey: ['action-items'] }); },
+    onError: onMutationError,
   });
 
   const completeMutation = useMutation({
@@ -244,8 +254,8 @@ export function ActionItemsPage() {
                 <Select onValueChange={(v: string) => setValue('assignedToId', v)}>
                   <SelectTrigger id="assignedToId" aria-invalid={!!errors.assignedToId} aria-describedby={errors.assignedToId ? 'assignedToId-error' : undefined}><SelectValue placeholder="Select employee" /></SelectTrigger>
                   <SelectContent>
-                    {employees?.items?.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>{e.fullName}</SelectItem>
+                    {employees?.items?.filter((e) => e.userId).map((e) => (
+                      <SelectItem key={e.id} value={e.userId!}>{e.fullName}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -297,8 +307,8 @@ export function ActionItemsPage() {
                 <Select value={editingItem?.assignedToId} onValueChange={(v: string) => setValue('assignedToId', v)}>
                   <SelectTrigger id="assignedToId-edit" aria-invalid={!!errors.assignedToId} aria-describedby={errors.assignedToId ? 'assignedToId-edit-error' : undefined}><SelectValue placeholder="Select employee" /></SelectTrigger>
                   <SelectContent>
-                    {employees?.items?.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>{e.fullName}</SelectItem>
+                    {employees?.items?.filter((e) => e.userId).map((e) => (
+                      <SelectItem key={e.id} value={e.userId!}>{e.fullName}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

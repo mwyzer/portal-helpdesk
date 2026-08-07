@@ -48,7 +48,7 @@ public class LeaveTypesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD")]
     public async Task<ActionResult> Delete(Guid id)
     {
         await _leaveTypeService.DeleteAsync(id);
