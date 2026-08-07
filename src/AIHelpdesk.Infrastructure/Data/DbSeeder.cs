@@ -161,7 +161,11 @@ public static class DbSeeder
 
         async Task CreateEmployee(string email, string employeeNo, string role, Guid? managerEmployeeId = null)
         {
-            if (await context.Employees.AnyAsync(e => e.Email == email)) return;
+            // EmployeeNo (not Email) carries the DB's unique constraint, so a stray real employee
+            // landing on a reserved EMP-XXX number -- or a prior seed run that got partway through --
+            // makes an email-only check insufficient and throws on every subsequent startup, since
+            // this call is unguarded in Program.cs and a throw here previously crashed the whole app.
+            if (await context.Employees.AnyAsync(e => e.Email == email || e.EmployeeNo == employeeNo)) return;
 
             var user = await userManager.FindByEmailAsync(email);
             if (user == null) return;
