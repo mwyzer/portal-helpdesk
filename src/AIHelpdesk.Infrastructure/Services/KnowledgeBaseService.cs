@@ -7,6 +7,7 @@ using AIHelpdesk.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace AIHelpdesk.Infrastructure.Services;
 
@@ -15,13 +16,21 @@ public class KnowledgeBaseService : IKnowledgeBaseService
     private readonly ApplicationDbContext _context;
     private readonly IAIService _ai;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<KnowledgeBaseService> _logger;
     private readonly string _uploadPath;
 
-    public KnowledgeBaseService(ApplicationDbContext context, IAIService ai, IConfiguration configuration, IServiceScopeFactory scopeFactory)
+    // Shown to any authenticated user via GET /api/knowledge-documents (no role restriction) --
+    // the underlying exception (AI provider error bodies, file paths, etc.) goes to _logger
+    // instead, where only operators with log/dashboard access can see it.
+    private const string GenericIndexingFailureMessage =
+        "Indexing failed due to an AI provider or server error. Contact an administrator for details.";
+
+    public KnowledgeBaseService(ApplicationDbContext context, IAIService ai, IConfiguration configuration, IServiceScopeFactory scopeFactory, ILogger<KnowledgeBaseService> logger)
     {
         _context = context;
         _ai = ai;
         _scopeFactory = scopeFactory;
+        _logger = logger;
         _uploadPath = configuration["KnowledgeBase:UploadPath"] ?? Path.Combine(Directory.GetCurrentDirectory(), "uploads", "knowledge");
         Directory.CreateDirectory(_uploadPath);
     }
@@ -107,8 +116,9 @@ public class KnowledgeBaseService : IKnowledgeBaseService
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Auto-indexing failed for KnowledgeDocument {DocumentId}", docId);
                 scopedDoc.Status = KnowledgeDocumentStatus.Failed;
-                scopedDoc.ErrorMessage = ex.Message;
+                scopedDoc.ErrorMessage = GenericIndexingFailureMessage;
                 scopedDoc.UpdatedAt = DateTime.UtcNow;
                 await scopedContext.SaveChangesAsync();
             }
@@ -148,8 +158,9 @@ public class KnowledgeBaseService : IKnowledgeBaseService
             // Same "leave the document stuck at Indexing" failure mode as the auto-index path
             // below (just without the disposed-context race, since this one runs synchronously
             // within the request) -- record the failure instead of letting it bubble as a bare 500.
+            _logger.LogError(ex, "Manual re-index failed for KnowledgeDocument {DocumentId}", id);
             doc.Status = KnowledgeDocumentStatus.Failed;
-            doc.ErrorMessage = ex.Message;
+            doc.ErrorMessage = GenericIndexingFailureMessage;
             doc.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
         }

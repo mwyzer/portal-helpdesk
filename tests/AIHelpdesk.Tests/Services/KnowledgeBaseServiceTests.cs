@@ -8,6 +8,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace AIHelpdesk.Tests.Services;
@@ -39,9 +40,11 @@ public class KnowledgeBaseServiceTests
         var services = new ServiceCollection();
         services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(dbName));
         services.AddSingleton(aiMock.Object);
+        services.AddLogging();
         var provider = services.BuildServiceProvider();
 
-        var service = new KnowledgeBaseService(context, aiMock.Object, configMock.Object, provider.GetRequiredService<IServiceScopeFactory>());
+        var logger = new Mock<ILogger<KnowledgeBaseService>>();
+        var service = new KnowledgeBaseService(context, aiMock.Object, configMock.Object, provider.GetRequiredService<IServiceScopeFactory>(), logger.Object);
         return (service, context, aiMock);
     }
 
