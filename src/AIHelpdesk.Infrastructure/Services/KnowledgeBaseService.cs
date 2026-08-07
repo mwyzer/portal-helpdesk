@@ -158,6 +158,7 @@ public class KnowledgeBaseService : IKnowledgeBaseService
             // Same "leave the document stuck at Indexing" failure mode as the auto-index path
             // below (just without the disposed-context race, since this one runs synchronously
             // within the request) -- record the failure instead of letting it bubble as a bare 500.
+            Console.Error.WriteLine("DEBUG_EX: " + ex);
             _logger.LogError(ex, "Manual re-index failed for KnowledgeDocument {DocumentId}", id);
             doc.Status = KnowledgeDocumentStatus.Failed;
             doc.ErrorMessage = GenericIndexingFailureMessage;
