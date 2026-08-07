@@ -28,7 +28,8 @@ public class TicketServiceTests
             .Build();
 
         var aiMock = new Mock<IAIService>();
-        var service = new TicketService(context, configuration, aiMock.Object, new ExcelService(), NullLogger<TicketService>.Instance);
+        var notificationMock = new Mock<INotificationService>();
+        var service = new TicketService(context, configuration, aiMock.Object, new ExcelService(), notificationMock.Object, NullLogger<TicketService>.Instance);
         return (service, context, aiMock);
     }
 
