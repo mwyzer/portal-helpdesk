@@ -1,6 +1,8 @@
 # Phase 5 — Ticketing Module — TODO Checklist
 
 > **Status (2026-08-04, updated):** Core backend + 5 frontend pages committed. Since the initial audit, the following were closed: AI categorization now calls the real Phase 4 `IAIService` (with graceful fallback), a `TicketSlaBackgroundService` runs every 5 min to detect breaches/at-risk tickets and notify the assigned agent, attachment upload now validates extension/size with new download + delete endpoints, and Excel export was added (backend + frontend button). 54 backend tests now cover `TicketService`, `TicketCategoryService`, `EscalationService`, `AgentAssignmentService`, and the SLA job. Remaining real gaps: no dedicated `/start`/`/reject`/`/escalate` endpoints (generic status endpoint used instead), no formal status-transition state machine, and several frontend UI components (AI suggestion card, escalation modal, SLA countdown as a live timer, standalone reports/monitoring pages) are still missing.
+>
+> **Status (2026-08-07, updated):** The "ownership-level checks not fully verified" note below is now confirmed, not just suspected — `TicketsController.GetById`/`Update` have no ownership or role check at all; any authenticated user can read or edit any ticket by id. Not fixed yet at the REST layer. Separately, an MCP (Model Context Protocol) server was added at `POST /mcp` exposing `create_ticket`/`get_ticket`/`update_ticket`/`get_sla` as agent-callable tools (`src/AIHelpdesk.Api/Mcp/TicketMcpTools.cs`) — these tools do enforce ownership (submitter, assigned agent, or Agent/Manager/Super Admin role) independently of the REST gap above, since MCP tool calls don't pass through `[Authorize(Roles=...)]` action filters. See the new "Backend — MCP Agent Tools" section below.
 
 ## Database
 
@@ -27,7 +29,7 @@
 - [ ] Implement POST `/api/tickets/{id}/reject` — no dedicated endpoint, handled via generic `PUT /{id}/status`
 - [ ] Implement POST `/api/tickets/{id}/escalate` — handled via separate `EscalationsController` (`POST /api/escalations`), not a ticket-scoped action
 - [ ] Implement status transition validation rules — `UpdateStatusAsync` sets any status directly, no valid-transition state machine
-- [x] Implement permission checks (role + ownership) — `[Authorize(Roles=...)]` on all actions; ownership-level checks not fully verified
+- [ ] Implement permission checks (role + ownership) — `[Authorize(Roles=...)]` on all actions; ownership-level checks confirmed missing 2026-08-07: `GetById`/`Update` accept any authenticated caller regardless of whether they submitted, are assigned to, or have any staff role on the ticket. Not fixed yet
 
 ## Backend — Assignment & SLA
 
@@ -55,6 +57,22 @@
 - [ ] Create `TicketAIService` (hook into Phase 4 AI service) — no separate service class, but `TicketService.GetAISuggestionAsync` now calls `IAIService` directly (fixed 2026-08-04)
 - [x] Implement POST `/api/tickets/{id}/ai-suggest` — endpoint exists as `POST /api/tickets/ai-suggestion`; now calls the real Phase 4 `IAIService` with a category-constrained prompt, parses JSON response, falls back to the first configured category if the AI call fails
 - [ ] Store AI suggestions in ticket history — still not implemented (suggestion happens pre-creation, before a ticket/history row exists)
+
+## Backend — MCP Agent Tools
+
+> Added 2026-08-07, not part of the original Phase 5 plan — grew out of a design discussion on
+> agentic RAG / MCP tool access for role-specific agents (HR, Recruitment, Ticket). Only the
+> Ticket Agent is built so far.
+
+- [x] Add `ModelContextProtocol.AspNetCore` (2.1.0, official SDK) to `AIHelpdesk.Api`
+- [x] Host MCP server at `POST /mcp`, behind the same JWT bearer auth as the REST API (`app.MapMcp("/mcp").RequireAuthorization()` in `Program.cs`)
+- [x] Create `TicketMcpTools` (`src/AIHelpdesk.Api/Mcp/TicketMcpTools.cs`) with `create_ticket`, `get_ticket`, `update_ticket`, `get_sla`
+- [x] Enforce per-tool ownership scoping (submitter, assigned agent, or Agent/Manager/Super Admin role) via `IHttpContextAccessor`, independently of the REST-layer gap noted above — `get_ticket`/`update_ticket`/`get_sla` all deny with the same "Ticket not found" message for both a nonexistent id and an unauthorized one, so the tool can't be used to enumerate other users' ticket ids
+- [x] `get_sla` reuses the ownership-scoped `GetByIdAsync` and projects `SLADeadline`/`SLAStatus`, rather than wrapping `GetSLAReportAsync` (which is a Manager-only, department-wide report, not a per-ticket lookup) — the tool contract only needed the latter
+- [x] Verified end-to-end against a live instance (not just build-tested): `tools/list` schema, `create_ticket` actually persists, `get_ticket` as owner (allowed), as Manager/staff (allowed), as an unrelated non-staff account — Secretary — (denied), test ticket cleaned up afterward
+- [ ] HR Agent (`get_employee`, `get_leave_balance`, `create_leave_request`) — designed, not built
+- [ ] Recruitment Agent (`search_candidates`, `evaluate_candidate`, `get_candidate`) — designed, not built
+- [ ] Fix the underlying `TicketsController.GetById`/`Update` ownership gap at the REST layer (see permission-checks note above) — MCP tools don't inherit it, but the REST endpoint itself still has it
 
 ## Backend — History & Reports
 
