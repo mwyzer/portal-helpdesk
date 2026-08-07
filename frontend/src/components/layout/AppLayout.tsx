@@ -199,7 +199,7 @@ export function AppLayout() {
           </Button>
         </div>
 
-        <nav className="flex-1 space-y-1 p-4">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-4">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
