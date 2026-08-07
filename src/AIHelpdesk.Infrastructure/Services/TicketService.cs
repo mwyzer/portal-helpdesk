@@ -16,6 +16,7 @@ public class TicketService : ITicketService
     private readonly IConfiguration _configuration;
     private readonly IAIService _ai;
     private readonly IExcelService _excel;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<TicketService> _logger;
 
     private const string AISuggestionSystemPrompt =
@@ -26,12 +27,13 @@ public class TicketService : ITicketService
         "{{\"category\":\"<one of the listed category names>\",\"priority\":\"<Low|Normal|High|Urgent>\"," +
         "\"reason\":\"<one sentence why>\",\"confidence\":<number between 0 and 1>}}";
 
-    public TicketService(ApplicationDbContext context, IConfiguration configuration, IAIService ai, IExcelService excel, ILogger<TicketService> logger)
+    public TicketService(ApplicationDbContext context, IConfiguration configuration, IAIService ai, IExcelService excel, INotificationService notificationService, ILogger<TicketService> logger)
     {
         _context = context;
         _configuration = configuration;
         _ai = ai;
         _excel = excel;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -289,6 +291,24 @@ public class TicketService : ITicketService
         ticket.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        // Comments/assignment/status changes never notified anyone -- the bell only ever fired
+        // for leave requests and SLA breaches, so anyone whose activity was ticket-centric saw
+        // no notifications at all. Notify the submitter and assigned agent, excluding the author.
+        var author = await _context.Users.FindAsync(userId);
+        var recipientIds = new HashSet<Guid> { ticket.SubmittedById };
+        if (ticket.AssignedAgentId.HasValue) recipientIds.Add(ticket.AssignedAgentId.Value);
+        recipientIds.Remove(userId);
+
+        foreach (var recipientId in recipientIds)
+        {
+            await _notificationService.CreateNotificationAsync(
+                recipientId,
+                "New Ticket Comment",
+                $"{author?.FullName ?? "Someone"} commented on \"{ticket.Title}\"",
+                "Info", "Ticket", ticket.Id);
+        }
+
         return await GetByIdAsync(id);
     }
 
