@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// When frontend and backend share an origin (local dev via Vite proxy, or the Docker/nginx
+// setup), this stays empty and requests go out as relative paths. When deployed separately
+// (e.g. frontend on Vercel, backend on Render), set VITE_API_URL to the backend's origin.
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? '';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: `${apiBaseUrl}/api`,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -24,7 +29,7 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
-          const { data } = await axios.post('/api/auth/refresh-token', {
+          const { data } = await axios.post(`${apiBaseUrl}/api/auth/refresh-token`, {
             accessToken: localStorage.getItem('accessToken'),
             refreshToken,
           });

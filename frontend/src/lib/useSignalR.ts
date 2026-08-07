@@ -34,8 +34,10 @@ async function ensureConnection(token: string): Promise<HubConnection> {
     }
   }
 
+  const hubBaseUrl = import.meta.env.VITE_API_URL ?? '';
+
   globalConnection = new HubConnectionBuilder()
-    .withUrl('/hubs/notifications', {
+    .withUrl(`${hubBaseUrl}/hubs/notifications`, {
       accessTokenFactory: () => token,
     })
     .configureLogging(LogLevel.Warning)

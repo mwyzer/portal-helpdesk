@@ -3,8 +3,10 @@ import axios from 'axios';
 // Separate axios instance + localStorage keys from lib/axios.ts's staff client, so a staff
 // session and a candidate session can never collide in the same browser -- see the
 // CandidatePortal JWT audience isolation in the backend's Program.cs/TokenService.
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? '';
+
 const candidatePortalApi = axios.create({
-  baseURL: '/api/candidate-portal',
+  baseURL: `${apiBaseUrl}/api/candidate-portal`,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -27,7 +29,7 @@ candidatePortalApi.interceptors.response.use(
       const refreshToken = localStorage.getItem('candidatePortalRefreshToken');
       if (refreshToken) {
         try {
-          const { data } = await axios.post('/api/candidate-portal/refresh-token', {
+          const { data } = await axios.post(`${apiBaseUrl}/api/candidate-portal/refresh-token`, {
             accessToken: localStorage.getItem('candidatePortalAccessToken'),
             refreshToken,
           });

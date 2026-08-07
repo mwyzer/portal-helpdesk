@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 
 namespace AIHelpdesk.Infrastructure;
 
@@ -16,7 +17,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"))
+            options.UseNpgsql(NormalizeConnectionString(configuration.GetConnectionString("DefaultConnection")))
                    .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
         services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -72,5 +73,32 @@ public static class DependencyInjection
         });
 
         return services;
+    }
+
+    // Render (and other Heroku-style hosts) hand out managed Postgres credentials as a
+    // postgres:// URI, which Npgsql's keyword-value parser rejects outright. Convert it to
+    // Npgsql's connection string format; local/keyword-style connection strings pass through untouched.
+    private static string? NormalizeConnectionString(string? connectionString)
+    {
+        if (string.IsNullOrEmpty(connectionString) ||
+            !(connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
+        {
+            return connectionString;
+        }
+
+        var uri = new Uri(connectionString);
+        var userInfo = uri.UserInfo.Split(':', 2);
+
+        var builder = new NpgsqlConnectionStringBuilder
+        {
+            Host = uri.Host,
+            Port = uri.Port > 0 ? uri.Port : 5432,
+            Database = uri.AbsolutePath.TrimStart('/'),
+            Username = Uri.UnescapeDataString(userInfo[0]),
+            Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty,
+            SslMode = SslMode.Require,
+        };
+
+        return builder.ConnectionString;
     }
 }
