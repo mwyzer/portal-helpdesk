@@ -7,6 +7,7 @@ using AIHelpdesk.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
 namespace AIHelpdesk.Tests.Services;
@@ -15,8 +16,9 @@ public class KnowledgeBaseServiceTests
 {
     private static async Task<(KnowledgeBaseService Service, ApplicationDbContext Context, Mock<IAIService> AIMock)> CreateServiceAsync()
     {
+        var dbName = $"KBTestDb_{Guid.NewGuid()}";
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase($"KBTestDb_{Guid.NewGuid()}")
+            .UseInMemoryDatabase(dbName)
             .Options;
 
         var context = new ApplicationDbContext(options);
@@ -30,7 +32,16 @@ public class KnowledgeBaseServiceTests
         Directory.CreateDirectory(uploadDir);
         configMock.Setup(c => c["KnowledgeBase:UploadPath"]).Returns(uploadDir);
 
-        var service = new KnowledgeBaseService(context, aiMock.Object, configMock.Object);
+        // UploadDocumentAsync's background auto-index resolves its own scope via
+        // IServiceScopeFactory rather than reusing the request-scoped context/AI service (see
+        // the comment in KnowledgeBaseService), so it needs a real minimal DI container here,
+        // wired to the same in-memory database and the same AI mock -- not a bare Mock<IServiceScopeFactory>.
+        var services = new ServiceCollection();
+        services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(dbName));
+        services.AddSingleton(aiMock.Object);
+        var provider = services.BuildServiceProvider();
+
+        var service = new KnowledgeBaseService(context, aiMock.Object, configMock.Object, provider.GetRequiredService<IServiceScopeFactory>());
         return (service, context, aiMock);
     }
 
