@@ -40,7 +40,7 @@ public class MeetingsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Secretary,Manager,Super Admin")]
+    [Authorize(Roles = "Secretary,Manager,Super Admin,HRD")]
     public async Task<ActionResult<MeetingResponse>> CreateMeeting([FromBody] CreateMeetingRequest request)
     {
         var result = await _meetingService.CreateMeetingAsync(GetUserId(), request);
@@ -48,7 +48,7 @@ public class MeetingsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Secretary,Manager,Super Admin")]
+    [Authorize(Roles = "Secretary,Manager,Super Admin,HRD")]
     public async Task<ActionResult<MeetingResponse>> UpdateMeeting(Guid id, [FromBody] UpdateMeetingRequest request)
     {
         var result = await _meetingService.UpdateMeetingAsync(id, request);
@@ -56,7 +56,7 @@ public class MeetingsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Secretary,Super Admin")]
+    [Authorize(Roles = "Secretary,Super Admin,HRD")]
     public async Task<ActionResult> DeleteMeeting(Guid id)
     {
         await _meetingService.DeleteMeetingAsync(id);
@@ -78,7 +78,7 @@ public class MeetingsController : ControllerBase
     }
 
     [HttpPost("{id}/participants")]
-    [Authorize(Roles = "Secretary,Super Admin")]
+    [Authorize(Roles = "Secretary,Super Admin,HRD")]
     public async Task<ActionResult<MeetingParticipantResponse>> AddParticipant(Guid id, [FromBody] AddParticipantRequest request)
     {
         var result = await _meetingService.AddParticipantAsync(id, request);
@@ -86,7 +86,7 @@ public class MeetingsController : ControllerBase
     }
 
     [HttpDelete("{id}/participants/{participantId}")]
-    [Authorize(Roles = "Secretary,Super Admin")]
+    [Authorize(Roles = "Secretary,Super Admin,HRD")]
     public async Task<ActionResult> RemoveParticipant(Guid id, Guid participantId)
     {
         await _meetingService.RemoveParticipantAsync(id, participantId);
@@ -101,7 +101,7 @@ public class MeetingsController : ControllerBase
     }
 
     [HttpPost("{id}/notes")]
-    [Authorize(Roles = "Secretary,Manager,Super Admin")]
+    [Authorize(Roles = "Secretary,Manager,Super Admin,HRD")]
     public async Task<ActionResult<MeetingNoteResponse>> AddNote(Guid id, [FromBody] CreateMeetingNoteRequest request)
     {
         var result = await _meetingService.AddNoteAsync(id, GetUserId(), request);
@@ -109,7 +109,7 @@ public class MeetingsController : ControllerBase
     }
 
     [HttpPut("{id}/notes/{noteId}")]
-    [Authorize(Roles = "Secretary,Manager,Super Admin")]
+    [Authorize(Roles = "Secretary,Manager,Super Admin,HRD")]
     public async Task<ActionResult<MeetingNoteResponse>> UpdateNote(Guid id, Guid noteId, [FromBody] UpdateMeetingNoteRequest request)
     {
         var result = await _meetingService.UpdateNoteAsync(id, noteId, request);
@@ -117,7 +117,7 @@ public class MeetingsController : ControllerBase
     }
 
     [HttpDelete("{id}/notes/{noteId}")]
-    [Authorize(Roles = "Secretary,Manager,Super Admin")]
+    [Authorize(Roles = "Secretary,Manager,Super Admin,HRD")]
     public async Task<ActionResult> DeleteNote(Guid id, Guid noteId)
     {
         await _meetingService.DeleteNoteAsync(id, noteId);
@@ -125,7 +125,7 @@ public class MeetingsController : ControllerBase
     }
 
     [HttpPost("{id}/generate-summary")]
-    [Authorize(Roles = "Secretary,Manager,Super Admin")]
+    [Authorize(Roles = "Secretary,Manager,Super Admin,HRD")]
     public async Task<ActionResult<MeetingNoteResponse>> GenerateSummary(Guid id)
     {
         var result = await _meetingService.GenerateSummaryAsync(id, GetUserId());

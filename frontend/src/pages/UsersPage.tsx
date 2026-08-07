@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import api from '@/lib/axios';
+import { useToastStore } from '@/lib/useToast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -57,15 +58,23 @@ export function UsersPage() {
     queryFn: () => api.get(`/users?page=${page}&pageSize=10&search=${search}`).then((r) => r.data),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/users/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+    onError: onMutationError,
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, activate }: { id: string; activate: boolean }) =>
       activate ? api.post(`/users/${id}/activate`) : api.post(`/users/${id}/deactivate`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+    onError: onMutationError,
   });
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<UserForm>({
@@ -73,18 +82,26 @@ export function UsersPage() {
   });
 
   const onCreate = async (data: UserForm) => {
-    await api.post('/users', { ...data, roleIds: data.roleIds ?? [] });
-    setShowCreate(false);
-    reset();
-    queryClient.invalidateQueries({ queryKey: ['users'] });
+    try {
+      await api.post('/users', { ...data, roleIds: data.roleIds ?? [] });
+      setShowCreate(false);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    } catch (err) {
+      onMutationError(err);
+    }
   };
 
   const onUpdate = async (data: UserForm) => {
     if (!editingUser) return;
-    await api.put(`/users/${editingUser.id}`, data);
-    setEditingUser(null);
-    reset();
-    queryClient.invalidateQueries({ queryKey: ['users'] });
+    try {
+      await api.put(`/users/${editingUser.id}`, data);
+      setEditingUser(null);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    } catch (err) {
+      onMutationError(err);
+    }
   };
 
   return (

@@ -12,6 +12,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Calendar, Sparkles, Loader2, CalendarPlus } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface InterviewItem {
   id: string;
@@ -100,6 +101,12 @@ export function InterviewsPage() {
     queryFn: () => api.get('/interviews/slots').then((r) => r.data),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const createMutation = useMutation({
     mutationFn: () =>
       api.post('/interviews', {
@@ -114,6 +121,7 @@ export function InterviewsPage() {
       setForm({ candidateId: '', interviewerId: '', scheduledAt: '', durationMinutes: 60, type: 'Video' });
       queryClient.invalidateQueries({ queryKey: ['interviews'] });
     },
+    onError: onMutationError,
   });
 
   const completeMutation = useMutation({
@@ -124,11 +132,13 @@ export function InterviewsPage() {
       setFeedbackForm({ feedback: '', rating: 3, recommendation: 'Yes' });
       queryClient.invalidateQueries({ queryKey: ['interviews'] });
     },
+    onError: onMutationError,
   });
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.post(`/interviews/${id}/cancel`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['interviews'] }),
+    onError: onMutationError,
   });
 
   const createSlotMutation = useMutation({
@@ -145,16 +155,19 @@ export function InterviewsPage() {
       setSlotForm({ interviewerId: '', jobVacancyId: '', scheduledAt: '', durationMinutes: 60, type: 'Video' });
       queryClient.invalidateQueries({ queryKey: ['interview-slots'] });
     },
+    onError: onMutationError,
   });
 
   const cancelSlotMutation = useMutation({
     mutationFn: (id: string) => api.post(`/interviews/slots/${id}/cancel`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['interview-slots'] }),
+    onError: onMutationError,
   });
 
   const questionsMutation = useMutation({
     mutationFn: (id: string) => api.post(`/interviews/${id}/ai-questions`).then((r) => r.data),
     onSuccess: (data) => setAiQuestions(data.questions ?? []),
+    onError: onMutationError,
   });
 
   const items = (data?.items ?? []).filter((i) => !statusFilter || i.status === statusFilter);

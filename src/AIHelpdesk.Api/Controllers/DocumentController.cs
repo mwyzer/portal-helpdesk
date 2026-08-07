@@ -33,7 +33,7 @@ public class DocumentTemplatesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Secretary,Super Admin")]
+    [Authorize(Roles = "Secretary,Super Admin,HRD")]
     public async Task<ActionResult<DocumentTemplateResponse>> CreateTemplate([FromBody] CreateDocumentTemplateRequest request)
     {
         var result = await _documentService.CreateTemplateAsync(request);
@@ -41,7 +41,7 @@ public class DocumentTemplatesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Secretary,Super Admin")]
+    [Authorize(Roles = "Secretary,Super Admin,HRD")]
     public async Task<ActionResult<DocumentTemplateResponse>> UpdateTemplate(Guid id, [FromBody] UpdateDocumentTemplateRequest request)
     {
         var result = await _documentService.UpdateTemplateAsync(id, request);

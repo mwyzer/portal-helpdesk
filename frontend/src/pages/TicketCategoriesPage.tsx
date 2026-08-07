@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2 } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface CategoryItem {
   id: string;
@@ -40,6 +41,12 @@ export function TicketCategoriesPage() {
     queryFn: () => api.get('/departments').then(r => r.data),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const saveMutation = useMutation({
     mutationFn: (body: any) =>
       editId ? api.put(`/ticket-categories/${editId}`, body) : api.post('/ticket-categories', body),
@@ -48,11 +55,13 @@ export function TicketCategoriesPage() {
       setEditId(null);
       setForm({ name: '', description: '', defaultPriority: 'Normal', slaHours: 24, departmentId: '' });
     },
+    onError: onMutationError,
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/ticket-categories/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ticket-categories'] }),
+    onError: onMutationError,
   });
 
   const openEdit = (c: CategoryItem) => {

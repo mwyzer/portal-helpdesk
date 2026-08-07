@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, RefreshCw, Send, XCircle, FileText } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface LeaveType {
   id: string;
@@ -86,6 +87,12 @@ export function LeaveRequestsPage() {
     queryFn: () => api.get('/leave-types').then((r) => r.data),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   // Submitting/cancelling changes PendingDays (and cancel-after-approval would change UsedDays
   // too), but only ['leaveRequests'] was invalidated -- the Dashboard's ['leave-balances', 'my']
   // query kept serving its stale cached value until a full reload, even though the backend had
@@ -96,6 +103,7 @@ export function LeaveRequestsPage() {
       queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
       queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
     },
+    onError: onMutationError,
   });
 
   const cancelMutation = useMutation({
@@ -104,6 +112,7 @@ export function LeaveRequestsPage() {
       queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
       queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
     },
+    onError: onMutationError,
   });
 
   const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<RequestForm>({
@@ -111,12 +120,16 @@ export function LeaveRequestsPage() {
   });
 
   const onApply = async (data: RequestForm) => {
-    const result = await api.post('/leave-requests', data);
-    await api.post(`/leave-requests/${result.data.id}/submit`);
-    setShowApply(false);
-    reset();
-    queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
-    queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
+    try {
+      const result = await api.post('/leave-requests', data);
+      await api.post(`/leave-requests/${result.data.id}/submit`);
+      setShowApply(false);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
+    } catch (err) {
+      onMutationError(err);
+    }
   };
 
   return (

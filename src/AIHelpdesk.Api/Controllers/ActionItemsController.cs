@@ -55,7 +55,7 @@ public class ActionItemsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Secretary,Manager,Super Admin")]
+    [Authorize(Roles = "Secretary,Manager,Super Admin,HRD")]
     public async Task<ActionResult<ActionItemResponse>> CreateActionItem([FromBody] CreateActionItemRequest request)
     {
         var result = await _actionItemService.CreateActionItemAsync(request);
@@ -63,7 +63,7 @@ public class ActionItemsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Secretary,Manager,Super Admin")]
+    [Authorize(Roles = "Secretary,Manager,Super Admin,HRD")]
     public async Task<ActionResult<ActionItemResponse>> UpdateActionItem(Guid id, [FromBody] UpdateActionItemRequest request)
     {
         var result = await _actionItemService.UpdateActionItemAsync(id, request);
@@ -78,7 +78,7 @@ public class ActionItemsController : ControllerBase
     }
 
     [HttpPost("{id}/cancel")]
-    [Authorize(Roles = "Secretary,Manager,Super Admin")]
+    [Authorize(Roles = "Secretary,Manager,Super Admin,HRD")]
     public async Task<ActionResult<ActionItemResponse>> CancelActionItem(Guid id)
     {
         var result = await _actionItemService.CancelActionItemAsync(id);

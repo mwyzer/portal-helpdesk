@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import api from '@/lib/axios';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, RefreshCw, FileText, Download, Wand2, Send, CheckCircle2, XCircle, FileCheck } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface DocumentRequestResponse {
   id: string;
@@ -57,6 +59,9 @@ const statusColors: Record<string, string> = {
 
 export function DocumentRequestsPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const canDraft = user?.roles?.some((r) => ['Secretary', 'Super Admin'].includes(r));
+  const canApprove = user?.roles?.some((r) => ['Manager', 'HRD', 'Super Admin'].includes(r));
   const [showCreate, setShowCreate] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
   const [detailRequest, setDetailRequest] = useState<DocumentRequestResponse | null>(null);
@@ -76,6 +81,12 @@ export function DocumentRequestsPage() {
 
   const inv = () => queryClient.invalidateQueries({ queryKey: ['document-requests'] });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
   });
@@ -83,32 +94,38 @@ export function DocumentRequestsPage() {
   const createMutation = useMutation({
     mutationFn: (data: z.infer<typeof requestSchema>) => api.post('/document-requests', data),
     onSuccess: () => { setShowCreate(false); reset(); inv(); },
+    onError: onMutationError,
   });
 
   const generateDraftMutation = useMutation({
     mutationFn: (id: string) => api.post(`/document-requests/${id}/generate-draft`),
     onSuccess: () => inv(),
+    onError: onMutationError,
   });
 
   const submitForReviewMutation = useMutation({
     mutationFn: (id: string) => api.post(`/document-requests/${id}/submit-for-review`),
     onSuccess: () => inv(),
+    onError: onMutationError,
   });
 
   const approveMutation = useMutation({
     mutationFn: (id: string) => api.post(`/document-requests/${id}/approve`),
     onSuccess: () => inv(),
+    onError: onMutationError,
   });
 
   const rejectMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       api.post(`/document-requests/${id}/reject`, { reason }),
     onSuccess: () => { setRejectDialog(null); setRejectionReason(''); inv(); },
+    onError: onMutationError,
   });
 
   const generateFinalMutation = useMutation({
     mutationFn: (id: string) => api.post(`/document-requests/${id}/generate-final`),
     onSuccess: () => inv(),
+    onError: onMutationError,
   });
 
   const downloadMutation = useMutation({
@@ -121,25 +138,26 @@ export function DocumentRequestsPage() {
         a.click();
         window.URL.revokeObjectURL(url);
       }),
+    onError: onMutationError,
   });
 
   const workflowButtons = (r: DocumentRequestResponse) => {
     const btns: JSX.Element[] = [];
-    if (r.status === 'Draft' || r.status === 'Submitted') {
+    if (canDraft && (r.status === 'Draft' || r.status === 'Submitted')) {
       btns.push(
         <Button key="draft" variant="outline" size="sm" onClick={() => generateDraftMutation.mutate(r.id)} title="Generate AI Draft">
           <Wand2 className="mr-1 h-3.5 w-3.5" /> Draft
         </Button>
       );
     }
-    if (r.status === 'AiDraftReady') {
+    if (canDraft && r.status === 'AiDraftReady') {
       btns.push(
         <Button key="review" variant="outline" size="sm" onClick={() => submitForReviewMutation.mutate(r.id)} title="Submit for Review">
           <Send className="mr-1 h-3.5 w-3.5" /> Review
         </Button>
       );
     }
-    if (r.status === 'Review') {
+    if (canApprove && r.status === 'Review') {
       btns.push(
         <Button key="approve" variant="outline" size="sm" onClick={() => approveMutation.mutate(r.id)} title="Approve">
           <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-success" /> Approve
@@ -149,7 +167,7 @@ export function DocumentRequestsPage() {
         </Button>
       );
     }
-    if (r.status === 'Approved') {
+    if (canDraft && r.status === 'Approved') {
       btns.push(
         <Button key="generate" variant="outline" size="sm" onClick={() => generateFinalMutation.mutate(r.id)} title="Generate Final Document">
           <FileCheck className="mr-1 h-3.5 w-3.5" /> Generate

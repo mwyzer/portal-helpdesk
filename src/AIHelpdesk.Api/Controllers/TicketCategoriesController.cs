@@ -32,7 +32,7 @@ public class TicketCategoriesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Super Admin,Manager")]
+    [Authorize(Roles = "Super Admin,Manager,HRD")]
     public async Task<ActionResult<TicketCategoryResponse>> Create([FromBody] CreateTicketCategoryRequest request)
     {
         var result = await _service.CreateAsync(request);
@@ -40,7 +40,7 @@ public class TicketCategoriesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Super Admin,Manager")]
+    [Authorize(Roles = "Super Admin,Manager,HRD")]
     public async Task<ActionResult<TicketCategoryResponse>> Update(Guid id, [FromBody] UpdateTicketCategoryRequest request)
     {
         var result = await _service.UpdateAsync(id, request);
@@ -48,7 +48,7 @@ public class TicketCategoriesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.DeleteAsync(id);

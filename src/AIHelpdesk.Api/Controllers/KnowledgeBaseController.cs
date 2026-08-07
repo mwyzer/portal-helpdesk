@@ -34,7 +34,7 @@ public class KnowledgeBaseController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Secretary,HR Admin,Super Admin")]
+    [Authorize(Roles = "Secretary,HRD,Super Admin")]
     [RequestSizeLimit(20 * 1024 * 1024)] // 20 MB
     public async Task<ActionResult<KnowledgeDocumentResponse>> Upload(
         [FromForm] string title, IFormFile file, [FromForm] Guid? departmentId = null)
@@ -58,7 +58,7 @@ public class KnowledgeBaseController : ControllerBase
     }
 
     [HttpPost("{id:guid}/index")]
-    [Authorize(Roles = "Secretary,Super Admin")]
+    [Authorize(Roles = "Secretary,Super Admin,HRD")]
     public async Task<ActionResult<KnowledgeDocumentResponse>> ReIndex(Guid id)
     {
         var result = await _kbService.IndexDocumentAsync(id);

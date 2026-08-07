@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, MessageSquare, Trash2, ExternalLink, AlertCircle } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -43,9 +44,14 @@ export function ConversationListPage() {
     queryFn: () => api.get('/ai/conversations', { params: { pageSize: 100 } }).then(r => r.data),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/ai/conversations/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat-sessions'] }),
+    onError: (err: unknown) => {
+      const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+      addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+    },
   });
 
   const filtered = data?.items?.filter(s => {

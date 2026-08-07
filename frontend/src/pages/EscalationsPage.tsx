@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface EscalationItem {
   id: string;
@@ -31,19 +32,28 @@ export function EscalationsPage() {
     queryFn: () => api.get('/escalations').then(r => r.data),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const acceptMutation = useMutation({
     mutationFn: (id: string) => api.post(`/escalations/${id}/accept`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['escalations'] }),
+    onError: onMutationError,
   });
 
   const declineMutation = useMutation({
     mutationFn: (id: string) => api.post(`/escalations/${id}/decline`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['escalations'] }),
+    onError: onMutationError,
   });
 
   const resolveMutation = useMutation({
     mutationFn: (id: string) => api.post(`/escalations/${id}/resolve`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['escalations'] }),
+    onError: onMutationError,
   });
 
   if (isLoading) return <Spinner />;

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { ArrowRight, X, Plus, Download, User } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface CandidateItem {
   id: string;
@@ -56,6 +57,12 @@ export function CandidatesPage() {
     queryFn: () => api.get('/candidates', { params: { pageSize: 200, jobVacancyId: vacancyId || undefined } }).then((r) => r.data),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const createMutation = useMutation({
     mutationFn: () =>
       api.post('/candidates', {
@@ -70,16 +77,19 @@ export function CandidatesPage() {
       setForm({ fullName: '', email: '', phone: '', source: '' });
       queryClient.invalidateQueries({ queryKey: ['candidates'] });
     },
+    onError: onMutationError,
   });
 
   const advanceMutation = useMutation({
     mutationFn: (id: string) => api.post(`/candidates/${id}/advance-stage`, {}),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['candidates'] }),
+    onError: onMutationError,
   });
 
   const rejectMutation = useMutation({
     mutationFn: (id: string) => api.post(`/candidates/${id}/reject`, { reason: 'Not proceeding' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['candidates'] }),
+    onError: onMutationError,
   });
 
   const handleExport = async () => {

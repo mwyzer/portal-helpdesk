@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import api from '@/lib/axios';
+import { useAuthStore } from '@/store/authStore';
+import { useToastStore } from '@/lib/useToast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -78,6 +80,10 @@ const statusBadge = (status: string) => {
 
 export function EmployeesPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const addToast = useToastStore((s) => s.addToast);
+  const canManage = user?.roles?.some((r) => ['Super Admin', 'HRD'].includes(r));
+  const canDelete = user?.roles?.includes('Super Admin');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeResponse | null>(null);
@@ -102,9 +108,15 @@ export function EmployeesPage() {
     queryFn: () => api.get('/positions').then((r) => r.data),
   });
 
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/employees/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees'] }),
+    onError: onMutationError,
   });
 
   const importMutation = useMutation({
@@ -119,6 +131,7 @@ export function EmployeesPage() {
       setImportResult(response.data);
       queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
+    onError: onMutationError,
   });
 
   const handleExport = async () => {
@@ -159,18 +172,26 @@ export function EmployeesPage() {
   };
 
   const onCreate = async (formData: EmployeeForm) => {
-    await api.post('/employees', formData);
-    setShowCreate(false);
-    reset();
-    queryClient.invalidateQueries({ queryKey: ['employees'] });
+    try {
+      await api.post('/employees', formData);
+      setShowCreate(false);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    } catch (err) {
+      onMutationError(err);
+    }
   };
 
   const onUpdate = async (formData: EmployeeForm) => {
     if (!editingEmployee) return;
-    await api.put(`/employees/${editingEmployee.id}`, formData);
-    setEditingEmployee(null);
-    reset();
-    queryClient.invalidateQueries({ queryKey: ['employees'] });
+    try {
+      await api.put(`/employees/${editingEmployee.id}`, formData);
+      setEditingEmployee(null);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    } catch (err) {
+      onMutationError(err);
+    }
   };
 
   return (
@@ -181,18 +202,24 @@ export function EmployeesPage() {
           <p className="text-muted-foreground">Manage employee records</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" /> Export
-          </Button>
-          <Button variant="outline" onClick={() => setShowImport(true)}>
-            <Upload className="mr-2 h-4 w-4" /> Import
-          </Button>
+          {canManage && (
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="mr-2 h-4 w-4" /> Export
+            </Button>
+          )}
+          {canManage && (
+            <Button variant="outline" onClick={() => setShowImport(true)}>
+              <Upload className="mr-2 h-4 w-4" /> Import
+            </Button>
+          )}
           <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ['employees'] })}>
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
-          <Button onClick={() => setShowCreate(true)}>
-            <UserPlus className="mr-2 h-4 w-4" /> Add Employee
-          </Button>
+          {canManage && (
+            <Button onClick={() => setShowCreate(true)}>
+              <UserPlus className="mr-2 h-4 w-4" /> Add Employee
+            </Button>
+          )}
         </div>
       </div>
 
@@ -213,13 +240,13 @@ export function EmployeesPage() {
           <EmployeeTable
             data={data?.items}
             isLoading={isLoading}
-            onEdit={(row) => {
+            onEdit={canManage ? (row) => {
               const emp = data?.items.find((e) => e.id === row.id);
               if (emp) openEdit(emp);
-            }}
-            onDelete={(row) => {
+            } : undefined}
+            onDelete={canDelete ? (row) => {
               if (confirm('Delete this employee?')) deleteMutation.mutate(row.id);
-            }}
+            } : undefined}
           />
         </CardContent>
       </Card>

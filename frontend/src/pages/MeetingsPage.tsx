@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Clock, MapPin, Plus, RefreshCw, Pencil, Trash2, Users as UsersIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useToastStore } from '@/lib/useToast';
 
 interface MeetingResponse {
   id: string;
@@ -72,14 +73,22 @@ export function MeetingsPage() {
     resolver: zodResolver(meetingSchema),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Save failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: MeetingForm) => api.post('/meetings', data),
     onSuccess: () => { setShowCreate(false); reset(); queryClient.invalidateQueries({ queryKey: ['meetings'] }); },
+    onError: onMutationError,
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: MeetingForm }) => api.put(`/meetings/${id}`, data),
     onSuccess: () => { setEditingMeeting(null); reset(); queryClient.invalidateQueries({ queryKey: ['meetings'] }); },
+    onError: onMutationError,
   });
 
   const deleteMutation = useMutation({

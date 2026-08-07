@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import api from '@/lib/axios';
+import { useAuthStore } from '@/store/authStore';
+import { useToastStore } from '@/lib/useToast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,6 +42,9 @@ const categories = ['HR', 'Operasional', 'Umum'];
 
 export function DocumentTemplatesPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const addToast = useToastStore((s) => s.addToast);
+  const canDelete = user?.roles?.includes('Super Admin');
   const [showCreate, setShowCreate] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<DocumentTemplateResponse | null>(null);
 
@@ -52,20 +57,28 @@ export function DocumentTemplatesPage() {
     resolver: zodResolver(templateSchema),
   });
 
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const createMutation = useMutation({
     mutationFn: (formData: TemplateForm) => api.post('/document-templates', formData),
     onSuccess: () => { setShowCreate(false); reset(); queryClient.invalidateQueries({ queryKey: ['document-templates'] }); },
+    onError: onMutationError,
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: TemplateForm & { isActive: boolean } }) =>
       api.put(`/document-templates/${id}`, data),
     onSuccess: () => { setEditingTemplate(null); reset(); queryClient.invalidateQueries({ queryKey: ['document-templates'] }); },
+    onError: onMutationError,
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/document-templates/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['document-templates'] }),
+    onError: onMutationError,
   });
 
   const onCreate = (formData: TemplateForm) => createMutation.mutate(formData);
@@ -125,9 +138,11 @@ export function DocumentTemplatesPage() {
                           });
                           setEditingTemplate(t);
                         }} aria-label="Edit template"><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => { if (confirm('Delete this template?')) deleteMutation.mutate(t.id); }} aria-label="Delete template">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {canDelete && (
+                          <Button variant="ghost" size="icon" onClick={() => { if (confirm('Delete this template?')) deleteMutation.mutate(t.id); }} aria-label="Delete template">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

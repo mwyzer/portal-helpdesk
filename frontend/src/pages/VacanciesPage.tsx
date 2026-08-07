@@ -13,6 +13,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Briefcase, Users, TrendingUp, Send, Lock } from 'lucide-react';
+import { useToastStore } from '@/lib/useToast';
 
 interface VacancyItem {
   id: string;
@@ -71,6 +72,12 @@ export function VacanciesPage() {
     enabled: createOpen,
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const createMutation = useMutation({
     mutationFn: () =>
       api.post('/job-vacancies', {
@@ -86,16 +93,19 @@ export function VacanciesPage() {
       setForm({ title: '', description: '', requirements: '', departmentId: '', openingsCount: 1 });
       queryClient.invalidateQueries({ queryKey: ['job-vacancies'] });
     },
+    onError: onMutationError,
   });
 
   const publishMutation = useMutation({
     mutationFn: (id: string) => api.post(`/job-vacancies/${id}/publish`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['job-vacancies'] }),
+    onError: onMutationError,
   });
 
   const closeMutation = useMutation({
     mutationFn: (id: string) => api.post(`/job-vacancies/${id}/close`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['job-vacancies'] }),
+    onError: onMutationError,
   });
 
   return (

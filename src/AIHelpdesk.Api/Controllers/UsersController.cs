@@ -7,7 +7,7 @@ namespace AIHelpdesk.Api.Controllers;
 
 [ApiController]
 [Route("api/users")]
-[Authorize(Roles = "Super Admin")]
+[Authorize(Roles = "Super Admin,HRD")]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;

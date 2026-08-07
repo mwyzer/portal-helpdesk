@@ -18,7 +18,7 @@ public class AgentAssignmentsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Manager,Super Admin")]
+    [Authorize(Roles = "Manager,Super Admin,HRD")]
     public async Task<ActionResult<IList<AgentAssignmentResponse>>> GetAll()
     {
         var result = await _service.GetAllAsync();
@@ -26,7 +26,7 @@ public class AgentAssignmentsController : ControllerBase
     }
 
     [HttpGet("department/{departmentId}")]
-    [Authorize(Roles = "Manager,Super Admin")]
+    [Authorize(Roles = "Manager,Super Admin,HRD")]
     public async Task<ActionResult<IList<AgentAssignmentResponse>>> GetByDepartment(Guid departmentId)
     {
         var result = await _service.GetByDepartmentAsync(departmentId);
@@ -34,7 +34,7 @@ public class AgentAssignmentsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD")]
     public async Task<ActionResult<AgentAssignmentResponse>> Create([FromBody] CreateAgentAssignmentRequest request)
     {
         var result = await _service.CreateAsync(request);
@@ -42,7 +42,7 @@ public class AgentAssignmentsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD")]
     public async Task<ActionResult<AgentAssignmentResponse>> Update(Guid id, [FromBody] UpdateAgentAssignmentRequest request)
     {
         var result = await _service.UpdateAsync(id, request);
@@ -50,7 +50,7 @@ public class AgentAssignmentsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.DeleteAsync(id);

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import api from '@/lib/axios';
+import { useToastStore } from '@/lib/useToast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,9 +51,16 @@ export function LeaveTypesPage() {
     queryFn: () => api.get('/leave-types').then((r) => r.data),
   });
 
+  const addToast = useToastStore((s) => s.addToast);
+  const onMutationError = (err: unknown) => {
+    const resp = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+    addToast({ title: 'Action failed', message: resp?.message ?? resp?.error ?? 'Something went wrong. Please try again.', type: 'error' });
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/leave-types/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leaveTypes'] }),
+    onError: onMutationError,
   });
 
   const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<LeaveTypeForm>({
@@ -73,18 +81,26 @@ export function LeaveTypesPage() {
   };
 
   const onCreate = async (data: LeaveTypeForm) => {
-    await api.post('/leave-types', data);
-    setShowCreate(false);
-    reset();
-    queryClient.invalidateQueries({ queryKey: ['leaveTypes'] });
+    try {
+      await api.post('/leave-types', data);
+      setShowCreate(false);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ['leaveTypes'] });
+    } catch (err) {
+      onMutationError(err);
+    }
   };
 
   const onUpdate = async (data: LeaveTypeForm) => {
     if (!editing) return;
-    await api.put(`/leave-types/${editing.id}`, data);
-    setEditing(null);
-    reset();
-    queryClient.invalidateQueries({ queryKey: ['leaveTypes'] });
+    try {
+      await api.put(`/leave-types/${editing.id}`, data);
+      setEditing(null);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ['leaveTypes'] });
+    } catch (err) {
+      onMutationError(err);
+    }
   };
 
   const FormFields = () => (
