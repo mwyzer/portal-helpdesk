@@ -1,0 +1,50 @@
+databases:
+  - name: aihelpdesk-db
+    plan: free
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: aihelpdesk-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./src/AIHelpdesk.Api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: aihelpdesk-db
+          property: connectionString
+      - key: Jwt__Key
+        generateValue: true
+      - key: Jwt__Issuer
+        value: AIHelpdesk
+      - key: Jwt__Audience
+        value: AIHelpdesk
+      # Set to your Vercel frontend URL after it's deployed, e.g. https://your-app.vercel.app
+      - key: Cors__Origins__0
+        sync: false
+      - key: Uploads__Path
+        value: /app/uploads
+      - key: AI__Endpoint
+        value: https://api.openai.com/v1/
+      # Set in the Render dashboard — do not commit real keys.
+      - key: AI__ApiKey
+        sync: false
+      - key: AI__ChatModel
+        value: gpt-4o-mini
+      - key: AI__EmbeddingModel
+        value: text-embedding-3-small
+      - key: AI__RateLimit__MaxRequestsPerMinute
+        value: "30"
+      - key: AI__RateLimit__Enabled
+        value: "true"
+      - key: AI__Budget__DailyTokenBudget
+        value: "1000000"
+      - key: AI__Budget__EnforceBudget
+        value: "false"

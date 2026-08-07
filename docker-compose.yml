@@ -36,6 +36,14 @@ services:
       - Jwt__Audience=AIHelpdesk
       - Cors__Origins__0=http://localhost:5173
       - Uploads__Path=/app/uploads
+      - AI__Endpoint=${AI__Endpoint:-https://api.openai.com/v1/}
+      - AI__ApiKey=${AI__ApiKey:-}
+      - AI__ChatModel=${AI__ChatModel:-gpt-4o-mini}
+      - AI__EmbeddingModel=${AI__EmbeddingModel:-text-embedding-3-small}
+      - AI__RateLimit__MaxRequestsPerMinute=${AI__RateLimit__MaxRequestsPerMinute:-30}
+      - AI__RateLimit__Enabled=${AI__RateLimit__Enabled:-true}
+      - AI__Budget__DailyTokenBudget=${AI__Budget__DailyTokenBudget:-1000000}
+      - AI__Budget__EnforceBudget=${AI__Budget__EnforceBudget:-false}
     ports:
       - "5192:8080"
     depends_on:
