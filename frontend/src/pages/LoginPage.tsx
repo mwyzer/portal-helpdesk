@@ -122,6 +122,7 @@ export function LoginPage() {
                 >
                   <span className="block font-medium text-foreground">{account.role}</span>
                   <span className="block truncate text-muted-foreground">{account.email}</span>
+                  <span className="block truncate text-muted-foreground">{account.password}</span>
                 </button>
               ))}
             </div>
