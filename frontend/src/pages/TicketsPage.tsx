@@ -72,11 +72,18 @@ export function TicketsPage() {
   const [priorityFilter, setPriorityFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
+  // GET /tickets is scoped server-side to "my tickets" (SubmittedById == current user) --
+  // Agent/Manager/Super Admin need /tickets/queue instead to see the organization-wide queue,
+  // same role check already used for export/stats elsewhere on this page.
+  const canSeeAllTickets = user?.roles?.some(r => ['Agent', 'Manager', 'Super Admin'].includes(r));
+
   const { data: ticketsData, isLoading } = useQuery({
-    queryKey: ['tickets', statusFilter, priorityFilter],
+    queryKey: ['tickets', statusFilter, priorityFilter, canSeeAllTickets],
     queryFn: () =>
       api
-        .get('/tickets', { params: { status: statusFilter || undefined, priority: priorityFilter || undefined } })
+        .get(canSeeAllTickets ? '/tickets/queue' : '/tickets', {
+          params: { status: statusFilter || undefined, priority: priorityFilter || undefined },
+        })
         .then(r => r.data),
   });
 
@@ -110,8 +117,6 @@ export function TicketsPage() {
     createMutation.mutate(newTicket);
   };
 
-  const canExport = user?.roles?.some(r => ['Agent', 'Manager', 'Super Admin'].includes(r));
-
   const handleExport = async () => {
     const response = await api.get('/tickets/export', {
       params: { status: statusFilter || undefined, priority: priorityFilter || undefined },
@@ -130,7 +135,7 @@ export function TicketsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Tickets</h1>
         <div className="flex items-center gap-2">
-        {canExport && (
+        {canSeeAllTickets && (
           <Button variant="outline" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" /> Export
           </Button>
