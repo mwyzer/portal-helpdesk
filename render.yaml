@@ -16,6 +16,11 @@ services:
         value: Production
       - key: ASPNETCORE_URLS
         value: http://+:8080
+      # Prevents inotify_init() calls from appsettings.json file-watching; avoids
+      # "configured user limit (128) on the number of inotify instances" crashes
+      # inside WebApplication.CreateBuilder on Render's shared hosts.
+      - key: DOTNET_hostBuilder__reloadConfigOnChange
+        value: "false"
       - key: ConnectionStrings__DefaultConnection
         fromDatabase:
           name: aihelpdesk-db

@@ -68,6 +68,11 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithTools<AIHelpdesk.Api.Mcp.TicketMcpTools>();
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
@@ -159,6 +164,10 @@ app.UseMiddleware<RateLimitingMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<AIHelpdesk.Api.Hubs.NotificationHub>("/hubs/notifications");
+// Same JWT bearer auth as the rest of the API -- individual tools in Mcp/TicketMcpTools.cs still
+// re-check per-ticket ownership themselves, since MCP tool calls don't go through [Authorize(Roles=)]
+// action filters the way controller actions do.
+app.MapMcp("/mcp").RequireAuthorization();
 
 app.MapGet("/api/health", async (ApplicationDbContext db) =>
 {

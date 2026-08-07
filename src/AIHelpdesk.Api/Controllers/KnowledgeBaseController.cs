@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using AIHelpdesk.Application.Interfaces;
 using AIHelpdesk.Contracts.Knowledge;
+using AIHelpdesk.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AIHelpdesk.Api.Controllers;
 
@@ -12,11 +14,15 @@ namespace AIHelpdesk.Api.Controllers;
 public class KnowledgeBaseController : ControllerBase
 {
     private readonly IKnowledgeBaseService _kbService;
+    private readonly ApplicationDbContext _context;
 
-    public KnowledgeBaseController(IKnowledgeBaseService kbService)
+    public KnowledgeBaseController(IKnowledgeBaseService kbService, ApplicationDbContext context)
     {
         _kbService = kbService;
+        _context = context;
     }
+
+    private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<KnowledgeDocumentResponse>>> GetDocuments(
@@ -44,8 +50,7 @@ public class KnowledgeBaseController : ControllerBase
 
         using var stream = file.OpenReadStream();
         var result = await _kbService.UploadDocumentAsync(
-            Guid.Parse(User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)!),
-            title, file.FileName, stream, file.ContentType, departmentId);
+            GetUserId(), title, file.FileName, stream, file.ContentType, departmentId);
         return CreatedAtAction(nameof(GetDocument), new { id = result.Id }, result);
     }
 
@@ -68,7 +73,14 @@ public class KnowledgeBaseController : ControllerBase
     [HttpPost("search")]
     public async Task<ActionResult<List<KnowledgeSearchResult>>> Search([FromBody] SearchKnowledgeRequest request)
     {
-        var results = await _kbService.SearchAsync(request.Query, request.TopK);
+        // Same department scoping as the chat RAG path (ChatService.SendMessageAsync) --
+        // without this, any authenticated user could pull chunks from another department's
+        // documents straight from this endpoint, bypassing the chat flow's guardrail entirely.
+        var requesterDepartmentId = await _context.Users
+            .Where(u => u.Id == GetUserId())
+            .Select(u => u.DepartmentId)
+            .FirstOrDefaultAsync();
+        var results = await _kbService.SearchAsync(request.Query, request.TopK, requesterDepartmentId);
         return Ok(results);
     }
 }

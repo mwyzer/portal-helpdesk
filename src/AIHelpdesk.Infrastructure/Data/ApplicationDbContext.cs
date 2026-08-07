@@ -211,6 +211,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(e => e.EmbeddingJson).HasColumnType("text").IsRequired();
             entity.HasOne(e => e.Document).WithMany(d => d.Chunks).HasForeignKey(e => e.DocumentId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => e.DocumentId);
+            entity.HasIndex(e => e.DepartmentId);
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
