@@ -18,6 +18,14 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+const DEMO_ACCOUNTS: { role: string; email: string; password: string }[] = [
+  { role: 'Super Admin', email: 'admin@aihelpdesk.com', password: 'Admin@123' },
+  { role: 'HRD', email: 'hrd@aihelpdesk.com', password: 'Hrd@12345' },
+  { role: 'Secretary', email: 'secretary@aihelpdesk.com', password: 'Secretary@123' },
+  { role: 'Manager', email: 'manager@aihelpdesk.com', password: 'Manager@123' },
+  { role: 'Employee', email: 'employee@aihelpdesk.com', password: 'Employee@123' },
+];
+
 export function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
@@ -27,6 +35,7 @@ export function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
@@ -40,6 +49,12 @@ export function LoginPage() {
       const msg = resp?.message ?? resp?.error ?? 'Login failed. Please check your credentials.';
       setError(msg);
     }
+  };
+
+  const handleDemoLogin = (email: string, password: string) => {
+    setValue('email', email, { shouldValidate: true });
+    setValue('password', password, { shouldValidate: true });
+    void onSubmit({ email, password });
   };
 
   return (
@@ -93,6 +108,24 @@ export function LoginPage() {
               Sign In
             </Button>
           </form>
+
+          <div className="mt-6 space-y-2 rounded-md bg-muted p-3">
+            <p className="text-xs font-medium text-muted-foreground">Demo accounts</p>
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              {DEMO_ACCOUNTS.map((account) => (
+                <button
+                  key={account.email}
+                  type="button"
+                  onClick={() => handleDemoLogin(account.email, account.password)}
+                  disabled={isSubmitting}
+                  className="rounded-md border border-transparent bg-background px-2.5 py-1.5 text-left text-xs shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <span className="block font-medium text-foreground">{account.role}</span>
+                  <span className="block truncate text-muted-foreground">{account.email}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
