@@ -108,7 +108,17 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
 }
 
-await DbSeeder.SeedAsync(app.Services);
+// Seed data is best-effort demo/dev content, not a prerequisite for the API to serve real
+// traffic -- a seeding failure previously took the entire app down on every restart (see the
+// EmployeeNo fix in DbSeeder), so it's isolated here to log and continue instead.
+try
+{
+    await DbSeeder.SeedAsync(app.Services);
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Database seeding failed; continuing startup without seed data");
+}
 
 app.UseMiddleware<ExceptionMiddleware>();
 
