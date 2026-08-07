@@ -170,12 +170,48 @@ public class KnowledgeBaseService : IKnowledgeBaseService
 
     public async Task<List<KnowledgeSearchResult>> SearchAsync(string query, int topK, Guid? requesterDepartmentId = null)
     {
-        // For now, use a simple text-based search since vector column is not in EF model.
-        // Full vector search can be enabled after pgvector extension is set up in production.
+        try
+        {
+            var queryEmbedding = await _ai.GenerateEmbeddingAsync(query);
+            var embeddingJson = System.Text.Json.JsonSerializer.Serialize(queryEmbedding);
+
+            // hnsw.ef_search/iterative_scan only need to be set for this query, and SET LOCAL only
+            // holds for the current transaction -- wrap explicitly so it doesn't leak onto the next
+            // query run on this pooled connection.
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            await _context.Database.ExecuteSqlRawAsync("SET LOCAL hnsw.ef_search = 100;");
+            // Guards against selective department filters returning fewer than topK rows, a known
+            // HNSW behavior where the ANN search space is exhausted before the filter is satisfied
+            // (pgvector >=0.8; see docker/postgres/Dockerfile for the installed version).
+            await _context.Database.ExecuteSqlRawAsync("SET LOCAL hnsw.iterative_scan = relaxed_order;");
+
+            var vectorResults = await _context.Database
+                .SqlQueryRaw<KnowledgeSearchResult>(
+                    @"SELECT kc.""Id"" AS ""ChunkId"", kd.""Id"" AS ""DocumentId"", kd.""Title"" AS ""DocumentTitle"",
+                           LEFT(kc.""Content"", 300) AS ""Content"",
+                           (1 - (kc.""Embedding"" <=> {0}::vector)) AS ""Relevance""
+                    FROM ""KnowledgeChunks"" kc
+                    INNER JOIN ""KnowledgeDocuments"" kd ON kc.""DocumentId"" = kd.""Id""
+                    WHERE NOT kc.""IsDeleted"" AND NOT kd.""IsDeleted"" AND kc.""Embedding"" IS NOT NULL
+                      AND (kc.""DepartmentId"" IS NULL OR kc.""DepartmentId"" = {2})
+                    ORDER BY kc.""Embedding"" <=> {0}::vector
+                    LIMIT {1}", embeddingJson, topK, requesterDepartmentId)
+                .ToListAsync();
+
+            await tx.CommitAsync();
+            return vectorResults;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Vector search failed, falling back to substring search");
+        }
+
+        // Last-resort fallback if the AI provider or pgvector itself is unreachable -- department
+        // scoping still applies so this can't be used to bypass the guardrail above.
         var queryLower = query.ToLowerInvariant();
-        var results = await _context.KnowledgeChunks
+        return await _context.KnowledgeChunks
             .Where(c => c.Content.ToLower().Contains(queryLower)
-                && (c.Document.DepartmentId == null || c.Document.DepartmentId == requesterDepartmentId))
+                && (c.DepartmentId == null || c.DepartmentId == requesterDepartmentId))
             .Take(topK)
             .Select(c => new KnowledgeSearchResult(
                 c.Document.Id,
@@ -184,35 +220,6 @@ public class KnowledgeBaseService : IKnowledgeBaseService
                 c.Content.Length > 300 ? c.Content.Substring(0, 300) + "..." : c.Content,
                 0.5))
             .ToListAsync();
-
-        // If AI embeddings are configured, do proper vector search
-        try
-        {
-            var queryEmbedding = await _ai.GenerateEmbeddingAsync(query);
-            var embeddingJson = System.Text.Json.JsonSerializer.Serialize(queryEmbedding);
-
-            var vectorResults = await _context.Database
-                .SqlQueryRaw<KnowledgeSearchResult>(
-                    @"SELECT kc.""Id"" AS ""ChunkId"", kd.""Id"" AS ""DocumentId"", kd.""Title"" AS ""DocumentTitle"",
-                           LEFT(kc.""Content"", 300) AS ""Content"",
-                           (1 - ({0}::vector <=> kc.""EmbeddingJson""::vector)) AS ""Relevance""
-                    FROM ""KnowledgeChunks"" kc
-                    INNER JOIN ""KnowledgeDocuments"" kd ON kc.""DocumentId"" = kd.""Id""
-                    WHERE NOT kc.""IsDeleted"" AND NOT kd.""IsDeleted""
-                      AND (kd.""DepartmentId"" IS NULL OR kd.""DepartmentId"" = {2})
-                    ORDER BY {0}::vector <=> kc.""EmbeddingJson""::vector
-                    LIMIT {1}", embeddingJson, topK, requesterDepartmentId)
-                .ToListAsync();
-
-            if (vectorResults.Count > 0)
-                return vectorResults;
-        }
-        catch
-        {
-            // Fall back to text search results if vector search fails
-        }
-
-        return results;
     }
 
     private async Task IndexDocumentInternalAsync(KnowledgeDocument doc, ApplicationDbContext context, IAIService ai)
@@ -247,7 +254,8 @@ public class KnowledgeBaseService : IKnowledgeBaseService
                 DocumentId = doc.Id,
                 Content = chunk,
                 ChunkIndex = index++,
-                EmbeddingJson = JsonSerializer.Serialize(embedding.ToArray())
+                EmbeddingJson = JsonSerializer.Serialize(embedding.ToArray()),
+                DepartmentId = doc.DepartmentId
             });
         }
 
@@ -255,6 +263,14 @@ public class KnowledgeBaseService : IKnowledgeBaseService
         doc.ChunkCount = chunks.Count;
         doc.UpdatedAt = DateTime.UtcNow;
         await context.SaveChangesAsync();
+
+        // "Embedding" is a native pgvector column with no EF-mapped CLR property (Npgsql's default
+        // provider doesn't understand vector without the Pgvector.EntityFrameworkCore package), so
+        // it's populated via raw SQL from the EmbeddingJson just written above rather than through
+        // the tracked entities.
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $@"UPDATE ""KnowledgeChunks"" SET ""Embedding"" = ""EmbeddingJson""::vector
+               WHERE ""DocumentId"" = {doc.Id} AND ""EmbeddingJson"" IS NOT NULL AND ""EmbeddingJson"" != '[]';");
     }
 
     private static List<string> ChunkText(string text, int chunkSize, int overlap)
