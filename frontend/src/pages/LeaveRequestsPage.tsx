@@ -86,14 +86,24 @@ export function LeaveRequestsPage() {
     queryFn: () => api.get('/leave-types').then((r) => r.data),
   });
 
+  // Submitting/cancelling changes PendingDays (and cancel-after-approval would change UsedDays
+  // too), but only ['leaveRequests'] was invalidated -- the Dashboard's ['leave-balances', 'my']
+  // query kept serving its stale cached value until a full reload, even though the backend had
+  // already updated the balance correctly.
   const submitMutation = useMutation({
     mutationFn: (id: string) => api.post(`/leave-requests/${id}/submit`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leaveRequests'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
+    },
   });
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.post(`/leave-requests/${id}/cancel`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leaveRequests'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
+    },
   });
 
   const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<RequestForm>({
@@ -106,6 +116,7 @@ export function LeaveRequestsPage() {
     setShowApply(false);
     reset();
     queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
+    queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
   };
 
   return (

@@ -61,9 +61,14 @@ export function LeaveApprovalsPage() {
     queryFn: () => api.get(`/leave-requests/pending-approval?page=${page}&pageSize=10`).then((r) => r.data),
   });
 
+  // Approving/rejecting changes the requester's UsedDays/PendingDays (see LeaveRequestsPage's
+  // submit/cancel for the same gap), so their cached ['leave-balances'] needs invalidating too.
   const approveMutation = useMutation({
     mutationFn: (id: string) => api.post(`/leave-requests/${id}/approve`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leaveApprovals'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leaveApprovals'] });
+      queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
+    },
   });
 
   const rejectMutation = useMutation({
@@ -73,6 +78,7 @@ export function LeaveApprovalsPage() {
       setRejecting(null);
       setRejectReason('');
       queryClient.invalidateQueries({ queryKey: ['leaveApprovals'] });
+      queryClient.invalidateQueries({ queryKey: ['leave-balances'] });
     },
   });
 
