@@ -39,13 +39,25 @@ public class AIService : IAIService
             throw new InvalidOperationException("AI:ApiKey not configured");
     }
 
+    // EnsureSuccessStatusCode() discards the response body, so a 429 gives no way to tell
+    // "insufficient_quota" (no billing configured) apart from an actual rate limit -- both a KB
+    // indexing failure and troubleshooting a live deployment turned into guesswork over exactly
+    // that ambiguity. Surfacing the provider's own error body makes the distinction visible in
+    // ErrorMessage/logs instead of just "429 Too Many Requests".
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode) return;
+        var body = await response.Content.ReadAsStringAsync();
+        throw new HttpRequestException($"AI provider returned {(int)response.StatusCode} {response.StatusCode}: {body}");
+    }
+
     public async Task<IReadOnlyList<double>> GenerateEmbeddingAsync(string text)
     {
         EnsureConfigured();
         var body = new { input = text, model = _options.EmbeddingModel };
         var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
         var response = await _http.PostAsync("embeddings", content);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response);
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
         var embedding = doc.RootElement.GetProperty("data")[0].GetProperty("embedding");
@@ -84,7 +96,7 @@ public class AIService : IAIService
         {
             request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("text/event-stream"));
             var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessAsync(response);
 
             using var stream = await response.Content.ReadAsStreamAsync();
             using var reader = new StreamReader(stream);
@@ -123,7 +135,7 @@ public class AIService : IAIService
         else
         {
             var response = await _http.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessAsync(response);
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
             return doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? string.Empty;
