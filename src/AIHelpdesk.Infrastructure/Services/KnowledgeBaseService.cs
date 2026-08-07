@@ -158,7 +158,6 @@ public class KnowledgeBaseService : IKnowledgeBaseService
             // Same "leave the document stuck at Indexing" failure mode as the auto-index path
             // below (just without the disposed-context race, since this one runs synchronously
             // within the request) -- record the failure instead of letting it bubble as a bare 500.
-            Console.Error.WriteLine("DEBUG_EX: " + ex);
             _logger.LogError(ex, "Manual re-index failed for KnowledgeDocument {DocumentId}", id);
             doc.Status = KnowledgeDocumentStatus.Failed;
             doc.ErrorMessage = GenericIndexingFailureMessage;
@@ -268,10 +267,14 @@ public class KnowledgeBaseService : IKnowledgeBaseService
         // "Embedding" is a native pgvector column with no EF-mapped CLR property (Npgsql's default
         // provider doesn't understand vector without the Pgvector.EntityFrameworkCore package), so
         // it's populated via raw SQL from the EmbeddingJson just written above rather than through
-        // the tracked entities.
-        await context.Database.ExecuteSqlInterpolatedAsync(
-            $@"UPDATE ""KnowledgeChunks"" SET ""Embedding"" = ""EmbeddingJson""::vector
-               WHERE ""DocumentId"" = {doc.Id} AND ""EmbeddingJson"" IS NOT NULL AND ""EmbeddingJson"" != '[]';");
+        // the tracked entities. Raw SQL only works against a relational provider, so skip it under
+        // the InMemory provider used by unit tests.
+        if (context.Database.IsRelational())
+        {
+            await context.Database.ExecuteSqlInterpolatedAsync(
+                $@"UPDATE ""KnowledgeChunks"" SET ""Embedding"" = ""EmbeddingJson""::vector
+                   WHERE ""DocumentId"" = {doc.Id} AND ""EmbeddingJson"" IS NOT NULL AND ""EmbeddingJson"" != '[]';");
+        }
     }
 
     private static List<string> ChunkText(string text, int chunkSize, int overlap)
