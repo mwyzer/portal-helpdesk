@@ -21,7 +21,7 @@
 ## Backend — RAG Pipeline
 
 - [x] Create RAG pipeline (embed → search → retrieve → context → generate)
-- [x] Create vector search (pgvector similarity queries via raw SQL)
+- [x] Create vector search (pgvector similarity queries) — originally raw SQL casting a `text` column to `vector` per row (no index possible); migrated 2026-08-07 to a native `KnowledgeChunk.Embedding vector(1536)` column with an HNSW cosine index (`ix_knowledgechunks_embedding_hnsw`, migration `AddChunkEmbeddingVectorAndDepartmentId`). `DepartmentId` denormalized from `KnowledgeDocument` onto `KnowledgeChunk` so the department filter runs in the same indexed query instead of via join. `SearchAsync` sets `hnsw.ef_search=100` and `hnsw.iterative_scan=relaxed_order` per query (pgvector 0.8.1, confirmed installed via `docker/postgres/Dockerfile`) so a selective department filter can't silently return fewer than `topK` rows. Legacy `EmbeddingJson` text column kept one release as a fallback/audit trail. Verified against the live `portal-helpdesk-postgres-1` container, not just build-tested.
 - [x] Implement chunking strategy (500 char with 100 overlap)
 - [x] Create document text extraction service (PDF — basic)
 - [x] Create document text extraction service (DOCX — basic)
@@ -53,7 +53,7 @@
 - [x] Implement document detail
 - [x] Implement document deletion (cascade chunks)
 - [x] Implement POST `/api/knowledge-documents/{id}/index`
-- [x] Implement POST `/api/knowledge-documents/search`
+- [x] Implement POST `/api/knowledge-documents/search` — fixed 2026-08-07: this standalone endpoint called `SearchAsync` without a `requesterDepartmentId`, so any authenticated user could retrieve chunks from another department's documents directly, bypassing the scoping that `ChatService`'s `/api/ai/chat` path already enforced. Now resolves the caller's `DepartmentId` from `ApplicationDbContext.Users` the same way `ChatService` does before calling `SearchAsync`
 - [x] Create background indexing (Task.Run fire-and-forget)
 - [x] Implement document status management (Pending → Indexing → Ready → Failed)
 
@@ -81,6 +81,7 @@
 - [x] Create migration for KnowledgeDocuments, KnowledgeChunks
 - [x] Create migration for ChatSessions, ChatMessages
 - [x] Create migration for AIResponses, AIUsageLog
+- [x] Create migration for native `Embedding vector(1536)` column + HNSW index + denormalized `KnowledgeChunk.DepartmentId` — `AddChunkEmbeddingVectorAndDepartmentId` (2026-08-07), applied and verified against the live postgres container
 
 ## Frontend — AI Chat
 

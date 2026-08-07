@@ -34,6 +34,7 @@ Login at <http://localhost:5173/login>.
 | **Frontend** | React 18 + TypeScript + Vite |
 | **Database** | PostgreSQL 17 with pgvector |
 | **AI / LLM** | OpenAI / Azure OpenAI (pluggable) |
+| **Agentic Tools** | MCP (Model Context Protocol) — `ModelContextProtocol.AspNetCore` |
 | **Auth** | JWT (access + refresh tokens), ASP.NET Core Identity |
 | **CSS** | Tailwind CSS + shadcn/ui |
 | **State** | Zustand (client), TanStack Query (server) |
@@ -409,15 +410,20 @@ erDiagram
 
 #### 4. AI Chat & Knowledge Base
 
-The RAG ingestion path: files are chunked into `KnowledgeChunk`, each chunk's embedding stored
-as a JSON string (a `vector` Postgres extension is registered but not yet used as a native
-column type). `ChatMessage`↔`AIResponse` is a strict one-to-one carrying token/cost/latency
-metrics.
+The RAG ingestion path: files are chunked into `KnowledgeChunk`, each chunk embedded twice —
+`EmbeddingJson` (legacy text/JSON column, kept temporarily as a fallback/audit trail) and
+`Embedding`, a native pgvector `vector(1536)` column backed by an HNSW cosine index
+(`ix_knowledgechunks_embedding_hnsw`). `DepartmentId` is denormalized from the parent
+`KnowledgeDocument` onto each `KnowledgeChunk` so retrieval can filter by department in the same
+indexed query instead of joining, and search queries set `hnsw.ef_search`/`hnsw.iterative_scan`
+per-request so a selective department filter can't silently return fewer than `topK` results.
+`ChatMessage`↔`AIResponse` is a strict one-to-one carrying token/cost/latency metrics.
 
 ```mermaid
 erDiagram
     Department ||--o{ KnowledgeDocument : "scopes (nullable = global)"
     KnowledgeDocument ||--o{ KnowledgeChunk : "chunked into"
+    Department ||--o{ KnowledgeChunk : "scopes (denormalized, nullable)"
     ApplicationUser ||--o{ ChatSession : "owns"
     ChatSession ||--o{ ChatMessage : "contains"
     ChatMessage ||--o| AIResponse : "generates (1:1, nullable)"
@@ -434,9 +440,11 @@ erDiagram
     KnowledgeChunk {
         guid Id PK
         guid DocumentId FK
+        guid DepartmentId FK
         text Content
         int ChunkIndex
         text EmbeddingJson
+        vector Embedding "vector(1536), HNSW cosine index"
     }
     ChatSession {
         guid Id PK
@@ -703,6 +711,7 @@ docker compose up -d --build
 | **Frontend** | http://localhost:5173 |
 | **Backend API** | http://localhost:5192 |
 | **Swagger UI** | http://localhost:5192/swagger |
+| **MCP Server** | http://localhost:5192/mcp (JWT bearer auth required — see [MCP Server (Agentic Tools)](#mcp-server-agentic-tools)) |
 | **PostgreSQL** | `localhost:5432` (user: `helpdesk`, password: `helpdesk123`, db: `aihelpdesk`) |
 
 ### Local Development
@@ -987,7 +996,7 @@ adding the Phase 8 tests.
 | GET | `/api/knowledge-documents/{id}` | Get document detail with chunks |
 | POST | `/api/knowledge-documents` | Upload PDF/DOCX/TXT (max 20 MB, Secretary/HR Admin/Super Admin) |
 | POST | `/api/knowledge-documents/{id}/index` | (Re)index a document into embeddings |
-| POST | `/api/knowledge-documents/search` | Semantic search over the knowledge base |
+| POST | `/api/knowledge-documents/search` | Semantic search over the knowledge base, scoped to the caller's department |
 | DELETE | `/api/knowledge-documents/{id}` | Delete document (Super Admin only) |
 
 ## API Endpoints (Phase 5 — Ticketing System)
@@ -1083,6 +1092,44 @@ adding the Phase 8 tests.
 | POST | `/api/interviews/{id}/complete` | Complete interview with feedback |
 | POST | `/api/interviews/{id}/cancel` | Cancel interview |
 | POST | `/api/interviews/{id}/ai-questions` | Generate AI interview questions |
+
+## MCP Server (Agentic Tools)
+
+An [MCP](https://modelcontextprotocol.io/) (Model Context Protocol) server is hosted alongside
+the REST API at `POST /mcp`, using the official `ModelContextProtocol.AspNetCore` SDK. It exposes
+backend capabilities as tools an LLM agent can call directly, as a separate surface from the
+request/response RAG chat in `/api/ai/chat`.
+
+The `/mcp` endpoint sits behind the same JWT bearer auth as the rest of the API
+(`.RequireAuthorization()` in `Program.cs`), but MCP tool calls don't pass through ASP.NET Core's
+`[Authorize(Roles=...)]` action filters the way controller actions do — each tool re-derives the
+caller's identity via `IHttpContextAccessor` and enforces its own authorization.
+
+### Ticket Agent
+
+The only agent implemented so far (`src/AIHelpdesk.Api/Mcp/TicketMcpTools.cs`), wrapping
+`ITicketService`:
+
+| Tool | Description |
+|------|-------------|
+| `create_ticket` | Create a ticket on behalf of the calling user |
+| `get_ticket` | Get a ticket by id — visible only to its submitter, its assigned agent, or staff (Agent/Manager/Super Admin) |
+| `update_ticket` | Update a ticket's title/description/sub-category/priority — same visibility rule as `get_ticket` |
+| `get_sla` | Get a ticket's SLA deadline and status — same visibility rule as `get_ticket` |
+
+**Note:** while building this, `TicketsController.GetById`/`Update` were found to have no
+ownership check at the REST layer at all — any authenticated user can currently read or update
+any ticket by id via `GET/PUT /api/tickets/{id}`. That gap has not been fixed yet, but the MCP
+tools above don't inherit it: each one independently checks the caller is the submitter, the
+assigned agent, or holds a staff role before calling into `ITicketService`, so an LLM-driven
+agent can't be used to read or edit another employee's ticket even though the REST endpoint
+currently would allow it.
+
+**Status (2026-08-07):** Ticket Agent implemented and verified end-to-end against a live instance
+(tool listing, create, and all three ownership-scoping cases — owner, staff, and unrelated
+non-staff user — confirmed by hand). HR Agent (`get_employee`, `get_leave_balance`,
+`create_leave_request`) and Recruitment Agent (`search_candidates`, `evaluate_candidate`,
+`get_candidate`) follow the same pattern but are not yet built.
 
 ## User Roles
 
