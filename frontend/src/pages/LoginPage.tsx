@@ -107,6 +107,16 @@ export function LoginPage() {
               {isSubmitting ? <Spinner className="mr-2" /> : <LogIn className="mr-2 h-4 w-4" />}
               Sign In
             </Button>
+            //buat list untuk login dan passwordnya
+            <div className="space-y-2">
+              {DEMO_ACCOUNTS.map((account) => (
+                <div key={account.email} className="text-sm">
+                  <p className="font-medium">{account.role}</p>
+                  <p className="text-muted-foreground">{account.email}</p>
+                  <p className="text-muted-foreground">{account.password}</p>
+                </div>
+              ))}
+            </div>
           </form>
 
           <div className="mt-6 space-y-2 rounded-md bg-muted p-3">
@@ -126,6 +136,9 @@ export function LoginPage() {
                 </button>
               ))}
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              Klik salah satu akun di atas untuk login otomatis menggunakan kredensial tersebut.
+            </p>
           </div>
         </CardContent>
       </Card>
