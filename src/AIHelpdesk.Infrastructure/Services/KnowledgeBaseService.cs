@@ -6,6 +6,7 @@ using AIHelpdesk.Domain.Entities;
 using AIHelpdesk.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AIHelpdesk.Infrastructure.Services;
 
@@ -13,12 +14,14 @@ public class KnowledgeBaseService : IKnowledgeBaseService
 {
     private readonly ApplicationDbContext _context;
     private readonly IAIService _ai;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly string _uploadPath;
 
-    public KnowledgeBaseService(ApplicationDbContext context, IAIService ai, IConfiguration configuration)
+    public KnowledgeBaseService(ApplicationDbContext context, IAIService ai, IConfiguration configuration, IServiceScopeFactory scopeFactory)
     {
         _context = context;
         _ai = ai;
+        _scopeFactory = scopeFactory;
         _uploadPath = configuration["KnowledgeBase:UploadPath"] ?? Path.Combine(Directory.GetCurrentDirectory(), "uploads", "knowledge");
         Directory.CreateDirectory(_uploadPath);
     }
@@ -83,19 +86,31 @@ public class KnowledgeBaseService : IKnowledgeBaseService
         _context.KnowledgeDocuments.Add(doc);
         await _context.SaveChangesAsync();
 
-        // Auto-index
+        // Auto-index in the background. This outlives the HTTP request (and its DI scope +
+        // DbContext), so it must resolve its own scope rather than capturing _context/_ai --
+        // using the request-scoped instances here throws ObjectDisposedException once the
+        // response completes, and previously did so silently (Task.Run has no observer, and the
+        // catch block's own save attempt hit the same disposed context), leaving documents stuck
+        // at "Indexing" forever with no error ever recorded.
+        var docId = doc.Id;
         _ = Task.Run(async () =>
         {
+            using var scope = _scopeFactory.CreateScope();
+            var scopedContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var scopedAi = scope.ServiceProvider.GetRequiredService<IAIService>();
+            var scopedDoc = await scopedContext.KnowledgeDocuments.FindAsync(docId);
+            if (scopedDoc == null) return;
+
             try
             {
-                await IndexDocumentInternalAsync(doc);
+                await IndexDocumentInternalAsync(scopedDoc, scopedContext, scopedAi);
             }
             catch (Exception ex)
             {
-                doc.Status = KnowledgeDocumentStatus.Failed;
-                doc.ErrorMessage = ex.Message;
-                doc.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                scopedDoc.Status = KnowledgeDocumentStatus.Failed;
+                scopedDoc.ErrorMessage = ex.Message;
+                scopedDoc.UpdatedAt = DateTime.UtcNow;
+                await scopedContext.SaveChangesAsync();
             }
         });
 
@@ -123,7 +138,22 @@ public class KnowledgeBaseService : IKnowledgeBaseService
     {
         var doc = await _context.KnowledgeDocuments.FindAsync(id)
             ?? throw new KeyNotFoundException("Document not found");
-        await IndexDocumentInternalAsync(doc);
+
+        try
+        {
+            await IndexDocumentInternalAsync(doc, _context, _ai);
+        }
+        catch (Exception ex)
+        {
+            // Same "leave the document stuck at Indexing" failure mode as the auto-index path
+            // below (just without the disposed-context race, since this one runs synchronously
+            // within the request) -- record the failure instead of letting it bubble as a bare 500.
+            doc.Status = KnowledgeDocumentStatus.Failed;
+            doc.ErrorMessage = ex.Message;
+            doc.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+
         return Map(doc);
     }
 
@@ -174,11 +204,11 @@ public class KnowledgeBaseService : IKnowledgeBaseService
         return results;
     }
 
-    private async Task IndexDocumentInternalAsync(KnowledgeDocument doc)
+    private async Task IndexDocumentInternalAsync(KnowledgeDocument doc, ApplicationDbContext context, IAIService ai)
     {
         doc.Status = KnowledgeDocumentStatus.Indexing;
         doc.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         // Extract text
         var text = doc.FileType switch
@@ -190,8 +220,8 @@ public class KnowledgeBaseService : IKnowledgeBaseService
         };
 
         // Remove existing chunks
-        var oldChunks = await _context.KnowledgeChunks.Where(c => c.DocumentId == doc.Id).ToListAsync();
-        _context.KnowledgeChunks.RemoveRange(oldChunks);
+        var oldChunks = await context.KnowledgeChunks.Where(c => c.DocumentId == doc.Id).ToListAsync();
+        context.KnowledgeChunks.RemoveRange(oldChunks);
 
         // Chunk text (500 char chunks with 100 char overlap)
         var chunks = ChunkText(text, 500, 100);
@@ -200,8 +230,8 @@ public class KnowledgeBaseService : IKnowledgeBaseService
         int index = 0;
         foreach (var chunk in chunks)
         {
-            var embedding = await _ai.GenerateEmbeddingAsync(chunk);
-            _context.KnowledgeChunks.Add(new KnowledgeChunk
+            var embedding = await ai.GenerateEmbeddingAsync(chunk);
+            context.KnowledgeChunks.Add(new KnowledgeChunk
             {
                 DocumentId = doc.Id,
                 Content = chunk,
@@ -213,7 +243,7 @@ public class KnowledgeBaseService : IKnowledgeBaseService
         doc.Status = KnowledgeDocumentStatus.Ready;
         doc.ChunkCount = chunks.Count;
         doc.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 
     private static List<string> ChunkText(string text, int chunkSize, int overlap)
