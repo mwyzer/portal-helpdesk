@@ -341,7 +341,7 @@ public class KnowledgeBaseServiceTests
         var deptB = Guid.NewGuid();
         var doc = TestDataFactory.CreateKnowledgeDocument("HR-only policies");
         doc.DepartmentId = deptA;
-        doc.Chunks.Add(TestDataFactory.CreateKnowledgeChunk(doc.Id, "confidential HR policies content", 0));
+        doc.Chunks.Add(TestDataFactory.CreateKnowledgeChunk(doc.Id, "confidential HR policies content", 0, departmentId: deptA));
         context.KnowledgeDocuments.Add(doc);
         await context.SaveChangesAsync();
 
@@ -359,7 +359,7 @@ public class KnowledgeBaseServiceTests
         var deptA = Guid.NewGuid();
         var doc = TestDataFactory.CreateKnowledgeDocument("HR-only policies");
         doc.DepartmentId = deptA;
-        doc.Chunks.Add(TestDataFactory.CreateKnowledgeChunk(doc.Id, "confidential HR policies content", 0));
+        doc.Chunks.Add(TestDataFactory.CreateKnowledgeChunk(doc.Id, "confidential HR policies content", 0, departmentId: deptA));
         context.KnowledgeDocuments.Add(doc);
         await context.SaveChangesAsync();
 

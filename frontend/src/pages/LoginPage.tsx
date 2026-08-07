@@ -107,16 +107,12 @@ export function LoginPage() {
               {isSubmitting ? <Spinner className="mr-2" /> : <LogIn className="mr-2 h-4 w-4" />}
               Sign In
             </Button>
-            //buat list untuk login dan passwordnya
-            <div className="space-y-2">
-              {DEMO_ACCOUNTS.map((account) => (
-                <div key={account.email} className="text-sm">
-                  <p className="font-medium">{account.role}</p>
-                  <p className="text-muted-foreground">{account.email}</p>
-                  <p className="text-muted-foreground">{account.password}</p>
-                </div>
-              ))}
-            </div>
+            //buat text saja untuk user dan password
+            <p>hrd@aihelpdesk.com</p>
+            <p>Hrd@12345</p>
+            
+
+  
           </form>
 
           <div className="mt-6 space-y-2 rounded-md bg-muted p-3">

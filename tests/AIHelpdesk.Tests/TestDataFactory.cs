@@ -477,7 +477,8 @@ public static class TestDataFactory
         Guid documentId,
         string content = "This is a test chunk of knowledge content.",
         int chunkIndex = 0,
-        string embeddingJson = "[0.1, 0.2, 0.3]")
+        string embeddingJson = "[0.1, 0.2, 0.3]",
+        Guid? departmentId = null)
     {
         return new KnowledgeChunk
         {
@@ -486,6 +487,7 @@ public static class TestDataFactory
             Content = content,
             ChunkIndex = chunkIndex,
             EmbeddingJson = embeddingJson,
+            DepartmentId = departmentId,
             IsDeleted = false,
             CreatedAt = DateTime.UtcNow,
         };
