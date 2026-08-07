@@ -25,6 +25,11 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Server GC allocates a heap per core and is memory-hungry; on Render's memory-capped free
+         tier that risks OOM-driven crashes (observed as a SIGSEGV/exit 139) under load. Workstation
+         GC uses a single heap and a much smaller footprint, which fits a low-traffic instance like this. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
   </PropertyGroup>
 
 </Project>
