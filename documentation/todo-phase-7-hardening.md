@@ -111,16 +111,21 @@
   direct `ApplicationUser` id despite the name (confirmed via `CreateDocumentRequestAsync`) — the
   bug would have made the fix reject the legitimate owner in production. 34 new regression tests
   added (`*ServiceTests.cs`); full suite (321 tests) passes.
-  **Not fixed, flagged for a product decision:** `RolesController` grants "Super Admin,HRD" full
+  **Follow-up, resolved same pass:** `RolesController` granted "Super Admin,HRD" full
   role/permission-CRUD including `UpdateRolePermissionsAsync` (assign arbitrary permissions to
-  any role, no restriction on which). Combined with `UsersController`'s "Super Admin,HRD"-gated
-  `AssignRoles`, an HRD account can self-escalate: create/modify a role's permission set, then
-  assign that role to their own user. `project-scope.md` §3.5 lists "mengatur role dan
-  permission" as a Super-Admin-only responsibility, not HRD's — this looks like an over-broad
-  grant carried over from the other admin controllers (Departments/LeaveTypes/Users) that
-  legitimately share Super Admin+HRD, rather than a deliberate call for role management
-  specifically. Left as-is pending a decision, since narrowing it removes a capability HRD staff
-  may already be using.
+  any role, no restriction on which); combined with `UsersController`'s "Super Admin,HRD"-gated
+  `AssignRoles` (also unrestricted — applies whatever role ids are passed, no check), an HRD
+  account could self-escalate to Super Admin two ways: edit a role's permissions then assign it
+  to themselves, or more directly, just assign the existing "Super Admin" role to their own user
+  account outright. `project-scope.md` §3.5 lists "mengatur role dan permission" as a
+  Super-Admin-only responsibility, not HRD's. Confirmed with the user and fixed: `RolesController`
+  narrowed to `[Authorize(Roles = "Super Admin")]`; `UsersController.AssignRoles` given its own
+  `[Authorize(Roles = "Super Admin")]` override (the rest of `UsersController` — create/update/
+  deactivate users — stays Super Admin+HRD, since that's a legitimate shared HRD responsibility).
+  Frontend: `/roles` route and its sidebar nav item narrowed to Super Admin only in `App.tsx` /
+  `AppLayout.tsx`; `UsersPage.tsx` only ever displayed roles read-only and had no UI wired to
+  `AssignRoles`, so no frontend behavior change there. Full backend suite (321 tests) and
+  frontend build verified after the change.
 
 ## Performance Testing
 
