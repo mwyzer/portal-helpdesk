@@ -75,7 +75,11 @@ public class ActionItemService : IActionItemService
             .ToListAsync();
     }
 
-    public async Task<ActionItemResponse> GetActionItemByIdAsync(Guid id)
+    // An action item's title/description can reference internal task details outside the
+    // caller's own area, so a plain Employee may only fetch items assigned to them --
+    // previously this had no ownership check at all. Secretary/Manager/HRD/Super Admin bypass
+    // it, matching the roles this controller already grants create/update/cancel over any item.
+    public async Task<ActionItemResponse> GetActionItemByIdAsync(Guid id, Guid userId, bool isPrivileged)
     {
         var item = await _context.ActionItems
             .Include(a => a.AssignedTo)
@@ -84,6 +88,8 @@ public class ActionItemService : IActionItemService
 
         if (item == null)
             throw new KeyNotFoundException("Action item not found");
+        if (!isPrivileged && item.AssignedToId != userId)
+            throw new UnauthorizedAccessException("You do not have access to this action item.");
 
         return new ActionItemResponse(
             item.Id, item.MeetingId, item.Meeting?.Title,

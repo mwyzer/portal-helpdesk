@@ -12,14 +12,14 @@ public interface IDocumentService
     Task DeleteTemplateAsync(Guid id);
 
     // Requests
-    Task<PagedResult<DocumentRequestResponse>> GetDocumentRequestsAsync(Guid userId, int page, int pageSize, string? status);
-    Task<DocumentRequestDetailResponse> GetDocumentRequestByIdAsync(Guid id);
+    Task<PagedResult<DocumentRequestResponse>> GetDocumentRequestsAsync(Guid userId, bool isPrivileged, int page, int pageSize, string? status);
+    Task<DocumentRequestDetailResponse> GetDocumentRequestByIdAsync(Guid id, Guid userId, bool isPrivileged);
     Task<DocumentRequestResponse> CreateDocumentRequestAsync(Guid employeeId, CreateDocumentRequestRequest request);
-    Task<DocumentRequestResponse> UpdateDocumentRequestAsync(Guid id, UpdateDocumentRequestRequest request);
+    Task<DocumentRequestResponse> UpdateDocumentRequestAsync(Guid id, Guid userId, bool isPrivileged, UpdateDocumentRequestRequest request);
     Task<DocumentRequestResponse> GenerateDraftAsync(Guid id);
     Task<DocumentRequestResponse> SubmitForReviewAsync(Guid id);
     Task<DocumentRequestResponse> ApproveDocumentAsync(Guid id, Guid reviewerId);
     Task<DocumentRequestResponse> RejectDocumentAsync(Guid id, string reason);
     Task<DocumentRequestResponse> GenerateFinalAsync(Guid id);
-    Task<(byte[] FileContents, string FileName, string ContentType)> DownloadDocumentAsync(Guid id, string? format = null);
+    Task<(byte[] FileContents, string FileName, string ContentType)> DownloadDocumentAsync(Guid id, Guid userId, bool isPrivileged, string? format = null);
 }

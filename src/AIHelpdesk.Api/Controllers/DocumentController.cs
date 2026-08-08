@@ -71,20 +71,22 @@ public class DocumentRequestsController : ControllerBase
 
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+    private bool IsPrivileged() => User.IsInRole("Secretary") || User.IsInRole("Manager") || User.IsInRole("HRD") || User.IsInRole("Super Admin");
+
     [HttpGet]
     public async Task<ActionResult<PagedResult<DocumentRequestResponse>>> GetDocumentRequests(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? status = null)
     {
-        var result = await _documentService.GetDocumentRequestsAsync(GetUserId(), page, pageSize, status);
+        var result = await _documentService.GetDocumentRequestsAsync(GetUserId(), IsPrivileged(), page, pageSize, status);
         return Ok(result);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<DocumentRequestDetailResponse>> GetDocumentRequest(Guid id)
     {
-        var result = await _documentService.GetDocumentRequestByIdAsync(id);
+        var result = await _documentService.GetDocumentRequestByIdAsync(id, GetUserId(), IsPrivileged());
         return Ok(result);
     }
 
@@ -98,7 +100,7 @@ public class DocumentRequestsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<DocumentRequestResponse>> UpdateDocumentRequest(Guid id, [FromBody] UpdateDocumentRequestRequest request)
     {
-        var result = await _documentService.UpdateDocumentRequestAsync(id, request);
+        var result = await _documentService.UpdateDocumentRequestAsync(id, GetUserId(), IsPrivileged(), request);
         return Ok(result);
     }
 
@@ -145,7 +147,7 @@ public class DocumentRequestsController : ControllerBase
     [HttpGet("{id}/download")]
     public async Task<ActionResult> DownloadDocument(Guid id, [FromQuery] string? format = null)
     {
-        var (fileContents, fileName, contentType) = await _documentService.DownloadDocumentAsync(id, format);
+        var (fileContents, fileName, contentType) = await _documentService.DownloadDocumentAsync(id, GetUserId(), IsPrivileged(), format);
         return File(fileContents, contentType, fileName);
     }
 }

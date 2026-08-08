@@ -16,9 +16,11 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<ApplicationDbContext>(options =>
+        services.AddSingleton<AuditSaveChangesInterceptor>();
+        services.AddDbContext<ApplicationDbContext>((sp, options) =>
             options.UseNpgsql(NormalizeConnectionString(configuration.GetConnectionString("DefaultConnection")))
-                   .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
+                   .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
+                   .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
 
         services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
         {
@@ -65,6 +67,8 @@ public static class DependencyInjection
         services.AddScoped<IRecruitmentAIService, RecruitmentAIService>();
         // Phase 8: Candidate Self-Service Portal
         services.AddScoped<ICandidatePortalService, CandidatePortalService>();
+        // Phase 7: Hardening
+        services.AddScoped<IAuditLogService, AuditLogService>();
         services.Configure<AIOptions>(configuration.GetSection(AIOptions.SectionName));
 
         services.AddHttpClient<IAIService, AIService>(client =>

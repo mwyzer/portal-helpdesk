@@ -162,9 +162,10 @@ quarterly — an untested backup is not a verified backup.
 
 Carried over from `documentation/todo-phase-7-hardening.md` — these are real, not yet closed:
 
-- **No structured audit log.** There is no `AuditLog` entity/table anywhere in the codebase —
-  data mutations are not recorded with who/when/old-value/new-value. Application-level audit
-  logging (not just DB-level `CreatedAt`/`UpdatedAt`) would need to be designed and built.
+- ~~No structured audit log.~~ **Closed 2026-08-08**: an `AuditLog` table + EF Core
+  `SaveChangesInterceptor` now record who/when/old-value/new-value for every mutation, viewable
+  at `/audit-log` (Super Admin only) or `GET /api/audit-logs`. See
+  `documentation/todo-phase-7-hardening.md`.
 - **No Redis caching layer.** Reference-data caching (roles, departments, lookups) is
   unimplemented; deliberately not added to `docker-compose.prod.yml` until the caching code
   exists (see that file's comments).

@@ -131,7 +131,7 @@ public class TicketServiceTests
         var created = await service.CreateAsync(userId, new CreateTicketRequest(category.Id, "t", "d", null, null));
         await service.ResolveAsync(created.Id, userId);
 
-        var reopened = await service.ReopenAsync(created.Id, userId);
+        var reopened = await service.ReopenAsync(created.Id, userId, false);
 
         reopened.Status.Should().Be("Reopened");
     }
@@ -146,7 +146,7 @@ public class TicketServiceTests
         var userId = await SeedUserAsync(context);
         var created = await service.CreateAsync(userId, new CreateTicketRequest(category.Id, "t", "d", null, null));
 
-        var result = await service.AddCommentAsync(created.Id, userId, new CreateTicketCommentRequest("Looking into it", false));
+        var result = await service.AddCommentAsync(created.Id, userId, false, new CreateTicketCommentRequest("Looking into it", false));
 
         result.Comments.Should().ContainSingle(c => c.Content == "Looking into it" && !c.IsInternal);
     }
@@ -162,7 +162,7 @@ public class TicketServiceTests
         var created = await service.CreateAsync(userId, new CreateTicketRequest(category.Id, "t", "d", null, null));
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("malicious"));
-        var act = () => service.UploadAttachmentAsync(created.Id, userId, "virus.exe", "application/octet-stream", stream);
+        var act = () => service.UploadAttachmentAsync(created.Id, userId, false, "virus.exe", "application/octet-stream", stream);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
@@ -176,7 +176,7 @@ public class TicketServiceTests
         var created = await service.CreateAsync(userId, new CreateTicketRequest(category.Id, "t", "d", null, null));
 
         using var stream = new MemoryStream(new byte[11 * 1024 * 1024]); // 11 MB > 10 MB limit
-        var act = () => service.UploadAttachmentAsync(created.Id, userId, "big.pdf", "application/pdf", stream);
+        var act = () => service.UploadAttachmentAsync(created.Id, userId, false, "big.pdf", "application/pdf", stream);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
@@ -192,13 +192,13 @@ public class TicketServiceTests
         var content = Encoding.UTF8.GetBytes("hello world");
         using (var uploadStream = new MemoryStream(content))
         {
-            await service.UploadAttachmentAsync(created.Id, userId, "notes.txt", "text/plain", uploadStream);
+            await service.UploadAttachmentAsync(created.Id, userId, false, "notes.txt", "text/plain", uploadStream);
         }
 
-        var detail = await service.GetByIdAsync(created.Id);
+        var detail = await service.GetByIdAsync(created.Id, userId, false);
         var attachmentId = detail.Attachments.Single().Id;
 
-        var (downloadStream, contentType, fileName) = await service.DownloadAttachmentAsync(created.Id, attachmentId);
+        var (downloadStream, contentType, fileName) = await service.DownloadAttachmentAsync(created.Id, attachmentId, userId, false);
         using var reader = new StreamReader(downloadStream);
         var downloaded = await reader.ReadToEndAsync();
 
@@ -217,15 +217,15 @@ public class TicketServiceTests
 
         using (var uploadStream = new MemoryStream(Encoding.UTF8.GetBytes("data")))
         {
-            await service.UploadAttachmentAsync(created.Id, userId, "notes.txt", "text/plain", uploadStream);
+            await service.UploadAttachmentAsync(created.Id, userId, false, "notes.txt", "text/plain", uploadStream);
         }
 
-        var detail = await service.GetByIdAsync(created.Id);
+        var detail = await service.GetByIdAsync(created.Id, userId, false);
         var attachmentId = detail.Attachments.Single().Id;
 
-        await service.DeleteAttachmentAsync(created.Id, attachmentId, userId);
+        await service.DeleteAttachmentAsync(created.Id, attachmentId, userId, false);
 
-        var afterDelete = await service.GetByIdAsync(created.Id);
+        var afterDelete = await service.GetByIdAsync(created.Id, userId, false);
         afterDelete.Attachments.Should().BeEmpty();
     }
 
@@ -237,7 +237,7 @@ public class TicketServiceTests
         var userId = await SeedUserAsync(context);
         var created = await service.CreateAsync(userId, new CreateTicketRequest(category.Id, "t", "d", null, null));
 
-        var act = () => service.DownloadAttachmentAsync(created.Id, Guid.NewGuid());
+        var act = () => service.DownloadAttachmentAsync(created.Id, Guid.NewGuid(), userId, false);
 
         await act.Should().ThrowAsync<KeyNotFoundException>();
     }
@@ -319,5 +319,74 @@ public class TicketServiceTests
 
         result.SuggestedCategory.Should().Be("IT Support");
         result.Confidence.Should().Be(0.0);
+    }
+
+    // ─────────── Ownership (IDOR) ───────────
+
+    [Fact]
+    public async Task GetByIdAsync_ShouldThrow_WhenCallerIsNotSubmitterAssigneeOrPrivileged()
+    {
+        var (service, context, _) = CreateService();
+        var category = await SeedCategoryAsync(context);
+        var submitterId = await SeedUserAsync(context);
+        var created = await service.CreateAsync(submitterId, new CreateTicketRequest(category.Id, "t", "d", null, null));
+
+        var act = () => service.GetByIdAsync(created.Id, Guid.NewGuid(), false);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ShouldSucceed_WhenCallerIsPrivileged()
+    {
+        var (service, context, _) = CreateService();
+        var category = await SeedCategoryAsync(context);
+        var submitterId = await SeedUserAsync(context);
+        var created = await service.CreateAsync(submitterId, new CreateTicketRequest(category.Id, "t", "d", null, null));
+
+        var result = await service.GetByIdAsync(created.Id, Guid.NewGuid(), true);
+
+        result.Id.Should().Be(created.Id);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldThrow_WhenCallerIsNotSubmitterAssigneeOrPrivileged()
+    {
+        var (service, context, _) = CreateService();
+        var category = await SeedCategoryAsync(context);
+        var submitterId = await SeedUserAsync(context);
+        var created = await service.CreateAsync(submitterId, new CreateTicketRequest(category.Id, "t", "d", null, null));
+
+        var act = () => service.UpdateAsync(created.Id, Guid.NewGuid(), false, new UpdateTicketRequest("new title", "new desc", null, null));
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task AddCommentAsync_ShouldThrow_WhenCallerIsNotSubmitterAssigneeOrPrivileged()
+    {
+        var (service, context, _) = CreateService();
+        var category = await SeedCategoryAsync(context);
+        var submitterId = await SeedUserAsync(context);
+        var created = await service.CreateAsync(submitterId, new CreateTicketRequest(category.Id, "t", "d", null, null));
+
+        var act = () => service.AddCommentAsync(created.Id, Guid.NewGuid(), false, new CreateTicketCommentRequest("hi", false));
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task DownloadAttachmentAsync_ShouldThrow_WhenCallerIsNotSubmitterAssigneeOrPrivileged()
+    {
+        var (service, context, _) = CreateService();
+        var category = await SeedCategoryAsync(context);
+        var submitterId = await SeedUserAsync(context);
+        var created = await service.CreateAsync(submitterId, new CreateTicketRequest(category.Id, "t", "d", null, null));
+        using var uploadStream = new MemoryStream(Encoding.UTF8.GetBytes("data"));
+        var attachment = await service.UploadAttachmentAsync(created.Id, submitterId, false, "notes.txt", "text/plain", uploadStream);
+
+        var act = () => service.DownloadAttachmentAsync(created.Id, attachment.Id, Guid.NewGuid(), false);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
     }
 }

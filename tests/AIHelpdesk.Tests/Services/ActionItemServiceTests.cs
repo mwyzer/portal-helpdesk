@@ -214,10 +214,27 @@ public class ActionItemServiceTests
         context.ActionItems.Add(item);
         await context.SaveChangesAsync();
 
-        var result = await service.GetActionItemByIdAsync(item.Id);
+        var result = await service.GetActionItemByIdAsync(item.Id, user.Id, false);
 
         result.Title.Should().Be("Find me");
         result.AssignedToName.Should().Be("Alice");
+    }
+
+    [Fact]
+    public async Task GetActionItemByIdAsync_ShouldThrow_WhenCallerIsNotAssigneeAndNotPrivileged()
+    {
+        var (service, context) = await CreateServiceAsync();
+        var assignee = TestDataFactory.CreateUser(fullName: "Alice");
+        context.Users.Add(assignee);
+        var meeting = TestDataFactory.CreateMeeting(assignee.Id);
+        context.Meetings.Add(meeting);
+        var item = TestDataFactory.CreateActionItem(meeting.Id, assignee.Id, "Not yours");
+        context.ActionItems.Add(item);
+        await context.SaveChangesAsync();
+
+        var act = () => service.GetActionItemByIdAsync(item.Id, Guid.NewGuid(), false);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
     }
 
     [Fact]
@@ -225,7 +242,7 @@ public class ActionItemServiceTests
     {
         var (service, _) = await CreateServiceAsync();
 
-        await service.Invoking(s => s.GetActionItemByIdAsync(Guid.NewGuid()))
+        await service.Invoking(s => s.GetActionItemByIdAsync(Guid.NewGuid(), Guid.NewGuid(), true))
             .Should().ThrowAsync<KeyNotFoundException>();
     }
 }

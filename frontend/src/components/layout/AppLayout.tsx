@@ -33,6 +33,7 @@ import {
   Briefcase,
   Users2,
   CalendarClock,
+  History,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import type { LucideIcon } from 'lucide-react';
@@ -74,6 +75,7 @@ const allNavItems = {
   vacancies:        { to: '/recruitment/vacancies',  label: 'Vacancies',     icon: Briefcase },
   candidates:       { to: '/recruitment/candidates', label: 'Candidates',    icon: Users2 },
   interviews:       { to: '/recruitment/interviews', label: 'Interviews',    icon: CalendarClock },
+  auditLog:         { to: '/audit-log',            label: 'Audit Log',       icon: History },
 } as const;
 
 // ── Role-based navigation groups ──────────────────
@@ -81,7 +83,6 @@ const allNavItems = {
 const adminNav: NavItem[] = [
   allNavItems.dashboard,
   allNavItems.users,
-  allNavItems.roles,
   allNavItems.departments,
   allNavItems.employees,
   allNavItems.leaveTypes,
@@ -143,7 +144,11 @@ const employeeNav: NavItem[] = [
 // ── Resolve nav items from user roles ─────────────
 
 function resolveNavItems(roles: string[]): NavItem[] {
-  if (roles.includes('Super Admin') || roles.includes('HRD')) return adminNav;
+  // adminNav is shared with HRD, which the backend does NOT grant audit.read or role/permission
+  // management to (Super Admin only, see AuditLogsController / RolesController) -- append those
+  // only for the role that can actually use them.
+  if (roles.includes('Super Admin')) return [...adminNav, allNavItems.roles, allNavItems.auditLog];
+  if (roles.includes('HRD')) return adminNav;
   if (roles.includes('Secretary')) return secretaryNav;
   if (roles.includes('Manager')) return managerNav;
   return employeeNav;

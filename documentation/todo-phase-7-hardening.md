@@ -1,5 +1,24 @@
 # Phase 7 — Hardening & Production Deployment — TODO Checklist
 
+> **Status (2026-08-09): 45/103 tasks done (~44%)** — closed the NuGet vulnerability scan (found
+> and fixed one real transitive vulnerability, `SixLabors.ImageSharp`) and a systematic
+> endpoint-authorization audit, which found and fixed a real IDOR class affecting Tickets, Leave
+> Requests, Document Requests, and Action Items (see their entries in Security Hardening below).
+> One finding — `RolesController`'s HRD self-escalation path — is flagged but intentionally not
+> auto-fixed, pending a product decision. Still open from Security Hardening: ClamAV scanning,
+> ZAP/Trivy/pentest. Still open overall: Redis caching, monitoring/alerting stack, staging
+> environment + CD approval gates, and all of UAT & go-live.
+>
+> **Status (2026-08-08): 43/103 tasks done (~42%)** — this pass closed audit logging, CORS
+> restriction, and secrets-in-env-vars (see their entries below for detail: an EF Core
+> `SaveChangesInterceptor`-based `AuditLog` trail with a Super-Admin-only viewer page, and a
+> Production-only fail-fast startup check for `Jwt:Key`/`Cors:Origins`, which also caught a
+> pre-existing bug where `.env.example` didn't define the variable names
+> `docker-compose.prod.yml` actually reads). Still open from Security Hardening: ClamAV
+> scanning and all of the formal security testing (ZAP/Trivy/pentest/dependency scan). Still
+> open overall: Redis caching, monitoring/alerting stack, staging environment + CD approval
+> gates, and all of UAT & go-live.
+>
 > **Status (2026-08-05): 40/103 tasks done (~39%)** (103, not 102 — one item, the CI pipeline itself, was added as a prerequisite not in the original list). This pass implemented HTTPS/HSTS/CSP,
 > general rate limiting, response compression, upload validation/size limits, Dependabot, a
 > CI pipeline, expanded health checks, k6 load tests (now actually executed — see Performance
@@ -50,10 +69,10 @@
 
 - [x] Enforce HTTPS (redirect HTTP → HTTPS) — `app.UseHttpsRedirection()` added, gated to non-Development environments
 - [x] Add HSTS header — `AddHsts()` + `app.UseHsts()` added (365 days, includeSubDomains), non-Development only
-- [ ] Restrict CORS to production domain only — still config-driven (`Cors:Origins`); the production compose file sets it from `FRONTEND_ORIGIN`, but nothing in code enforces it can't be `*` or localhost — operational discipline, not a code gate
+- [x] Restrict CORS to production domain only — `Program.cs` now fails fast on startup when `ASPNETCORE_ENVIRONMENT=Production` and `Cors:Origins` is empty, contains `*`, or contains a `localhost`/`127.0.0.1` entry, instead of relying on deploy-time discipline
 - [x] Add Content Security Policy (CSP) headers — middleware added in `Program.cs` (also sets `X-Content-Type-Options`, `Referrer-Policy`)
 - [x] Configure rate limiting middleware (300 req/min general, 10 req/min AI) — `RateLimitingMiddleware` rewritten as two-tier: existing AI-specific limit plus a new general limit (configurable via `RateLimiting:GeneralMaxRequestsPerMinute`), keyed by user ID or client IP for anonymous requests. Original spec said 100/min general; raised to 300/min after E2E testing showed 100/min tripping under realistic rapid-navigation load, not just abuse — see the status note above
-- [ ] Move all secrets to environment variables / Docker secrets — done for the new `docker-compose.prod.yml` (all secrets from `.env`, see `.env.example`); the dev-only `docker-compose.yml`'s hardcoded JWT key is unchanged (intentionally — it's dev-only and documented as such)
+- [x] Move all secrets to environment variables / Docker secrets — done for `docker-compose.prod.yml` (all secrets from `.env`); the dev-only `docker-compose.yml`'s hardcoded JWT key is unchanged (intentionally — it's dev-only and documented as such). Also fixed a real gap found while adding the check below: `.env.example` only defined the double-underscore dev-compose variable names, not the plain `JWT_KEY`/`FRONTEND_ORIGIN`/`AI_API_KEY` names `docker-compose.prod.yml` actually substitutes — following the runbook literally would have deployed with an empty JWT key. `Program.cs` now also fails fast in Production if `Jwt:Key` matches either checked-in dev value or is under 32 characters, so a misconfiguration like that is caught at boot instead of silently running
 - [x] Remove any `.env` or secrets from repository — confirmed none tracked; `.env.example` documents required keys without values
 - [x] Shorten JWT access token expiry (15 minutes) — `AccessTokenExpiryMinutes: 15` in `appsettings.json`
 - [x] Implement refresh token rotation — `AuthService.RefreshTokenAsync` revokes the old token and issues a new one on every refresh
@@ -63,16 +82,45 @@
 - [ ] Add ClamAV file scanning for uploads — not implemented (extension/size validation only)
 - [x] Restrict file upload extensions — `EmployeesController.ImportEmployees` (had zero validation — real bug, fixed with extension/size checks), `KnowledgeBaseController` upload (added `[RequestSizeLimit(20MB)]`), ticket attachments and candidate CVs already validated in Phases 5/6
 - [x] Audit all EF Core queries for SQL injection safety — only one raw-SQL call exists (`KnowledgeBaseService`'s pgvector similarity query), confirmed parameterized via EF's `{0}`/`{1}`/`{2}` placeholders, not string interpolation
-- [ ] Verify all data mutations are audit-logged — **confirmed not implemented**: no `AuditLog` entity exists anywhere in the codebase, only per-record `CreatedAt`/`UpdatedAt`. Flagged in `documentation/deployment-runbook.md` as a known gap; building a real audit trail is a bigger effort than this pass covers
+- [x] Verify all data mutations are audit-logged — implemented via a new `AuditSaveChangesInterceptor` (EF Core `SaveChangesInterceptor`) registered on `ApplicationDbContext`, so every Create/Update/soft-delete on an `AIHelpdesk.Domain.Entities` type is captured in a new `AuditLog` table without any individual service having to call it explicitly (an audit of existing services found only 3 of ~40 called `CreatedBy`/`UpdatedBy` manually, so per-call-site logging would have had the same gaps). Excludes `RefreshToken`/`CandidatePortalRefreshToken` (auth-token churn, not business data) and framework-managed Identity tables. Records user id/name (from the JWT, staff or candidate-portal), IP, entity name/id, and old/new values as JSON. Exposed read-only via `GET /api/audit-logs` (`[Authorize(Roles = "Super Admin")]`, paginated, filterable by entity/user/action/date range) and a new frontend "Audit Log" page/nav item visible to Super Admin only. New `audit.read` permission seeded. Covered by `AuditSaveChangesInterceptorTests.cs` and `AuditLogServiceTests.cs`
 - [x] Set up Dependabot for dependency vulnerability scanning — `.github/dependabot.yml` added (nuget, npm, github-actions, 3x docker ecosystems, weekly)
-- [ ] Run `dotnet list --vulnerable` and fix findings — not run (needs a live NuGet feed check, not done in this pass)
+- [x] Run `dotnet list --vulnerable` and fix findings — found `SixLabors.ImageSharp` 1.0.4 (transitive via `PdfSharpCore`) with multiple High/Moderate advisories; pinned a direct reference to 3.1.12 in `AIHelpdesk.Infrastructure.csproj` to force NuGet's resolution. Safe: `LetterDocumentGenerator` only emits text-based PDFs, no image embedding, so this doesn't touch any of our own code paths. Re-scan confirms 0 vulnerable packages across all projects; full test suite (321 tests) still passes
 - [ ] Run Trivy/Snyk container image scan
 - [ ] Run OWASP ZAP baseline scan against staging — no staging environment exists yet
 - [ ] Manual penetration test: auth bypass
 - [ ] Manual penetration test: IDOR
 - [ ] Manual penetration test: XSS
 - [ ] Manual penetration test: CSRF
-- [ ] Verify all endpoints enforce role/permission checks — spot-checked via the Super Admin bug above, but no systematic pass done
+- [x] Verify all endpoints enforce role/permission checks — systematic pass done 2026-08-09 across
+  every controller. Found and fixed a real, exploitable class of bug: `TicketsController`,
+  `LeaveRequestsController`, `DocumentRequestsController`, and `ActionItemsController` all had
+  single-resource endpoints (`GetById`, `Update`, comment/reopen/attachment actions) guarded only
+  by a bare `[Authorize]` — any authenticated user (including a plain Employee) could read or
+  modify **any other user's** ticket, leave request, generated document, or action item just by
+  guessing/enumerating its GUID, since the service layer underneath did no ownership check at
+  all. `DocumentRequestsController`'s list endpoint was worse: it accepted a `userId` parameter
+  and silently ignored it, returning every employee's document requests to every caller.
+  Fixed by adding a submitter/assignee-or-privileged-role check in each service
+  (`TicketService.EnsureAccess`, `LeaveRequestService.GetLeaveRequestAsync`,
+  `DocumentService.EnsureAccess`, `ActionItemService.GetActionItemByIdAsync`), enforced
+  server-side rather than trusting the frontend to only link to a user's own records. The MCP
+  `TicketMcpTools` had already worked around the same gap with its own duplicate check (see its
+  old doc comment); that duplicate logic was removed since the service now enforces it centrally.
+  Caught mid-fix by a failing regression test: an early version of the `DocumentService` fix
+  compared `Employees.Id` against `DocumentRequest.EmployeeId`, but that field is actually a
+  direct `ApplicationUser` id despite the name (confirmed via `CreateDocumentRequestAsync`) — the
+  bug would have made the fix reject the legitimate owner in production. 34 new regression tests
+  added (`*ServiceTests.cs`); full suite (321 tests) passes.
+  **Not fixed, flagged for a product decision:** `RolesController` grants "Super Admin,HRD" full
+  role/permission-CRUD including `UpdateRolePermissionsAsync` (assign arbitrary permissions to
+  any role, no restriction on which). Combined with `UsersController`'s "Super Admin,HRD"-gated
+  `AssignRoles`, an HRD account can self-escalate: create/modify a role's permission set, then
+  assign that role to their own user. `project-scope.md` §3.5 lists "mengatur role dan
+  permission" as a Super-Admin-only responsibility, not HRD's — this looks like an over-broad
+  grant carried over from the other admin controllers (Departments/LeaveTypes/Users) that
+  legitimately share Super Admin+HRD, rather than a deliberate call for role management
+  specifically. Left as-is pending a decision, since narrowing it removes a capability HRD staff
+  may already be using.
 
 ## Performance Testing
 

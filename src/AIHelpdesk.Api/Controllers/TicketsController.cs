@@ -20,6 +20,11 @@ public class TicketsController : ControllerBase
 
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+    // Ticket-specific ownership checks in TicketService allow these roles through regardless of
+    // submitter/assignee, matching the roles already granted broader ticket-management endpoints
+    // elsewhere in this controller (queue, assign, resolve, close, etc.).
+    private bool IsPrivileged() => User.IsInRole("Agent") || User.IsInRole("Manager") || User.IsInRole("Super Admin");
+
     [HttpGet]
     public async Task<ActionResult<PagedResult<TicketResponse>>> GetMyTickets(
         [FromQuery] int page = 1,
@@ -88,7 +93,7 @@ public class TicketsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<TicketDetailResponse>> GetById(Guid id)
     {
-        var result = await _service.GetByIdAsync(id);
+        var result = await _service.GetByIdAsync(id, GetUserId(), IsPrivileged());
         return Ok(result);
     }
 
@@ -102,7 +107,7 @@ public class TicketsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<TicketDetailResponse>> Update(Guid id, [FromBody] UpdateTicketRequest request)
     {
-        var result = await _service.UpdateAsync(id, request);
+        var result = await _service.UpdateAsync(id, GetUserId(), IsPrivileged(), request);
         return Ok(result);
     }
 
@@ -125,7 +130,7 @@ public class TicketsController : ControllerBase
     [HttpPost("{id}/comment")]
     public async Task<ActionResult<TicketDetailResponse>> AddComment(Guid id, [FromBody] CreateTicketCommentRequest request)
     {
-        var result = await _service.AddCommentAsync(id, GetUserId(), request);
+        var result = await _service.AddCommentAsync(id, GetUserId(), IsPrivileged(), request);
         return Ok(result);
     }
 
@@ -148,7 +153,7 @@ public class TicketsController : ControllerBase
     [HttpPost("{id}/reopen")]
     public async Task<ActionResult<TicketDetailResponse>> Reopen(Guid id)
     {
-        var result = await _service.ReopenAsync(id, GetUserId());
+        var result = await _service.ReopenAsync(id, GetUserId(), IsPrivileged());
         return Ok(result);
     }
 
@@ -160,21 +165,21 @@ public class TicketsController : ControllerBase
             return BadRequest("No file provided");
 
         await using var stream = file.OpenReadStream();
-        var result = await _service.UploadAttachmentAsync(id, GetUserId(), file.FileName, file.ContentType, stream);
+        var result = await _service.UploadAttachmentAsync(id, GetUserId(), IsPrivileged(), file.FileName, file.ContentType, stream);
         return Ok(result);
     }
 
     [HttpGet("{id}/attachments/{attachmentId}/download")]
     public async Task<IActionResult> DownloadAttachment(Guid id, Guid attachmentId)
     {
-        var (stream, contentType, fileName) = await _service.DownloadAttachmentAsync(id, attachmentId);
+        var (stream, contentType, fileName) = await _service.DownloadAttachmentAsync(id, attachmentId, GetUserId(), IsPrivileged());
         return File(stream, string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType, fileName);
     }
 
     [HttpDelete("{id}/attachments/{attachmentId}")]
     public async Task<IActionResult> DeleteAttachment(Guid id, Guid attachmentId)
     {
-        await _service.DeleteAttachmentAsync(id, attachmentId, GetUserId());
+        await _service.DeleteAttachmentAsync(id, attachmentId, GetUserId(), IsPrivileged());
         return NoContent();
     }
 

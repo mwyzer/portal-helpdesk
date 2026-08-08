@@ -20,6 +20,8 @@ public class ActionItemsController : ControllerBase
 
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+    private bool IsPrivileged() => User.IsInRole("Secretary") || User.IsInRole("Manager") || User.IsInRole("HRD") || User.IsInRole("Super Admin");
+
     [HttpGet]
     public async Task<ActionResult<PagedResult<ActionItemResponse>>> GetMyActionItems(
         [FromQuery] int page = 1,
@@ -50,7 +52,7 @@ public class ActionItemsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<ActionItemResponse>> GetActionItem(Guid id)
     {
-        var result = await _actionItemService.GetActionItemByIdAsync(id);
+        var result = await _actionItemService.GetActionItemByIdAsync(id, GetUserId(), IsPrivileged());
         return Ok(result);
     }
 

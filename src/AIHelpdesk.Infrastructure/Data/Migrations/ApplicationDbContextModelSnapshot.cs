@@ -383,6 +383,56 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("AIHelpdesk.Domain.Entities.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Changes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EntityId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Timestamp");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("EntityName", "EntityId");
+
+                    b.ToTable("AuditLogs");
+                });
+
             modelBuilder.Entity("AIHelpdesk.Domain.Entities.Candidate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1953,7 +2003,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Users",
                             IsDeleted = false,
                             Name = "users.read",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(4685)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 630, DateTimeKind.Utc).AddTicks(7623)
                         },
                         new
                         {
@@ -1963,7 +2013,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Users",
                             IsDeleted = false,
                             Name = "users.create",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6518)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(9)
                         },
                         new
                         {
@@ -1973,7 +2023,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Users",
                             IsDeleted = false,
                             Name = "users.update",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6535)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(27)
                         },
                         new
                         {
@@ -1983,7 +2033,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Users",
                             IsDeleted = false,
                             Name = "users.delete",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6538)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(46)
                         },
                         new
                         {
@@ -1993,7 +2043,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Roles",
                             IsDeleted = false,
                             Name = "roles.read",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6541)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(50)
                         },
                         new
                         {
@@ -2003,7 +2053,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Roles",
                             IsDeleted = false,
                             Name = "roles.create",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6551)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(62)
                         },
                         new
                         {
@@ -2013,7 +2063,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Roles",
                             IsDeleted = false,
                             Name = "roles.update",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6554)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(67)
                         },
                         new
                         {
@@ -2023,7 +2073,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Roles",
                             IsDeleted = false,
                             Name = "roles.delete",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6557)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(72)
                         },
                         new
                         {
@@ -2033,7 +2083,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Departments",
                             IsDeleted = false,
                             Name = "departments.read",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6567)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(77)
                         },
                         new
                         {
@@ -2043,7 +2093,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Departments",
                             IsDeleted = false,
                             Name = "departments.create",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6572)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(83)
                         },
                         new
                         {
@@ -2053,7 +2103,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Departments",
                             IsDeleted = false,
                             Name = "departments.update",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6576)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(89)
                         },
                         new
                         {
@@ -2063,7 +2113,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Employee",
                             IsDeleted = false,
                             Name = "employee.read",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6600)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(155)
                         },
                         new
                         {
@@ -2073,7 +2123,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Employee",
                             IsDeleted = false,
                             Name = "employee.create",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6603)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(161)
                         },
                         new
                         {
@@ -2083,7 +2133,7 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Leave",
                             IsDeleted = false,
                             Name = "leave.submit",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6606)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(187)
                         },
                         new
                         {
@@ -2093,7 +2143,17 @@ namespace AIHelpdesk.Infrastructure.Data.Migrations
                             Group = "Leave",
                             IsDeleted = false,
                             Name = "leave.approve",
-                            UpdatedAt = new DateTime(2026, 8, 7, 20, 37, 22, 155, DateTimeKind.Utc).AddTicks(6610)
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(198)
+                        },
+                        new
+                        {
+                            Id = new Guid("a1000000-0000-0000-0000-000000000016"),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View audit log",
+                            Group = "Audit",
+                            IsDeleted = false,
+                            Name = "audit.read",
+                            UpdatedAt = new DateTime(2026, 8, 8, 16, 7, 20, 631, DateTimeKind.Utc).AddTicks(203)
                         });
                 });
 

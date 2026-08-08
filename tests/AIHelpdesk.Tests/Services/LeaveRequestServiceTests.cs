@@ -373,4 +373,59 @@ public class LeaveRequestServiceTests
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*cannot be cancelled*");
     }
+
+    // ── GetLeaveRequestAsync (ownership) ──
+
+    [Fact]
+    public async Task GetLeaveRequestAsync_ShouldThrow_WhenCallerIsNotOwnerAndNotPrivileged()
+    {
+        var (service, context, _) = await CreateServiceAsync();
+        var owner = TestDataFactory.CreateEmployee(userId: Guid.NewGuid());
+        var otherUserId = Guid.NewGuid();
+        var lt = TestDataFactory.CreateLeaveType();
+        var lr = TestDataFactory.CreateLeaveRequest(owner.Id, lt.Id);
+        context.Employees.Add(owner);
+        context.LeaveTypes.Add(lt);
+        context.LeaveRequests.Add(lr);
+        await context.SaveChangesAsync();
+
+        var act = () => service.GetLeaveRequestAsync(lr.Id, otherUserId, false);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task GetLeaveRequestAsync_ShouldSucceed_WhenCallerIsOwner()
+    {
+        var (service, context, _) = await CreateServiceAsync();
+        var ownerUserId = Guid.NewGuid();
+        var owner = TestDataFactory.CreateEmployee(userId: ownerUserId);
+        var lt = TestDataFactory.CreateLeaveType();
+        var lr = TestDataFactory.CreateLeaveRequest(owner.Id, lt.Id);
+        context.Employees.Add(owner);
+        context.LeaveTypes.Add(lt);
+        context.LeaveRequests.Add(lr);
+        await context.SaveChangesAsync();
+
+        var result = await service.GetLeaveRequestAsync(lr.Id, ownerUserId, false);
+
+        result.Id.Should().Be(lr.Id);
+    }
+
+    [Fact]
+    public async Task GetLeaveRequestAsync_ShouldSucceed_WhenCallerIsPrivileged()
+    {
+        var (service, context, _) = await CreateServiceAsync();
+        var owner = TestDataFactory.CreateEmployee(userId: Guid.NewGuid());
+        var lt = TestDataFactory.CreateLeaveType();
+        var lr = TestDataFactory.CreateLeaveRequest(owner.Id, lt.Id);
+        context.Employees.Add(owner);
+        context.LeaveTypes.Add(lt);
+        context.LeaveRequests.Add(lr);
+        await context.SaveChangesAsync();
+
+        var result = await service.GetLeaveRequestAsync(lr.Id, Guid.NewGuid(), true);
+
+        result.Id.Should().Be(lr.Id);
+    }
 }

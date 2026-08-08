@@ -44,7 +44,24 @@ public class LeaveRequestService : ILeaveRequestService
         return new LeaveRequestListResponse(items, totalCount, page, pageSize);
     }
 
-    public async Task<LeaveRequestResponse> GetLeaveRequestAsync(Guid id)
+    // A leave request's reason text can be sensitive (medical/personal), so a plain Employee may
+    // only fetch their own -- previously this had no ownership check at all, letting any
+    // authenticated user read any other employee's leave request by guessing its id. Approvers
+    // (Super Admin/HRD/Manager) bypass the check, matching the access ApproveAsync/RejectAsync
+    // already grant those roles over any leave request.
+    public async Task<LeaveRequestResponse> GetLeaveRequestAsync(Guid id, Guid userId, bool isPrivileged)
+    {
+        var result = await GetLeaveRequestInternalAsync(id);
+        if (!isPrivileged)
+        {
+            var employee = await _context.Employees.FirstOrDefaultAsync(e => e.UserId == userId);
+            if (employee == null || result.EmployeeId != employee.Id)
+                throw new UnauthorizedAccessException("You do not have access to this leave request.");
+        }
+        return result;
+    }
+
+    private async Task<LeaveRequestResponse> GetLeaveRequestInternalAsync(Guid id)
     {
         var lr = await _context.LeaveRequests
             .Include(lr => lr.Employee)
@@ -80,7 +97,7 @@ public class LeaveRequestService : ILeaveRequestService
         _context.LeaveRequests.Add(leaveRequest);
         await _context.SaveChangesAsync();
 
-        return await GetLeaveRequestAsync(leaveRequest.Id);
+        return await GetLeaveRequestInternalAsync(leaveRequest.Id);
     }
 
     public async Task<LeaveRequestResponse> UpdateDraftAsync(Guid id, Guid employeeId, UpdateLeaveRequest request)
@@ -106,7 +123,7 @@ public class LeaveRequestService : ILeaveRequestService
 
         await _context.SaveChangesAsync();
 
-        return await GetLeaveRequestAsync(id);
+        return await GetLeaveRequestInternalAsync(id);
     }
 
     public async Task<LeaveRequestResponse> SubmitAsync(Guid id, Guid employeeId)
@@ -176,7 +193,7 @@ public class LeaveRequestService : ILeaveRequestService
                 "Info", "LeaveRequest", lr.Id);
         }
 
-        return await GetLeaveRequestAsync(id);
+        return await GetLeaveRequestInternalAsync(id);
     }
 
     public async Task<LeaveRequestResponse> ApproveAsync(Guid id, Guid approverId)
@@ -252,7 +269,7 @@ public class LeaveRequestService : ILeaveRequestService
                 "Success", "LeaveRequest", lr.Id);
         }
 
-        return await GetLeaveRequestAsync(id);
+        return await GetLeaveRequestInternalAsync(id);
     }
 
     public async Task<LeaveRequestResponse> RejectAsync(Guid id, Guid approverId, string reason)
@@ -307,7 +324,7 @@ public class LeaveRequestService : ILeaveRequestService
                 "Error", "LeaveRequest", lr.Id);
         }
 
-        return await GetLeaveRequestAsync(id);
+        return await GetLeaveRequestInternalAsync(id);
     }
 
     public async Task<LeaveRequestResponse> CancelAsync(Guid id, Guid employeeId)
@@ -339,7 +356,7 @@ public class LeaveRequestService : ILeaveRequestService
 
         await _context.SaveChangesAsync();
 
-        return await GetLeaveRequestAsync(id);
+        return await GetLeaveRequestInternalAsync(id);
     }
 
     public async Task<LeaveRequestListResponse> GetPendingApprovalsAsync(Guid userId, int page, int pageSize)
