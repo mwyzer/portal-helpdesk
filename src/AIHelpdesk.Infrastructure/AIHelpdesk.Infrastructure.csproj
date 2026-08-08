@@ -6,14 +6,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ClosedXML" Version="0.105.0" />
-    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.1" />
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
     <PackageReference Include="Mapster" Version="7.*" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.*" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.*" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.*" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.*" />
-    <PackageReference Include="PdfSharpCore" Version="1.3.65" />
+    <PackageReference Include="PdfSharpCore" Version="1.3.67" />
     <!-- PdfSharpCore 1.3.65 transitively pulls SixLabors.ImageSharp 1.0.4, which has multiple
          High/Moderate advisories per the NuGet vulnerability scan (2026-08-08). Direct
          reference here forces NuGet to resolve the patched version instead. Safe: LetterDocumentGenerator
