@@ -11,19 +11,14 @@ namespace AIHelpdesk.Api.Mcp;
 /// MCP tools for the Ticket Agent. Hosted behind the same JWT bearer auth as the rest of the API
 /// (see Program.cs: app.MapMcp("/mcp").RequireAuthorization()), but MCP tool invocation doesn't go
 /// through [Authorize(Roles=...)] action filters the way TicketsController does -- every tool here
-/// re-derives the caller's identity from IHttpContextAccessor and enforces ticket ownership itself.
-///
-/// Note: TicketsController.GetById/Update currently have NO ownership check at the REST layer (any
-/// authenticated user can read/edit any ticket by id -- a pre-existing gap, separate from this
-/// work). The scoping below is intentionally stricter than that controller so an LLM-driven agent
-/// can't be used to read or edit another employee's ticket, even though the REST endpoint itself
-/// would currently allow it.
+/// re-derives the caller's identity from IHttpContextAccessor and passes it to ITicketService,
+/// which now enforces ticket-level ownership itself (submitter, assigned employee/agent, or
+/// Agent/Manager/Super Admin) -- previously this class carried its own duplicate access check
+/// because the service didn't enforce one at all.
 /// </summary>
 [McpServerToolType]
 public class TicketMcpTools
 {
-    private static readonly string[] StaffRoles = ["Agent", "Manager", "Super Admin"];
-
     private readonly ITicketService _tickets;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -40,10 +35,8 @@ public class TicketMcpTools
     private static Guid CallerId(ClaimsPrincipal user) =>
         Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    private static bool CanAccess(ClaimsPrincipal user, Guid callerId, TicketDetailResponse ticket) =>
-        ticket.SubmittedById == callerId
-        || ticket.AssignedAgentId == callerId
-        || StaffRoles.Any(user.IsInRole);
+    private static bool IsPrivileged(ClaimsPrincipal user) =>
+        user.IsInRole("Agent") || user.IsInRole("Manager") || user.IsInRole("Super Admin");
 
     [McpServerTool, Description("Create a new support ticket on behalf of the current user.")]
     public async Task<TicketDetailResponse> CreateTicket(
@@ -62,15 +55,16 @@ public class TicketMcpTools
     public async Task<TicketDetailResponse> GetTicket(Guid ticketId)
     {
         var user = CallerOrThrow();
-        var callerId = CallerId(user);
-        var ticket = await _tickets.GetByIdAsync(ticketId);
-
-        // Same message whether the ticket doesn't exist or the caller can't see it, so this can't
-        // be used to enumerate other users' ticket ids by observing a different error for each case.
-        if (!CanAccess(user, callerId, ticket))
+        try
+        {
+            return await _tickets.GetByIdAsync(ticketId, CallerId(user), IsPrivileged(user));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Same message whether the ticket doesn't exist or the caller can't see it, so this can't
+            // be used to enumerate other users' ticket ids by observing a different error for each case.
             throw new McpException("Ticket not found");
-
-        return ticket;
+        }
     }
 
     [McpServerTool, Description("Update a ticket's title, description, sub-category, or priority. Only the submitter, assigned agent, or staff may update it.")]
@@ -82,24 +76,30 @@ public class TicketMcpTools
         string? priority = null)
     {
         var user = CallerOrThrow();
-        var callerId = CallerId(user);
-        var existing = await _tickets.GetByIdAsync(ticketId);
-
-        if (!CanAccess(user, callerId, existing))
+        try
+        {
+            return await _tickets.UpdateAsync(ticketId, CallerId(user), IsPrivileged(user),
+                new UpdateTicketRequest(title, description, subCategory, priority));
+        }
+        catch (UnauthorizedAccessException)
+        {
             throw new McpException("Ticket not found");
-
-        return await _tickets.UpdateAsync(ticketId, new UpdateTicketRequest(title, description, subCategory, priority));
+        }
     }
 
     [McpServerTool, Description("Get the SLA deadline and status for a ticket. Same visibility rule as get_ticket.")]
     public async Task<string> GetSla(Guid ticketId)
     {
         var user = CallerOrThrow();
-        var callerId = CallerId(user);
-        var ticket = await _tickets.GetByIdAsync(ticketId);
-
-        if (!CanAccess(user, callerId, ticket))
+        TicketDetailResponse ticket;
+        try
+        {
+            ticket = await _tickets.GetByIdAsync(ticketId, CallerId(user), IsPrivileged(user));
+        }
+        catch (UnauthorizedAccessException)
+        {
             throw new McpException("Ticket not found");
+        }
 
         return System.Text.Json.JsonSerializer.Serialize(new
         {

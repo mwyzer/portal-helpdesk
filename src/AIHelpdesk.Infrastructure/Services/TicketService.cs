@@ -123,7 +123,29 @@ public class TicketService : ITicketService
         return new PagedResult<TicketResponse>(items.Select(MapToResponse).ToList(), totalCount, page, pageSize);
     }
 
-    public async Task<TicketDetailResponse> GetByIdAsync(Guid id)
+    // A ticket may reference sensitive HR/Finance/Legal content (see project scope's ticket
+    // categories), so access is restricted to the submitter, the assigned employee/agent, or a
+    // caller in an Agent/Manager/Super Admin role -- previously every single-ticket endpoint
+    // (GetById, Update, comment, reopen, attachments) had no such check at all, letting any
+    // authenticated user read or modify any ticket in the system by guessing its id.
+    private static bool CanAccessTicket(Ticket ticket, Guid userId, bool isPrivileged) =>
+        isPrivileged || ticket.SubmittedById == userId || ticket.AssignedToId == userId || ticket.AssignedAgentId == userId;
+
+    private static void EnsureAccess(Ticket ticket, Guid userId, bool isPrivileged)
+    {
+        if (!CanAccessTicket(ticket, userId, isPrivileged))
+            throw new UnauthorizedAccessException("You do not have access to this ticket.");
+    }
+
+    public async Task<TicketDetailResponse> GetByIdAsync(Guid id, Guid userId, bool isPrivileged)
+    {
+        var result = await GetByIdInternalAsync(id);
+        if (!isPrivileged && result.SubmittedById != userId && result.AssignedToId != userId && result.AssignedAgentId != userId)
+            throw new UnauthorizedAccessException("You do not have access to this ticket.");
+        return result;
+    }
+
+    private async Task<TicketDetailResponse> GetByIdInternalAsync(Guid id)
     {
         var t = await _context.Tickets
             .Include(x => x.Category)
@@ -194,13 +216,14 @@ public class TicketService : ITicketService
 
         await _context.SaveChangesAsync();
 
-        return await GetByIdAsync(ticket.Id);
+        return await GetByIdInternalAsync(ticket.Id);
     }
 
-    public async Task<TicketDetailResponse> UpdateAsync(Guid id, UpdateTicketRequest request)
+    public async Task<TicketDetailResponse> UpdateAsync(Guid id, Guid userId, bool isPrivileged, UpdateTicketRequest request)
     {
         var ticket = await _context.Tickets.FindAsync(id)
             ?? throw new KeyNotFoundException("Ticket not found");
+        EnsureAccess(ticket, userId, isPrivileged);
 
         ticket.Title = request.Title;
         ticket.Description = request.Description;
@@ -211,7 +234,7 @@ public class TicketService : ITicketService
         ticket.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        return await GetByIdAsync(id);
+        return await GetByIdInternalAsync(id);
     }
 
     public async Task UpdateStatusAsync(Guid id, string status)
@@ -271,13 +294,14 @@ public class TicketService : ITicketService
         });
 
         await _context.SaveChangesAsync();
-        return await GetByIdAsync(id);
+        return await GetByIdInternalAsync(id);
     }
 
-    public async Task<TicketDetailResponse> AddCommentAsync(Guid id, Guid userId, CreateTicketCommentRequest request)
+    public async Task<TicketDetailResponse> AddCommentAsync(Guid id, Guid userId, bool isPrivileged, CreateTicketCommentRequest request)
     {
         var ticket = await _context.Tickets.FindAsync(id)
             ?? throw new KeyNotFoundException("Ticket not found");
+        EnsureAccess(ticket, userId, isPrivileged);
 
         var comment = new TicketComment
         {
@@ -309,7 +333,7 @@ public class TicketService : ITicketService
                 "Info", "Ticket", ticket.Id);
         }
 
-        return await GetByIdAsync(id);
+        return await GetByIdInternalAsync(id);
     }
 
     public async Task<TicketDetailResponse> ResolveAsync(Guid id, Guid userId)
@@ -340,7 +364,7 @@ public class TicketService : ITicketService
         }
 
         await _context.SaveChangesAsync();
-        return await GetByIdAsync(id);
+        return await GetByIdInternalAsync(id);
     }
 
     public async Task<TicketDetailResponse> CloseAsync(Guid id, Guid userId)
@@ -362,13 +386,14 @@ public class TicketService : ITicketService
         });
 
         await _context.SaveChangesAsync();
-        return await GetByIdAsync(id);
+        return await GetByIdInternalAsync(id);
     }
 
-    public async Task<TicketDetailResponse> ReopenAsync(Guid id, Guid userId)
+    public async Task<TicketDetailResponse> ReopenAsync(Guid id, Guid userId, bool isPrivileged)
     {
         var ticket = await _context.Tickets.FindAsync(id)
             ?? throw new KeyNotFoundException("Ticket not found");
+        EnsureAccess(ticket, userId, isPrivileged);
 
         ticket.Status = Domain.Common.TicketStatus.Reopened;
         ticket.UpdatedAt = DateTime.UtcNow;
@@ -383,7 +408,7 @@ public class TicketService : ITicketService
         });
 
         await _context.SaveChangesAsync();
-        return await GetByIdAsync(id);
+        return await GetByIdInternalAsync(id);
     }
 
     private static readonly HashSet<string> AllowedAttachmentExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -392,10 +417,11 @@ public class TicketService : ITicketService
     };
     private const long MaxAttachmentSizeBytes = 10 * 1024 * 1024; // 10 MB — matches [RequestSizeLimit] on the controller action
 
-    public async Task<TicketAttachmentResponse> UploadAttachmentAsync(Guid ticketId, Guid userId, string fileName, string contentType, Stream fileStream)
+    public async Task<TicketAttachmentResponse> UploadAttachmentAsync(Guid ticketId, Guid userId, bool isPrivileged, string fileName, string contentType, Stream fileStream)
     {
         var ticket = await _context.Tickets.FindAsync(ticketId)
             ?? throw new KeyNotFoundException("Ticket not found");
+        EnsureAccess(ticket, userId, isPrivileged);
 
         var extension = Path.GetExtension(fileName);
         if (string.IsNullOrEmpty(extension) || !AllowedAttachmentExtensions.Contains(extension))
@@ -444,11 +470,13 @@ public class TicketService : ITicketService
             attachment.CreatedAt);
     }
 
-    public async Task<(Stream FileStream, string ContentType, string FileName)> DownloadAttachmentAsync(Guid ticketId, Guid attachmentId)
+    public async Task<(Stream FileStream, string ContentType, string FileName)> DownloadAttachmentAsync(Guid ticketId, Guid attachmentId, Guid userId, bool isPrivileged)
     {
         var attachment = await _context.TicketAttachments
+            .Include(a => a.Ticket)
             .FirstOrDefaultAsync(a => a.Id == attachmentId && a.TicketId == ticketId)
             ?? throw new KeyNotFoundException("Attachment not found");
+        EnsureAccess(attachment.Ticket, userId, isPrivileged);
 
         if (!File.Exists(attachment.FilePath))
             throw new KeyNotFoundException("Attachment file is missing from storage");
@@ -457,11 +485,13 @@ public class TicketService : ITicketService
         return (stream, attachment.ContentType, attachment.FileName);
     }
 
-    public async Task DeleteAttachmentAsync(Guid ticketId, Guid attachmentId, Guid userId)
+    public async Task DeleteAttachmentAsync(Guid ticketId, Guid attachmentId, Guid userId, bool isPrivileged)
     {
         var attachment = await _context.TicketAttachments
+            .Include(a => a.Ticket)
             .FirstOrDefaultAsync(a => a.Id == attachmentId && a.TicketId == ticketId)
             ?? throw new KeyNotFoundException("Attachment not found");
+        EnsureAccess(attachment.Ticket, userId, isPrivileged);
 
         _context.TicketAttachments.Remove(attachment);
         _context.TicketHistories.Add(new TicketHistory

@@ -104,12 +104,32 @@ public class DocumentService : IDocumentService
 
     // ─────────── Document Requests ───────────
 
-    public async Task<PagedResult<DocumentRequestResponse>> GetDocumentRequestsAsync(Guid userId, int page, int pageSize, string? status)
+    // Generated letters can carry sensitive personal/salary content (e.g. surat keterangan
+    // kerja), so a plain Employee may only see/act on their own -- previously `userId` here was
+    // accepted but never used, silently returning every employee's document requests to every
+    // authenticated caller. Secretary/Manager/HRD/Super Admin (the roles this controller already
+    // grants review/generate/approve endpoints to) bypass the restriction.
+    //
+    // Despite the "Employee"/"EmployeeId" naming (DocumentRequest.Employee is typed
+    // ApplicationUser, and CreateDocumentRequestAsync populates EmployeeId straight from the
+    // controller's GetUserId()), this module never goes through the Employees table at all --
+    // it's a direct ApplicationUser id, so ownership is a plain equality check, not an
+    // Employees.UserId lookup like LeaveRequestService/TicketService use.
+    private static void EnsureAccess(Guid docRequestEmployeeId, Guid userId, bool isPrivileged)
+    {
+        if (!isPrivileged && docRequestEmployeeId != userId)
+            throw new UnauthorizedAccessException("You do not have access to this document request.");
+    }
+
+    public async Task<PagedResult<DocumentRequestResponse>> GetDocumentRequestsAsync(Guid userId, bool isPrivileged, int page, int pageSize, string? status)
     {
         var query = _context.DocumentRequests
             .Include(r => r.Employee)
             .Include(r => r.Template)
             .AsQueryable();
+
+        if (!isPrivileged)
+            query = query.Where(r => r.EmployeeId == userId);
 
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<DocumentRequestStatus>(status, true, out var parsedStatus))
             query = query.Where(r => r.Status == parsedStatus);
@@ -131,7 +151,7 @@ public class DocumentService : IDocumentService
         return new PagedResult<DocumentRequestResponse>(items, totalCount, page, pageSize);
     }
 
-    public async Task<DocumentRequestDetailResponse> GetDocumentRequestByIdAsync(Guid id)
+    public async Task<DocumentRequestDetailResponse> GetDocumentRequestByIdAsync(Guid id, Guid userId, bool isPrivileged)
     {
         var request = await _context.DocumentRequests
             .Include(r => r.Employee)
@@ -141,6 +161,7 @@ public class DocumentService : IDocumentService
 
         if (request == null)
             throw new KeyNotFoundException("Document request not found");
+        EnsureAccess(request.EmployeeId, userId, isPrivileged);
 
         return new DocumentRequestDetailResponse(
             request.Id, request.EmployeeId, request.Employee.FullName,
@@ -178,7 +199,7 @@ public class DocumentService : IDocumentService
             docRequest.CreatedAt, docRequest.UpdatedAt);
     }
 
-    public async Task<DocumentRequestResponse> UpdateDocumentRequestAsync(Guid id, UpdateDocumentRequestRequest request)
+    public async Task<DocumentRequestResponse> UpdateDocumentRequestAsync(Guid id, Guid userId, bool isPrivileged, UpdateDocumentRequestRequest request)
     {
         var docRequest = await _context.DocumentRequests
             .Include(r => r.Employee)
@@ -187,6 +208,7 @@ public class DocumentService : IDocumentService
 
         if (docRequest == null)
             throw new KeyNotFoundException("Document request not found");
+        EnsureAccess(docRequest.EmployeeId, userId, isPrivileged);
 
         docRequest.Title = request.Title;
         docRequest.ContentDraft = request.ContentDraft;
@@ -383,7 +405,7 @@ public class DocumentService : IDocumentService
             docRequest.CreatedAt, docRequest.UpdatedAt);
     }
 
-    public async Task<(byte[] FileContents, string FileName, string ContentType)> DownloadDocumentAsync(Guid id, string? format = null)
+    public async Task<(byte[] FileContents, string FileName, string ContentType)> DownloadDocumentAsync(Guid id, Guid userId, bool isPrivileged, string? format = null)
     {
         var docRequest = await _context.DocumentRequests
             .Include(r => r.GeneratedDocuments)
@@ -391,6 +413,7 @@ public class DocumentService : IDocumentService
 
         if (docRequest == null)
             throw new KeyNotFoundException("Document request not found");
+        EnsureAccess(docRequest.EmployeeId, userId, isPrivileged);
 
         var wantsDocx = string.Equals(format, "docx", StringComparison.OrdinalIgnoreCase);
         var targetFormat = wantsDocx ? Domain.Common.DocumentFormat.DOCX : Domain.Common.DocumentFormat.PDF;

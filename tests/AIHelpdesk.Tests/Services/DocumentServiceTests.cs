@@ -153,7 +153,7 @@ public class DocumentServiceTests
         }
         await context.SaveChangesAsync();
 
-        var result = await service.GetDocumentRequestsAsync(employee.Id, 1, 5, null);
+        var result = await service.GetDocumentRequestsAsync(employee.Id, true, 1, 5, null);
 
         result.Items.Should().HaveCount(5);
         result.TotalCount.Should().Be(12);
@@ -174,7 +174,7 @@ public class DocumentServiceTests
         context.DocumentRequests.Add(TestDataFactory.CreateDocumentRequest(employee.Id, template.Id, "Review 2", DocumentRequestStatus.Review));
         await context.SaveChangesAsync();
 
-        var result = await service.GetDocumentRequestsAsync(employee.Id, 1, 10, "Review");
+        var result = await service.GetDocumentRequestsAsync(employee.Id, true, 1, 10, "Review");
 
         result.Items.Should().HaveCount(2);
     }
@@ -384,7 +384,7 @@ public class DocumentServiceTests
         await context.SaveChangesAsync();
         await service.GenerateFinalAsync(docRequest.Id);
 
-        var (content, fileName, contentType) = await service.DownloadDocumentAsync(docRequest.Id);
+        var (content, fileName, contentType) = await service.DownloadDocumentAsync(docRequest.Id, employee.Id, true);
 
         contentType.Should().Be("application/pdf");
         fileName.Should().EndWith(".pdf");
@@ -405,7 +405,7 @@ public class DocumentServiceTests
         await context.SaveChangesAsync();
         await service.GenerateFinalAsync(docRequest.Id);
 
-        var (content, fileName, contentType) = await service.DownloadDocumentAsync(docRequest.Id, "docx");
+        var (content, fileName, contentType) = await service.DownloadDocumentAsync(docRequest.Id, employee.Id, true, "docx");
 
         contentType.Should().Be("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         fileName.Should().EndWith(".docx");
@@ -424,7 +424,7 @@ public class DocumentServiceTests
         context.DocumentRequests.Add(docRequest);
         await context.SaveChangesAsync();
 
-        await service.Invoking(s => s.DownloadDocumentAsync(docRequest.Id))
+        await service.Invoking(s => s.DownloadDocumentAsync(docRequest.Id, employee.Id, true))
             .Should().ThrowAsync<KeyNotFoundException>();
     }
 
@@ -440,10 +440,68 @@ public class DocumentServiceTests
         context.DocumentRequests.Add(docRequest);
         await context.SaveChangesAsync();
 
-        var result = await service.GetDocumentRequestByIdAsync(docRequest.Id);
+        var result = await service.GetDocumentRequestByIdAsync(docRequest.Id, employee.Id, true);
 
         result.Title.Should().Be("My Request");
         result.EmployeeName.Should().Be("Alice");
         result.TemplateName.Should().Be("Leave Letter");
+    }
+
+    // ── GetDocumentRequestByIdAsync / GetDocumentRequestsAsync (ownership) ──
+    //
+    // DocumentRequest.EmployeeId is a direct ApplicationUser id (see EnsureAccess's doc comment
+    // in DocumentService), so these tests use TestDataFactory.CreateUser() + context.Users, not
+    // a real Employee row, matching how CreateDocumentRequestAsync actually populates it.
+
+    [Fact]
+    public async Task GetDocumentRequestByIdAsync_ShouldThrow_WhenCallerIsNotOwnerAndNotPrivileged()
+    {
+        var (service, context) = await CreateServiceAsync();
+        var owner = TestDataFactory.CreateUser();
+        var template = TestDataFactory.CreateDocumentTemplate();
+        context.Users.Add(owner);
+        context.DocumentTemplates.Add(template);
+        var docRequest = TestDataFactory.CreateDocumentRequest(owner.Id, template.Id);
+        context.DocumentRequests.Add(docRequest);
+        await context.SaveChangesAsync();
+
+        var act = () => service.GetDocumentRequestByIdAsync(docRequest.Id, Guid.NewGuid(), false);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task GetDocumentRequestByIdAsync_ShouldSucceed_WhenCallerIsOwner()
+    {
+        var (service, context) = await CreateServiceAsync();
+        var owner = TestDataFactory.CreateUser();
+        var template = TestDataFactory.CreateDocumentTemplate();
+        context.Users.Add(owner);
+        context.DocumentTemplates.Add(template);
+        var docRequest = TestDataFactory.CreateDocumentRequest(owner.Id, template.Id, "My Request");
+        context.DocumentRequests.Add(docRequest);
+        await context.SaveChangesAsync();
+
+        var result = await service.GetDocumentRequestByIdAsync(docRequest.Id, owner.Id, false);
+
+        result.Title.Should().Be("My Request");
+    }
+
+    [Fact]
+    public async Task GetDocumentRequestsAsync_ShouldOnlyReturnCallersOwnRequests_WhenNotPrivileged()
+    {
+        var (service, context) = await CreateServiceAsync();
+        var owner = TestDataFactory.CreateUser();
+        var other = TestDataFactory.CreateUser($"{Guid.NewGuid()}@test.com");
+        var template = TestDataFactory.CreateDocumentTemplate();
+        context.Users.AddRange(owner, other);
+        context.DocumentTemplates.Add(template);
+        context.DocumentRequests.Add(TestDataFactory.CreateDocumentRequest(owner.Id, template.Id, "Mine"));
+        context.DocumentRequests.Add(TestDataFactory.CreateDocumentRequest(other.Id, template.Id, "Not mine"));
+        await context.SaveChangesAsync();
+
+        var result = await service.GetDocumentRequestsAsync(owner.Id, false, 1, 20, null);
+
+        result.Items.Should().ContainSingle(r => r.Title == "Mine");
     }
 }

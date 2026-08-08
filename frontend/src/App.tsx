@@ -35,6 +35,7 @@ import { VacanciesPage } from '@/pages/VacanciesPage';
 import { CandidatesPage } from '@/pages/CandidatesPage';
 import { CandidateDetailPage } from '@/pages/CandidateDetailPage';
 import { InterviewsPage } from '@/pages/InterviewsPage';
+import { AuditLogPage } from '@/pages/AuditLogPage';
 import { PortalLoginPage } from '@/pages/portal/PortalLoginPage';
 import { PortalActivatePage } from '@/pages/portal/PortalActivatePage';
 import { PortalStatusPage } from '@/pages/portal/PortalStatusPage';
@@ -43,6 +44,7 @@ import { PortalInterviewsPage } from '@/pages/portal/PortalInterviewsPage';
 
 // ── Role aliases for route guards ─────────────────
 
+const SuperAdmin = ['Super Admin'];
 const Admin    = ['Super Admin', 'HRD'];
 const Manager  = ['Super Admin', 'HRD', 'Manager'];
 const Secretary = ['Super Admin', 'HRD', 'Manager', 'Secretary'];
@@ -81,13 +83,14 @@ export function App() {
 
         {/* ── Admin only ── */}
         <Route path="users" element={<RoleGuard allowedRoles={Admin}><UsersPage /></RoleGuard>} />
-        <Route path="roles" element={<RoleGuard allowedRoles={Admin}><RolesPage /></RoleGuard>} />
+        <Route path="roles" element={<RoleGuard allowedRoles={SuperAdmin}><RolesPage /></RoleGuard>} />
         <Route path="departments" element={<RoleGuard allowedRoles={Admin}><DepartmentsPage /></RoleGuard>} />
         <Route path="leave-types" element={<RoleGuard allowedRoles={Admin}><LeaveTypesPage /></RoleGuard>} />
         <Route path="ai/conversations" element={<RoleGuard allowedRoles={Admin}><ConversationListPage /></RoleGuard>} />
         <Route path="knowledge-base/:id" element={<RoleGuard allowedRoles={Admin}><KnowledgeDocumentDetailPage /></RoleGuard>} />
         <Route path="tickets/categories" element={<RoleGuard allowedRoles={Admin}><TicketCategoriesPage /></RoleGuard>} />
         <Route path="tickets/agents" element={<RoleGuard allowedRoles={Admin}><AgentAssignmentsPage /></RoleGuard>} />
+        <Route path="audit-log" element={<RoleGuard allowedRoles={SuperAdmin}><AuditLogPage /></RoleGuard>} />
 
         {/* ── Admin + Manager ── */}
         <Route path="employees" element={<RoleGuard allowedRoles={Manager}><EmployeesPage /></RoleGuard>} />

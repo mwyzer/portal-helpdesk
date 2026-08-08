@@ -77,7 +77,13 @@ public class UsersController : ControllerBase
         return Ok(result);
     }
 
+    // AssignRolesAsync applies whatever roleIds are passed with no restriction on which roles --
+    // this is the more direct half of the HRD self-escalation path (see RolesController's doc
+    // comment): even with RolesController locked to Super Admin, HRD could still assign the
+    // existing "Super Admin" role directly to their own account through this endpoint. Narrowed
+    // independently of the class-level [Authorize] above.
     [HttpPut("{id}/roles")]
+    [Authorize(Roles = "Super Admin")]
     public async Task<ActionResult> AssignRoles(Guid id, [FromBody] IList<Guid> roleIds)
     {
         await _userService.AssignRolesAsync(id, roleIds);

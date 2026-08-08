@@ -99,6 +99,35 @@ builder.Services.AddHsts(options =>
     options.IncludeSubDomains = true;
 });
 
+// todo-phase-7-hardening.md flagged both of these as "config-driven, nothing enforces it can't
+// be *, localhost, or the checked-in dev key" -- fail fast at startup instead of relying on
+// deploy-time discipline. Development/staging still use the loose defaults from appsettings.json
+// / docker-compose.yml, so this only bites when ASPNETCORE_ENVIRONMENT=Production.
+if (builder.Environment.IsProduction())
+{
+    var knownDevJwtKeys = new[]
+    {
+        "ThisIsASuperSecretKeyForDevOnly1234567890!",
+        "SuperSecretKeyForJwtTokenGeneration2024!@#$%^&*()AtLeast32Chars"
+    };
+    if (knownDevJwtKeys.Contains(jwtKey))
+        throw new InvalidOperationException(
+            "Jwt:Key is still set to a known development value. Set a unique production secret via environment variable / Docker secret.");
+    if (jwtKey.Length < 32)
+        throw new InvalidOperationException("Jwt:Key must be at least 32 characters in production.");
+
+    var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
+    if (corsOrigins.Length == 0)
+        throw new InvalidOperationException("Cors:Origins must be explicitly configured in production.");
+    foreach (var origin in corsOrigins)
+    {
+        if (origin == "*")
+            throw new InvalidOperationException("Cors:Origins cannot include '*' in production.");
+        if (origin.Contains("localhost", StringComparison.OrdinalIgnoreCase) || origin.Contains("127.0.0.1"))
+            throw new InvalidOperationException($"Cors:Origins contains a localhost origin ('{origin}'), which is not valid in production.");
+    }
+}
+
 builder.Host.UseSerilog((context, config) =>
     config.ReadFrom.Configuration(context.Configuration));
 
@@ -165,8 +194,9 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<AIHelpdesk.Api.Hubs.NotificationHub>("/hubs/notifications");
 // Same JWT bearer auth as the rest of the API -- individual tools in Mcp/TicketMcpTools.cs still
-// re-check per-ticket ownership themselves, since MCP tool calls don't go through [Authorize(Roles=)]
-// action filters the way controller actions do.
+// re-derive the caller's identity themselves and pass it to ITicketService (which now enforces
+// per-ticket ownership), since MCP tool calls don't go through [Authorize(Roles=)] action filters
+// the way controller actions do.
 app.MapMcp("/mcp").RequireAuthorization();
 
 app.MapGet("/api/health", async (ApplicationDbContext db) =>

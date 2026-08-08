@@ -59,6 +59,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<InterviewSlot> InterviewSlots => Set<InterviewSlot>();
     public DbSet<CandidatePortalRefreshToken> CandidatePortalRefreshTokens => Set<CandidatePortalRefreshToken>();
 
+    // ─────── Phase 7: Hardening (audit trail) ───────
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -508,6 +511,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
+        // ─────── Phase 7: Hardening (audit trail) ───────
+
+        builder.Entity<AuditLog>(entity =>
+        {
+            entity.Property(e => e.UserName).HasMaxLength(300);
+            entity.Property(e => e.Action).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.EntityName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.EntityId).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Changes).HasColumnType("text").IsRequired();
+            entity.Property(e => e.IpAddress).HasMaxLength(50);
+            entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => new { e.EntityName, e.EntityId });
+            entity.HasIndex(e => e.UserId);
+        });
+
         // Seed default permissions
         SeedPermissions(builder);
     }
@@ -533,6 +551,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             new() { Id = Guid.Parse("a1000000-0000-0000-0000-000000000013"), Name = "employee.create", Group = "Employee", Description = "Create employees", CreatedAt = createdDate},
             new() { Id = Guid.Parse("a1000000-0000-0000-0000-000000000014"), Name = "leave.submit", Group = "Leave", Description = "Submit leave requests", CreatedAt = createdDate},
             new() { Id = Guid.Parse("a1000000-0000-0000-0000-000000000015"), Name = "leave.approve", Group = "Leave", Description = "Approve leave requests", CreatedAt = createdDate},
+            new() { Id = Guid.Parse("a1000000-0000-0000-0000-000000000016"), Name = "audit.read", Group = "Audit", Description = "View audit log", CreatedAt = createdDate},
         };
 
         builder.Entity<Permission>().HasData(permissions);

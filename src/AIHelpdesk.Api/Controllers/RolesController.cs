@@ -7,7 +7,12 @@ namespace AIHelpdesk.Api.Controllers;
 
 [ApiController]
 [Route("api/roles")]
-[Authorize(Roles = "Super Admin,HRD")]
+// HRD previously shared this with Super Admin, matching other admin controllers -- but unlike
+// those, UpdateRolePermissions lets the caller grant a role ANY permission with no restriction,
+// which combined with UsersController.AssignRoles (also HRD-gated) let an HRD account
+// self-escalate: edit a role's permissions, then assign that role to their own user. Restricted
+// to Super Admin only per project-scope.md's role/permission-management ownership.
+[Authorize(Roles = "Super Admin")]
 public class RolesController : ControllerBase
 {
     private readonly IRoleService _roleService;

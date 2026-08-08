@@ -22,6 +22,8 @@ public class LeaveRequestsController : ControllerBase
 
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+    private bool IsApprover() => User.IsInRole("Super Admin") || User.IsInRole("HRD") || User.IsInRole("Manager");
+
     private async Task<Guid> GetEmployeeIdAsync()
     {
         try
@@ -48,7 +50,7 @@ public class LeaveRequestsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<LeaveRequestResponse>> GetLeaveRequest(Guid id)
     {
-        var result = await _leaveRequestService.GetLeaveRequestAsync(id);
+        var result = await _leaveRequestService.GetLeaveRequestAsync(id, GetUserId(), IsApprover());
         return Ok(result);
     }
 
