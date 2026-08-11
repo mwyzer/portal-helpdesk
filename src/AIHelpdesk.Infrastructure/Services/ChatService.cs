@@ -101,7 +101,7 @@ Context:
         var aiResponse = new AIResponse
         {
             MessageId = assistantMessage.Id,
-            ModelUsed = "gpt-4o-mini",
+            ModelUsed = _ai.ChatModel,
             PromptTokens = _ai.EstimateTokenCount(systemPrompt + request.Message),
             CompletionTokens = _ai.EstimateTokenCount(responseContent),
             TotalTokens = _ai.EstimateTokenCount(systemPrompt + request.Message + responseContent),

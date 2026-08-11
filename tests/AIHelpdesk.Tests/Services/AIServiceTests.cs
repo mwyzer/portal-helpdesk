@@ -69,7 +69,26 @@ public class AIServiceTests
     {
         var service = CreateService(CreateOptions(apiKey: ""));
         var act = () => service.GenerateEmbeddingAsync("test");
-        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("AI:ApiKey not configured");
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("AI:EmbeddingApiKey (or AI:ApiKey) not configured");
+    }
+
+    [Fact]
+    public async Task GenerateEmbeddingAsync_ShouldUseEmbeddingApiKey_WhenChatApiKeyMissing()
+    {
+        // A DeepSeek-for-chat / OpenAI-for-embeddings split: no main ApiKey, but embeddings
+        // has its own independently-configured key -- should still work for embeddings alone.
+        var options = CreateOptions(apiKey: "");
+        options.EmbeddingApiKey = "sk-embedding-only-key";
+        options.EmbeddingEndpoint = "https://api.openai.com/v1/";
+
+        var embedding = new[] { 0.5, 0.6 };
+        var responseJson = JsonSerializer.Serialize(new { data = new[] { new { embedding } } });
+        var handler = CreateMockHandler(HttpStatusCode.OK, responseJson);
+        var service = CreateService(options, handler.Object);
+
+        var result = await service.GenerateEmbeddingAsync("test");
+
+        result.Should().HaveCount(2);
     }
 
     [Fact]

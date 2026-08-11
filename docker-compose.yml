@@ -40,6 +40,8 @@ services:
       - AI__ApiKey=${AI__ApiKey:-}
       - AI__ChatModel=${AI__ChatModel:-gpt-4o-mini}
       - AI__EmbeddingModel=${AI__EmbeddingModel:-text-embedding-3-small}
+      - AI__EmbeddingEndpoint=${AI__EmbeddingEndpoint:-}
+      - AI__EmbeddingApiKey=${AI__EmbeddingApiKey:-}
       - AI__RateLimit__MaxRequestsPerMinute=${AI__RateLimit__MaxRequestsPerMinute:-30}
       - AI__RateLimit__Enabled=${AI__RateLimit__Enabled:-true}
       - AI__Budget__DailyTokenBudget=${AI__Budget__DailyTokenBudget:-1000000}

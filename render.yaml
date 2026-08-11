@@ -45,6 +45,11 @@ services:
         value: gpt-4o-mini
       - key: AI__EmbeddingModel
         value: text-embedding-3-small
+      # Optional: only needed if AI__Endpoint's provider doesn't also offer embeddings.
+      - key: AI__EmbeddingEndpoint
+        sync: false
+      - key: AI__EmbeddingApiKey
+        sync: false
       - key: AI__RateLimit__MaxRequestsPerMinute
         value: "30"
       - key: AI__RateLimit__Enabled

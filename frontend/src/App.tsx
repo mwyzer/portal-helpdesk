@@ -17,7 +17,6 @@ import { ActionItemsPage } from '@/pages/ActionItemsPage';
 import { DocumentRequestsPage } from '@/pages/DocumentRequestsPage';
 import { DocumentTemplatesPage } from '@/pages/DocumentTemplatesPage';
 import { ChatPage } from '@/pages/ChatPage';
-import { ChatSessionPage } from '@/pages/ChatSessionPage';
 import { ConversationListPage } from '@/pages/ConversationListPage';
 import { KnowledgeBasePage } from '@/pages/KnowledgeBasePage';
 import { KnowledgeDocumentDetailPage } from '@/pages/KnowledgeDocumentDetailPage';
@@ -73,7 +72,6 @@ export function App() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="leave-requests" element={<LeaveRequestsPage />} />
         <Route path="ai/chat" element={<ChatPage />} />
-        <Route path="ai/chat/:sessionId" element={<ChatSessionPage />} />
         <Route path="knowledge-base" element={<KnowledgeBasePage />} />
         <Route path="notifications" element={<NotificationCenterPage />} />
 

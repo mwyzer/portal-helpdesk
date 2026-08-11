@@ -85,19 +85,26 @@ public class AIChatController : ControllerBase
                     await Response.Body.FlushAsync(cancellationToken);
                 });
 
-            // Send final result with session info
+            // Send final result with session info. Property names are spelled out in full
+            // (rather than the `result.Id` shorthand) because this bypasses ASP.NET's normal
+            // MVC JSON pipeline -- JsonSerializer.Serialize() here gets no options, so shorthand
+            // properties keep their C# PascalCase instead of being camelCased like every other
+            // API response. The frontend previously read `session?.id` (lowercase) against an
+            // actual `Id` (uppercase), so finalSessionId was always undefined for a brand-new
+            // chat -- the new conversation never got selected or added to the sidebar until a
+            // manual refresh forced a normal (correctly-cased) GET /ai/conversations.
             var finalData = JsonSerializer.Serialize(new
             {
                 type = "complete",
                 session = new
                 {
-                    result.Id,
-                    result.Title,
-                    result.Status,
+                    id = result.Id,
+                    title = result.Title,
+                    status = result.Status,
                     messageCount = result.Messages.Count,
                     lastMessage = result.Messages.LastOrDefault(),
-                    result.CreatedAt,
-                    result.UpdatedAt
+                    createdAt = result.CreatedAt,
+                    updatedAt = result.UpdatedAt
                 }
             });
             await Response.WriteAsync($"data: {finalData}\n\n", cancellationToken);

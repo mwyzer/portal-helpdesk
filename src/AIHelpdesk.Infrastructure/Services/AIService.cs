@@ -12,11 +12,18 @@ public class AIService : IAIService
     private readonly HttpClient _http;
     private readonly AIOptions _options;
 
+    public string ChatModel => _options.ChatModel;
+
     public AIService(HttpClient http, IOptions<AIOptions> options)
     {
         _http = http;
         _options = options.Value;
-        // Deliberately NOT validated here: this constructor runs whenever ASP.NET Core builds
+        // No BaseAddress/DefaultRequestHeaders set here (deliberately) -- chat and embeddings
+        // can be different providers with different keys (e.g. DeepSeek for chat, OpenAI for
+        // embeddings, since DeepSeek has no embeddings API at all), so each call builds its own
+        // absolute URI and Authorization header instead of relying on client-wide defaults.
+        //
+        // Also deliberately NOT validated here: this constructor runs whenever ASP.NET Core builds
         // a controller that merely depends on IAIService/IRecruitmentAIService/IChatService --
         // e.g. CandidatesController needs IRecruitmentAIService for its ai-summarize action,
         // but every other action on that controller (plain candidate CRUD) has nothing to do
@@ -26,17 +33,18 @@ public class AIService : IAIService
         // try/catch with a graceful fallback (ChatService, TicketService, RecruitmentAIService),
         // so the check is deferred to actual use, where it's caught exactly like any other
         // AI-unavailable failure instead of crashing unrelated, non-AI functionality.
-        if (!string.IsNullOrEmpty(_options.ApiKey))
-        {
-            _http.BaseAddress = new Uri(_options.Endpoint);
-            _http.DefaultRequestHeaders.Add("Authorization", $"Bearer {_options.ApiKey}");
-        }
     }
 
     private void EnsureConfigured()
     {
         if (string.IsNullOrEmpty(_options.ApiKey))
             throw new InvalidOperationException("AI:ApiKey not configured");
+    }
+
+    private void EnsureEmbeddingConfigured()
+    {
+        if (string.IsNullOrEmpty(_options.EmbeddingApiKey ?? _options.ApiKey))
+            throw new InvalidOperationException("AI:EmbeddingApiKey (or AI:ApiKey) not configured");
     }
 
     // EnsureSuccessStatusCode() discards the response body, so a 429 gives no way to tell
@@ -53,10 +61,18 @@ public class AIService : IAIService
 
     public async Task<IReadOnlyList<double>> GenerateEmbeddingAsync(string text)
     {
-        EnsureConfigured();
+        EnsureEmbeddingConfigured();
+        var endpoint = _options.EmbeddingEndpoint ?? _options.Endpoint;
+        var apiKey = _options.EmbeddingApiKey ?? _options.ApiKey;
+
         var body = new { input = text, model = _options.EmbeddingModel };
-        var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var response = await _http.PostAsync("embeddings", content);
+        var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(endpoint), "embeddings"))
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+        };
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+
+        var response = await _http.SendAsync(request);
         await EnsureSuccessAsync(response);
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
@@ -87,10 +103,11 @@ public class AIService : IAIService
         };
 
         var bodyJson = JsonSerializer.Serialize(body);
-        var request = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
+        var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(_options.Endpoint), "chat/completions"))
         {
             Content = new StringContent(bodyJson, Encoding.UTF8, "application/json")
         };
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _options.ApiKey);
 
         if (onToken != null)
         {

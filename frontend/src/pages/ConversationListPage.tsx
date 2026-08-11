@@ -106,7 +106,7 @@ export function ConversationListPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map(s => (
-                  <TableRow key={s.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/ai/chat/${s.id}`)}>
+                  <TableRow key={s.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate('/ai/chat', { state: { sessionId: s.id } })}>
                     <TableCell className="font-medium text-sm">{s.title}</TableCell>
                     <TableCell>
                       {s.status === 'Escalated' ? (
@@ -123,7 +123,7 @@ export function ConversationListPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/ai/chat/${s.id}`)} aria-label="Open conversation">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/ai/chat', { state: { sessionId: s.id } })} aria-label="Open conversation">
                           <ExternalLink className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8"

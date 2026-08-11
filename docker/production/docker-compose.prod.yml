@@ -65,6 +65,9 @@ services:
       - Uploads__Path=/app/uploads
       - AI__ApiKey=${AI_API_KEY}
       - AI__Endpoint=${AI_ENDPOINT:-https://api.openai.com/v1/}
+      # Optional: only needed if the chat provider above doesn't also offer embeddings.
+      - AI__EmbeddingEndpoint=${AI_EMBEDDING_ENDPOINT:-}
+      - AI__EmbeddingApiKey=${AI_EMBEDDING_API_KEY:-}
     volumes:
       - uploads:/app/uploads
     depends_on:

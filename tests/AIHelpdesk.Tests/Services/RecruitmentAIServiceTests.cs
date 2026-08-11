@@ -2,6 +2,9 @@ using AIHelpdesk.Application.Interfaces;
 using AIHelpdesk.Domain.Entities;
 using AIHelpdesk.Infrastructure.Data;
 using AIHelpdesk.Infrastructure.Services;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -11,6 +14,22 @@ namespace AIHelpdesk.Tests.Services;
 
 public class RecruitmentAIServiceTests
 {
+    // RecruitmentAIService now parses PDFs for real (PdfPig) instead of a permissive raw-bytes
+    // scan, so a fixture that's just plain text with a ".pdf" extension no longer extracts any
+    // text -- it correctly gets rejected as not-a-real-PDF. Use a real, minimal .docx instead,
+    // which exercises the already-solid DocumentFormat.OpenXml extraction path.
+    private static string CreateTestDocxFile(string text)
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.docx");
+        using (var wordDoc = WordprocessingDocument.Create(tempFile, WordprocessingDocumentType.Document))
+        {
+            var mainPart = wordDoc.AddMainDocumentPart();
+            mainPart.Document = new Document(new Body(new Paragraph(new Run(new Text(text)))));
+            mainPart.Document.Save();
+        }
+        return tempFile;
+    }
+
     private static (RecruitmentAIService Service, ApplicationDbContext Context, Mock<IAIService> AiMock) CreateService()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -71,14 +90,13 @@ public class RecruitmentAIServiceTests
         var (service, context, aiMock) = CreateService();
         var (candidateId, _) = await SeedCandidateAsync(context);
 
-        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.pdf");
-        await File.WriteAllTextAsync(tempFile, "dummy pdf bytes");
+        var tempFile = CreateTestDocxFile("Experienced backend engineer with skills in C# and SQL.");
         context.CandidateDocuments.Add(new CandidateDocument
         {
             CandidateId = candidateId,
-            FileName = "resume.pdf",
+            FileName = "resume.docx",
             FilePath = tempFile,
-            ContentType = "application/pdf",
+            ContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             UploadedById = (await context.Users.FirstAsync()).Id
         });
         await context.SaveChangesAsync();
@@ -103,14 +121,13 @@ public class RecruitmentAIServiceTests
         var (service, context, aiMock) = CreateService();
         var (candidateId, _) = await SeedCandidateAsync(context);
 
-        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.pdf");
-        await File.WriteAllTextAsync(tempFile, "dummy");
+        var tempFile = CreateTestDocxFile("Some resume content.");
         context.CandidateDocuments.Add(new CandidateDocument
         {
             CandidateId = candidateId,
-            FileName = "resume.pdf",
+            FileName = "resume.docx",
             FilePath = tempFile,
-            ContentType = "application/pdf",
+            ContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             UploadedById = (await context.Users.FirstAsync()).Id
         });
         await context.SaveChangesAsync();
