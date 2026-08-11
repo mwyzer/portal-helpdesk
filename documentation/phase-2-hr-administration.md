@@ -1,5 +1,9 @@
 # Phase 2 — Employee & HR Administration ✅ Complete
 
+> **Planning document.** Written to guide implementation; not re-verified against the code
+> afterward. For confirmed as-built behavior (e.g. the actual leave-approval routing rule), see
+> [`FSD.md`](FSD.md#42-hr--leave-management-employeeservice-leaverequestservice-leavebalanceservice).
+
 **Tech Stack:** React (TypeScript) + ASP.NET Core Web API + PostgreSQL
 
 **Prerequisite:** Phase 1 (Foundation) must be complete — authentication, RBAC, user management, base layout.

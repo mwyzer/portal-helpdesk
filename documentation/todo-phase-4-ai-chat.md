@@ -1,5 +1,7 @@
 # Phase 4 — AI Helpdesk Chat & Knowledge Base — TODO Checklist
 
+> For confirmed as-built behavior rather than a task checklist, see [`FSD.md`](FSD.md).
+
 ## Infrastructure
 
 - [x] Add pgvector extension to PostgreSQL (Docker Compose + migration)

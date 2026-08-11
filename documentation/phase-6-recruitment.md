@@ -1,5 +1,9 @@
 # Phase 6 — Recruitment Assistant
 
+> **Planning document.** Written to guide implementation; not re-verified against the code
+> afterward. For confirmed as-built pipeline/CV rules, see
+> [`FSD.md`](FSD.md#46-recruitment-candidateservice-recruitmentaiservice-interviewservice-jobvacancyservice).
+
 **Tech Stack:** React (TypeScript) + ASP.NET Core Web API + PostgreSQL
 
 **Prerequisite:** Phases 1 (Foundation) + 2 (HR Admin) + 4 (AI Chat) must be complete.

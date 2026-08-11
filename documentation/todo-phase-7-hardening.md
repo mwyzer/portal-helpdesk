@@ -1,5 +1,7 @@
 # Phase 7 — Hardening & Production Deployment — TODO Checklist
 
+> For confirmed as-built behavior outside of hardening, see [`FSD.md`](FSD.md).
+>
 > **Status (2026-08-09): 45/103 tasks done (~44%)** — closed the NuGet vulnerability scan (found
 > and fixed one real transitive vulnerability, `SixLabors.ImageSharp`) and a systematic
 > endpoint-authorization audit, which found and fixed a real IDOR class affecting Tickets, Leave

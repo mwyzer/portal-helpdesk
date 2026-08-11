@@ -1,5 +1,7 @@
 # Phase 6 — Recruitment Assistant — TODO Checklist
 
+> For confirmed as-built behavior rather than a task checklist, see [`FSD.md`](FSD.md).
+>
 > **Status (2026-08-04): built from scratch.** This phase was genuinely 0% before this pass (confirmed directly against the code, not just doc-reading) — unlike Phases 2/3/5, there was no earlier partial implementation to find. Full backend (entities, migration, 3 services, 3 controllers, AI integration) + 4 frontend pages, following the conventions established in the Ticketing and HR modules. 37 new backend tests, 273/273 passing project-wide.
 
 ## Database
