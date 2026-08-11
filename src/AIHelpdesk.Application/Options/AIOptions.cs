@@ -8,6 +8,13 @@ public class AIOptions
     public string ApiKey { get; set; } = string.Empty;
     public string ChatModel { get; set; } = "gpt-4o-mini";
     public string EmbeddingModel { get; set; } = "text-embedding-3-small";
+
+    // Optional separate provider for embeddings only -- not every chat-completion provider
+    // (e.g. DeepSeek) also offers an embeddings API, so this lets Endpoint/ApiKey serve chat
+    // while a different provider handles embeddings. Falls back to the main Endpoint/ApiKey
+    // when unset, so single-provider setups are unaffected.
+    public string? EmbeddingEndpoint { get; set; }
+    public string? EmbeddingApiKey { get; set; }
     public SystemPromptOptions SystemPrompts { get; set; } = new();
     public RateLimitOptions RateLimit { get; set; } = new();
     public BudgetOptions Budget { get; set; } = new();

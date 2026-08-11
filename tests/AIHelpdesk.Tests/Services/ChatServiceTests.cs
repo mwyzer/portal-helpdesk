@@ -24,6 +24,7 @@ public class ChatServiceTests
         var kbMock = new Mock<IKnowledgeBaseService>();
 
         aiMock.Setup(a => a.EstimateTokenCount(It.IsAny<string>())).Returns((string s) => s.Length / 4);
+        aiMock.Setup(a => a.ChatModel).Returns("gpt-4o-mini");
         kbMock.Setup(k => k.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<Guid?>()))
             .ReturnsAsync(new List<KnowledgeSearchResult>
             {

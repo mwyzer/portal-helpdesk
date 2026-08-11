@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { useAuthStore } from '@/store/authStore';
@@ -46,7 +47,10 @@ interface AIResponseMeta {
 export function ChatPage() {
   const queryClient = useQueryClient();
   const token = useAuthStore(s => s.accessToken);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const location = useLocation();
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(
+    (location.state as { sessionId?: string } | null)?.sessionId ?? null,
+  );
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
@@ -229,17 +233,17 @@ export function ChatPage() {
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col border rounded-lg bg-card">
-        {!activeSessionId && !isStreaming ? (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-20" />
-              <p className="text-lg font-medium">AI Helpdesk Assistant</p>
-              <p className="text-sm">Ask any question about company policies, procedures, or HR matters.</p>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {!activeSessionId && !isStreaming ? (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <div className="text-center">
+                <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-20" />
+                <p className="text-lg font-medium">AI Helpdesk Assistant</p>
+                <p className="text-sm">Ask any question about company policies, procedures, or HR matters.</p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          ) : (
+            <>
               {isLoadingSession && <div className="flex justify-center"><Spinner className="h-6 w-6" /></div>}
               {messages.map(m => (
                 <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -305,52 +309,53 @@ export function ChatPage() {
                 </div>
               )}
               <div ref={messagesEndRef} />
-            </div>
+            </>
+          )}
+        </div>
 
-            {/* Input + Actions */}
-            <div className="p-4 border-t space-y-2">
-              {activeSessionId && !isEscalated && (
-                <div className="flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-warning hover:text-warning hover:bg-warning/5 text-xs"
-                    onClick={() => { if (confirm('Escalate this conversation to a human agent?')) handleEscalate.mutate(); }}
-                    disabled={handleEscalate.isPending}
-                  >
-                    <ArrowUpCircle className="h-3.5 w-3.5 mr-1" />
-                    Escalate to Human
-                  </Button>
-                </div>
-              )}
-              {isEscalated && (
-                <div className="flex items-center gap-2 text-sm text-warning bg-warning/5 rounded-md px-3 py-2">
-                  <AlertCircle className="h-4 w-4" />
-                  This conversation has been escalated. A human agent will follow up.
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={isEscalated ? "Conversation escalated — start a new chat" : "Ask a question... (Enter to send, Shift+Enter for newline)"}
-                  disabled={isStreaming || isEscalated}
-                  className="flex-1"
-                />
-                {isStreaming ? (
-                  <Button onClick={handleCancel} variant="destructive">
-                    <Square className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button onClick={handleSend} disabled={!input.trim() || isEscalated}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+        {/* Input + Actions — always visible, even with no active session, so a fresh
+            chat (after "+" or an escalated conversation) always has a way to type. */}
+        <div className="p-4 border-t space-y-2">
+          {activeSessionId && !isEscalated && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-warning hover:text-warning hover:bg-warning/5 text-xs"
+                onClick={() => { if (confirm('Escalate this conversation to a human agent?')) handleEscalate.mutate(); }}
+                disabled={handleEscalate.isPending}
+              >
+                <ArrowUpCircle className="h-3.5 w-3.5 mr-1" />
+                Escalate to Human
+              </Button>
             </div>
-          </>
-        )}
+          )}
+          {isEscalated && (
+            <div className="flex items-center gap-2 text-sm text-warning bg-warning/5 rounded-md px-3 py-2">
+              <AlertCircle className="h-4 w-4" />
+              This conversation has been escalated. A human agent will follow up.
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={isEscalated ? "Conversation escalated — start a new chat" : "Ask a question... (Enter to send, Shift+Enter for newline)"}
+              disabled={isStreaming || isEscalated}
+              className="flex-1"
+            />
+            {isStreaming ? (
+              <Button onClick={handleCancel} variant="destructive">
+                <Square className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button onClick={handleSend} disabled={!input.trim() || isEscalated}>
+                <Send className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

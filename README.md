@@ -1077,6 +1077,7 @@ adding the Phase 8 tests.
 | PUT | `/api/candidates/{id}` | Update candidate |
 | POST | `/api/candidates/{id}/cv` | Upload CV (max 5 MB) |
 | GET | `/api/candidates/{id}/cv/{documentId}` | Download candidate CV |
+| DELETE | `/api/candidates/{id}/cv/{documentId}` | Delete candidate CV (removes DB record + file on disk) |
 | POST | `/api/candidates/{id}/advance-stage` | Advance to the next pipeline stage |
 | POST | `/api/candidates/{id}/reject` | Reject candidate |
 | POST | `/api/candidates/{id}/ai-summarize` | AI CV summarization |
@@ -1153,7 +1154,10 @@ non-staff user — confirmed by hand). HR Agent (`get_employee`, `get_leave_bala
 | **Phase 6** | Recruitment — Job postings, candidate pipeline, AI CV parsing | ✅ Done |
 | **Phase 7** | Hardening & Deployment — Security, performance, CI/CD, monitoring | 🔧 In progress (~39% of checklist — see [`documentation/todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md)) |
 
-Detailed documentation for each phase is available in the [`documentation/`](documentation/) directory.
+Detailed documentation for each phase is available in the [`documentation/`](documentation/)
+directory. For the full functional specification (requirements, workflows, business rules, and
+role permissions as actually implemented — verified against the code, not just the original
+plan), see [`documentation/FSD.md`](documentation/FSD.md).
 
 ---
 
@@ -1237,6 +1241,23 @@ Detailed documentation for each phase is available in the [`documentation/`](doc
 
 **AI stack:** OpenAI/Azure OpenAI + pgvector for semantic search + RAG pattern
 
+**Status (2026-08-11):** `AIOptions` now supports an optional separate
+`EmbeddingEndpoint`/`EmbeddingApiKey` pair (falling back to the main `Endpoint`/`ApiKey` when
+unset), so a chat-completion provider without an embeddings API of its own (e.g. DeepSeek) can be
+paired with a different provider (e.g. OpenAI) for embeddings only — `AIService` now builds each
+request's URI/Authorization header per-call instead of relying on a client-wide `BaseAddress`.
+`IAIService` also exposes `ChatModel` so `ChatService` records the model actually configured
+(`AIResponse.ModelUsed`) instead of a hardcoded `"gpt-4o-mini"` string. Fixed a streaming-chat bug
+where `POST /api/ai/chat/stream`'s final SSE payload was serialized with
+`JsonSerializer.Serialize()` directly (bypassing ASP.NET's normal camelCasing pipeline), so its
+`session.Id` stayed PascalCase while the frontend read `session?.id` — a brand-new chat's session
+id was always `undefined`, so it never got selected or added to the sidebar until a manual
+refresh forced a correctly-cased `GET /api/ai/conversations`. On the frontend, the standalone
+`ChatSessionPage` (route `/ai/chat/:sessionId`) was merged into `ChatPage` — the conversation
+list now opens a session by navigating to `/ai/chat` with `{ state: { sessionId } }` router state
+instead of a duplicate route/page, and the message input stays visible even with no active
+session so starting a fresh chat (or continuing after an escalation) always has somewhere to type.
+
 ---
 
 ### Phase 5 — Ticketing System
@@ -1276,6 +1297,20 @@ Detailed documentation for each phase is available in the [`documentation/`](doc
 
 **Pipeline stages:** `Applied → Screening → Test → Interview → Offering → Hired / Rejected`
 
+**Status (2026-08-11):** AI CV summarization is done end-to-end and verified working. CV text
+extraction (`RecruitmentAIService`, shared approach with `KnowledgeBaseService`'s KB indexing) now
+uses real PDF parsing via **PdfPig** instead of a raw-bytes regex scan for `(...) Tj` operators —
+the old scanner could never see text in the compressed (FlateDecode) streams that almost all
+real-world PDFs (Word/Google Docs/Canva exports) use, so real CVs silently extracted to an empty
+string and the LLM fabricated a plausible-looking summary from nothing. A CV with no extractable
+text (e.g. a scanned image with no text layer) now returns a clear "could not extract readable
+text" result instead of a hallucinated one, and `KnowledgeBaseService` fails the document loudly
+(status `Failed` with an `ErrorMessage`) rather than indexing empty/placeholder text. Candidates
+can now also delete an uploaded CV (`DELETE /api/candidates/{id}/cv/{documentId}`, removes both
+the DB record and the file on disk), and the CV upload/download/delete actions on
+`CandidateDetailPage` surface real error messages via toast (including parsing `Blob`-typed axios
+error responses) instead of failing silently.
+
 ---
 
 ### Phase 7 — Hardening & Production Deployment
@@ -1305,6 +1340,22 @@ self-recovery once exhausted — see [`tests/load/README.md`](tests/load/README.
 writeup and fixes. Full breakdown:
 [`documentation/todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md),
 [`documentation/deployment-runbook.md`](documentation/deployment-runbook.md).
+
+**Updates (2026-08-09 – 2026-08-11):** `Cors:Origins` tightened to just
+`http://localhost:5173` (dropped the unused `:3000` entry). `frontend/nginx.conf` gained
+`client_max_body_size 20m` — the default 1 MB nginx limit sat under the backend's largest
+`[RequestSizeLimit]` (20 MB on `KnowledgeBaseController`), so uploads over 1 MB were previously
+rejected by nginx before ever reaching the backend, regardless of the uploader's role/permissions
+— plus split cache headers: `index.html` is now `no-cache` (it has no content hash, so a stale
+cached copy after a rebuild kept requesting `/assets/*` filenames Vite had already replaced,
+breaking the SPA mount) while `/assets/*` is `public, max-age=31536000, immutable` (safe, since
+Vite content-hashes those filenames). The SignalR client (`useSignalR.ts`) fixed a race where
+`AppLayout` and `NotificationBell` mounting close together could each see no connection yet and
+independently build+start their own `HubConnection` for the same user — all concurrent callers
+now await one shared in-flight connect promise instead. `LoginPage`'s inline demo-account
+quick-fill list also dropped the Super Admin row and a leftover Indonesian debug comment/stray
+credential text; the full set of seeded demo accounts (including Super Admin) is still listed
+above under [Demo Accounts](#demo-accounts).
 
 ## License
 
