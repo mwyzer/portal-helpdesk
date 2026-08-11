@@ -19,7 +19,6 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 const DEMO_ACCOUNTS: { role: string; email: string; password: string }[] = [
-  { role: 'Super Admin', email: 'admin@aihelpdesk.com', password: 'Admin@123' },
   { role: 'HRD', email: 'hrd@aihelpdesk.com', password: 'Hrd@12345' },
   { role: 'Secretary', email: 'secretary@aihelpdesk.com', password: 'Secretary@123' },
   { role: 'Manager', email: 'manager@aihelpdesk.com', password: 'Manager@123' },
@@ -107,9 +106,6 @@ export function LoginPage() {
               {isSubmitting ? <Spinner className="mr-2" /> : <LogIn className="mr-2 h-4 w-4" />}
               Sign In
             </Button>
-            //buat text saja untuk user dan password
-            <p>hrd@aihelpdesk.com</p>
-            <p>Hrd@12345</p>
             
 
   

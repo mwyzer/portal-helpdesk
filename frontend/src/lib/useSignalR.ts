@@ -17,6 +17,12 @@ interface SignalRNotification {
 type NotificationHandler = (notification: SignalRNotification) => void;
 
 let globalConnection: HubConnection | null = null;
+// AppLayout and NotificationBell both call useSignalR() on mount, and their effects fire close
+// enough together that both would otherwise see no connection yet and independently build+start
+// their own HubConnection, racing each other -- the second call's assignment orphans the first
+// (which never gets stopped) and the server sees two negotiate/connect attempts for one user.
+// This promise makes every concurrent caller await the same in-flight attempt instead.
+let connectPromise: Promise<HubConnection> | null = null;
 const handlers = new Set<NotificationHandler>();
 const unreadHandlers = new Set<(count: number) => void>();
 
@@ -25,18 +31,27 @@ async function ensureConnection(token: string): Promise<HubConnection> {
     return globalConnection;
   }
 
-  if (globalConnection?.state === HubConnectionState.Disconnected) {
-    try {
-      await globalConnection.start();
-      return globalConnection;
-    } catch {
-      // will rebuild below
-    }
+  if (connectPromise) {
+    return connectPromise;
   }
 
+  if (globalConnection?.state === HubConnectionState.Disconnected) {
+    connectPromise = globalConnection
+      .start()
+      .then(() => globalConnection!)
+      .catch(() => buildAndStart(token))
+      .finally(() => { connectPromise = null; });
+    return connectPromise;
+  }
+
+  connectPromise = buildAndStart(token).finally(() => { connectPromise = null; });
+  return connectPromise;
+}
+
+async function buildAndStart(token: string): Promise<HubConnection> {
   const hubBaseUrl = import.meta.env.VITE_API_URL ?? '';
 
-  globalConnection = new HubConnectionBuilder()
+  const connection = new HubConnectionBuilder()
     .withUrl(`${hubBaseUrl}/hubs/notifications`, {
       accessTokenFactory: () => token,
     })
@@ -44,24 +59,25 @@ async function ensureConnection(token: string): Promise<HubConnection> {
     .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
     .build();
 
-  globalConnection.on('ReceiveNotification', (notification: SignalRNotification) => {
+  connection.on('ReceiveNotification', (notification: SignalRNotification) => {
     handlers.forEach((h) => h(notification));
   });
 
-  globalConnection.on('UnreadCountUpdated', (payload: { count: number }) => {
+  connection.on('UnreadCountUpdated', (payload: { count: number }) => {
     unreadHandlers.forEach((h) => h(payload.count));
   });
 
-  globalConnection.onreconnecting(() => {
+  connection.onreconnecting(() => {
     // Connection lost — silently reconnecting
   });
 
-  globalConnection.onreconnected(() => {
+  connection.onreconnected(() => {
     // Connection restored
   });
 
-  await globalConnection.start();
-  return globalConnection;
+  globalConnection = connection;
+  await connection.start();
+  return connection;
 }
 
 async function disconnectIfUnused(): Promise<void> {

@@ -237,6 +237,14 @@ public class KnowledgeBaseService : IKnowledgeBaseService
             _ => throw new InvalidOperationException($"Unsupported file type: {doc.FileType}")
         };
 
+        // Indexing empty text as if it were real content would silently corrupt search results
+        // (previously the PDF path returned a placeholder string like "PDF content (binary).
+        // Install PdfPig for full extraction." on failure, which got embedded and chunked as
+        // though it were the document itself). Fail loudly instead -- the caller already marks
+        // the document Failed with a clear ErrorMessage on any thrown exception here.
+        if (string.IsNullOrWhiteSpace(text))
+            throw new InvalidOperationException("No extractable text found in document (it may be a scanned image with no text layer).");
+
         // Remove existing chunks
         var oldChunks = await context.KnowledgeChunks.Where(c => c.DocumentId == doc.Id).ToListAsync();
         context.KnowledgeChunks.RemoveRange(oldChunks);
@@ -303,27 +311,25 @@ public class KnowledgeBaseService : IKnowledgeBaseService
         return chunks;
     }
 
-    private static async Task<string> ExtractPdfText(string filePath)
+    private Task<string> ExtractPdfText(string filePath)
     {
-        // Simple PDF text extraction: search for text between stream/endstream and decode
-        // In production, use PdfPig or PdfSharp
-        var bytes = await File.ReadAllBytesAsync(filePath);
-        var text = System.Text.Encoding.UTF8.GetString(bytes);
-
-        // Very basic extraction — extract readable text segments
-        var result = new System.Text.StringBuilder();
-        bool inText = false;
-        foreach (var line in text.Split('\n'))
+        // Real PDF parsing via PdfPig -- almost all real-world PDFs (Word/Google Docs/Canva
+        // exports) use compressed content streams, which a raw-bytes scan for "(...) Tj" can
+        // never see since those operators only exist after decompression. That previously meant
+        // real documents silently indexed as empty/placeholder text instead of their real content.
+        try
         {
-            if (line.Contains("BT")) inText = true;
-            if (inText && line.Contains("Tj"))
-            {
-                var match = System.Text.RegularExpressions.Regex.Match(line, @"\((.*?)\)\s*Tj");
-                if (match.Success) result.AppendLine(match.Groups[1].Value);
-            }
-            if (line.Contains("ET")) inText = false;
+            using var document = UglyToad.PdfPig.PdfDocument.Open(filePath);
+            var text = new System.Text.StringBuilder();
+            foreach (var page in document.GetPages())
+                text.AppendLine(page.Text);
+            return Task.FromResult(text.ToString());
         }
-        return result.Length > 0 ? result.ToString() : $"PDF content (binary). Install PdfPig for full extraction.\nFile: {filePath}";
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse PDF {FilePath}", filePath);
+            return Task.FromResult(string.Empty);
+        }
     }
 
     private static async Task<string> ExtractDocxText(string filePath)
