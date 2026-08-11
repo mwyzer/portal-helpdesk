@@ -1,5 +1,7 @@
 # Phase 3 — Secretary Module — TODO Checklist
 
+> For confirmed as-built behavior rather than a task checklist, see [`FSD.md`](FSD.md).
+
 ## Meeting & Agenda — Backend
 
 - [x] Create `Meeting` entity

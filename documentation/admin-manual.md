@@ -49,6 +49,12 @@ it's sent to the AI provider.
 `/ai/conversations` (Admin only) — read-only view of all AI chat conversations across the
 organization, for oversight and quality review.
 
+`AI:ChatModel`/`AI:EmbeddingModel` (and the optional `AI:EmbeddingEndpoint`/
+`AI:EmbeddingApiKey` pair, for pointing embeddings at a different provider than chat — e.g. a
+provider with no embeddings API of its own) are server-side configuration, not an in-app
+screen; see `documentation/deployment-runbook.md` and `.env.example` for the AI provider
+settings.
+
 ## 5. Ticketing Administration
 
 - **Ticket Categories** (`/tickets/categories`, Admin only) — define the categories tickets
@@ -56,9 +62,12 @@ organization, for oversight and quality review.
 - **Agent Assignments** (`/tickets/agents`, Admin only) — view current ticket load per staff
   member and assign/reassign tickets. There is no separate "Agent" login role in this system
   — anyone with Manager, HRD, or Super Admin can act as a ticket agent.
-- **Escalations** (`/tickets/escalations`, Admin + Manager) — tickets that breached or are at
-  risk of breaching their SLA are surfaced here automatically by a background job that runs
-  every 5 minutes; escalate manually or reassign as needed.
+- **Escalations** (`/tickets/escalations`, Admin + Manager) — escalating is always a manual,
+  explicit action (choose an assignee and a reason); it is not created automatically. A
+  background job does run every 5 minutes, but it only checks tickets for SLA breaches — on a
+  breach it flags the ticket `Breached` and notifies the assigned agent, it does not create an
+  Escalations-screen entry by itself. If you want breached tickets to show up here, escalate
+  them by hand.
 
 ## 6. Document Templates
 

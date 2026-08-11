@@ -1,5 +1,9 @@
 # Phase 7 — Hardening & Production Deployment
 
+> **Planning document.** For the actual, continuously-updated hardening status, see
+> [`todo-phase-7-hardening.md`](todo-phase-7-hardening.md) (task-by-task, dated) and
+> [`deployment-runbook.md`](deployment-runbook.md) (operational reference).
+
 **Tech Stack:** Docker · GitHub Actions · VPS/Linux · PostgreSQL · Nginx · Monitoring Stack
 
 **Prerequisite:** All Phases 1–6 must be complete and tested.

@@ -1,5 +1,11 @@
 # Phase 5 — Ticketing Module
 
+> **Planning document.** Written to guide implementation; not re-verified against the code
+> afterward — in particular, ticket assignment is manual in the shipped system, not the
+> round-robin auto-assignment described in places below, and escalation is single-level, not a
+> fixed Agent→Supervisor→Super-Admin hierarchy. For confirmed as-built behavior, see
+> [`FSD.md`](FSD.md#45-ticketing--sla-ticketservice-ticketslabackgroundservice-escalationservice).
+
 **Tech Stack:** React (TypeScript) + ASP.NET Core Web API + PostgreSQL
 
 **Prerequisite:** Phases 1 (Foundation) + 4 (AI Chat) recommended for AI categorization.

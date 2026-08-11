@@ -1,5 +1,9 @@
 # Phase 3 — Secretary Module
 
+> **Planning document.** Written to guide implementation; not re-verified against the code
+> afterward. For confirmed as-built behavior, see
+> [`FSD.md`](FSD.md#43-secretary--meetings--documents-meetingservice-documentservice-actionitemservice).
+
 **Tech Stack:** React (TypeScript) + ASP.NET Core Web API + PostgreSQL
 
 **Prerequisite:** Phases 1 (Foundation) + 2 (HR Admin) must be complete.

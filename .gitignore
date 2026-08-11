@@ -22,9 +22,6 @@ frontend/dist/
 # ── Docker volumes ──
 pgdata/
 
-# ── Documentation ──
-documentation/
-
 # ── Screenshots ──
 screenshots/
 

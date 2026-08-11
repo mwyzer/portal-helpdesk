@@ -76,10 +76,12 @@ still arrive via a 30-second polling fallback, just with a short delay.
   ready to accept candidates. A vacancy auto-marks itself **Filled** once enough candidates
   have been hired to fill all its openings, and can be **Closed** manually otherwise.
 - **Candidates** (`/recruitment/candidates`) — a Kanban-style board of candidates by pipeline
-  stage (Applied → Screening → Interview → Offer → Hired, or Rejected at any point). Add a
-  candidate with their CV (PDF or DOCX, 5MB max); the AI assistant can summarize the CV and
-  suggest interview questions. Candidates can only be advanced forward through the stages,
-  not skipped or moved backward, except into Rejected.
+  stage (Applied → Screening → Test → Interview → Offering → Hired, or Rejected from any
+  non-final stage). Add a candidate with their CV (PDF or DOCX, 5MB max); the AI assistant can
+  summarize the CV and suggest interview questions — if the file has no readable text (e.g. a
+  scanned image), it says so plainly instead of guessing at a summary. A CV can be removed from
+  the candidate's detail page if it was uploaded by mistake. Candidates can only be advanced one
+  stage forward at a time, never skipped or moved backward, except into Rejected.
 - **Interviews** (`/recruitment/interviews`) — schedule an interview for a candidate with an
   interviewer and time slot; the system prevents double-booking the same interviewer against
   an overlapping time. Record a recommendation after the interview (Strong Hire / Hire / No

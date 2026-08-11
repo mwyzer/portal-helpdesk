@@ -1,5 +1,11 @@
 # Phase 4 — AI Helpdesk Chat & Knowledge Base
 
+> **Planning document.** Written to guide implementation; not re-verified against the code
+> afterward — e.g. the specific chunk-size/overlap and guardrail claims below have not all been
+> confirmed against the current `ChatService`/`KnowledgeBaseService`. For confirmed as-built
+> behavior, see
+> [`FSD.md`](FSD.md#44-ai-chat--knowledge-base-chatservice-knowledgebaseservice-aiservice).
+
 **Tech Stack:** React (TypeScript) + ASP.NET Core Web API + PostgreSQL (pgvector) + OpenAI/Azure OpenAI API
 
 **Prerequisite:** Phase 1 (Foundation) must be complete.

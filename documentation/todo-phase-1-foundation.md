@@ -1,5 +1,7 @@
 # ✅ Phase 1 — Foundation: Task Tracker
 
+> For confirmed as-built behavior rather than a task checklist, see [`FSD.md`](FSD.md).
+
 **Status Legend:** `[ ]` Not Started · `[/]` In Progress · `[x]` Done · `[!]` Blocked
 
 ---

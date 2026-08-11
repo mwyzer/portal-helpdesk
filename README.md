@@ -1152,7 +1152,7 @@ non-staff user — confirmed by hand). HR Agent (`get_employee`, `get_leave_bala
 | **Phase 4** | AI Helpdesk Chat — AI-powered RAG chat & knowledge base | ✅ Done |
 | **Phase 5** | Ticketing System — Request tracking, SLA, agent workflows | ✅ Done |
 | **Phase 6** | Recruitment — Job postings, candidate pipeline, AI CV parsing | ✅ Done |
-| **Phase 7** | Hardening & Deployment — Security, performance, CI/CD, monitoring | 🔧 In progress (~39% of checklist — see [`documentation/todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md)) |
+| **Phase 7** | Hardening & Deployment — Security, performance, CI/CD, monitoring | 🔧 In progress (~44% of checklist, 45/103 tasks as of 2026-08-09 — see [`documentation/todo-phase-7-hardening.md`](documentation/todo-phase-7-hardening.md)) |
 
 Detailed documentation for each phase is available in the [`documentation/`](documentation/)
 directory. For the full functional specification (requirements, workflows, business rules, and
