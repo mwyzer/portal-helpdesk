@@ -216,6 +216,22 @@ public class CandidateService : ICandidateService
         return (stream, document.ContentType, document.FileName);
     }
 
+    public async Task DeleteCvAsync(Guid candidateId, Guid documentId)
+    {
+        var document = await _context.CandidateDocuments
+            .FirstOrDefaultAsync(d => d.Id == documentId && d.CandidateId == candidateId)
+            ?? throw new KeyNotFoundException("Document not found");
+
+        _context.CandidateDocuments.Remove(document);
+        await _context.SaveChangesAsync();
+
+        if (File.Exists(document.FilePath))
+        {
+            try { File.Delete(document.FilePath); }
+            catch (IOException ex) { _logger.LogWarning(ex, "Failed to delete CV file {FilePath}", document.FilePath); }
+        }
+    }
+
     public async Task<CandidateResponse> AdvanceStageAsync(Guid id, Guid userId, AdvanceCandidateStageRequest request)
     {
         var candidate = await _context.Candidates.Include(c => c.JobVacancy).FirstOrDefaultAsync(c => c.Id == id)

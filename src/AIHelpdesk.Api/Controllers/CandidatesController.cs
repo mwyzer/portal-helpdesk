@@ -85,6 +85,13 @@ public class CandidatesController : ControllerBase
         return File(stream, string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType, fileName);
     }
 
+    [HttpDelete("{id:guid}/cv/{documentId:guid}")]
+    public async Task<IActionResult> DeleteCv(Guid id, Guid documentId)
+    {
+        await _service.DeleteCvAsync(id, documentId);
+        return NoContent();
+    }
+
     [HttpPost("{id:guid}/advance-stage")]
     public async Task<ActionResult<CandidateResponse>> AdvanceStage(Guid id, [FromBody] AdvanceCandidateStageRequest request)
     {

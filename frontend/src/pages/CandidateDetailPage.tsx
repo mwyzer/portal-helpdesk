@@ -1,13 +1,14 @@
 import { useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Upload, Download, Sparkles, Clock, Calendar, FileText, Loader2, Link2 } from 'lucide-react';
+import { ArrowLeft, Upload, Download, Trash2, Sparkles, Clock, Calendar, FileText, Loader2, Link2 } from 'lucide-react';
 import { useToastStore } from '@/lib/useToast';
 
 interface CandidateDocument {
@@ -69,6 +70,20 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+async function extractErrorMessage(error: unknown, fallback: string): Promise<string> {
+  if (!axios.isAxiosError(error)) return fallback;
+  const data = error.response?.data;
+  if (data instanceof Blob) {
+    try {
+      const parsed = JSON.parse(await data.text());
+      return parsed?.error ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  return (data as { error?: string } | undefined)?.error ?? fallback;
+}
+
 export function CandidateDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -79,6 +94,8 @@ export function CandidateDetailPage() {
     queryKey: ['candidate', id],
     queryFn: () => api.get(`/candidates/${id}`).then((r) => r.data),
   });
+
+  const addToast = useToastStore((s) => s.addToast);
 
   const uploadMutation = useMutation({
     mutationFn: (file: File) => {
@@ -92,9 +109,21 @@ export function CandidateDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['candidate', id] });
       if (fileInputRef.current) fileInputRef.current.value = '';
     },
+    onError: async (error) => {
+      const message = await extractErrorMessage(error, 'Failed to upload CV');
+      addToast({ title: 'CV upload failed', message, type: 'error' });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    },
   });
 
-  const addToast = useToastStore((s) => s.addToast);
+  const deleteMutation = useMutation({
+    mutationFn: (documentId: string) => api.delete(`/candidates/${id}/cv/${documentId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['candidate', id] }),
+    onError: async (error) => {
+      const message = await extractErrorMessage(error, 'Failed to delete CV');
+      addToast({ title: 'CV delete failed', message, type: 'error' });
+    },
+  });
 
   const inviteMutation = useMutation({
     mutationFn: () => api.post(`/candidates/${id}/portal-invite`).then((r) => r.data as { setupToken: string; expiresAt: string }),
@@ -115,13 +144,18 @@ export function CandidateDetailPage() {
   });
 
   const handleDownload = async (documentId: string, fileName: string) => {
-    const response = await api.get(`/candidates/${id}/cv/${documentId}`, { responseType: 'blob' });
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    link.click();
-    window.URL.revokeObjectURL(url);
+    try {
+      const response = await api.get(`/candidates/${id}/cv/${documentId}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      const message = await extractErrorMessage(error, 'Failed to download CV');
+      addToast({ title: 'CV download failed', message, type: 'error' });
+    }
   };
 
   if (isLoading) return <div className="flex justify-center py-12"><Spinner className="h-8 w-8" /></div>;
@@ -209,9 +243,22 @@ export function CandidateDetailPage() {
                         <span>{d.fileName}</span>
                         <span className="text-xs text-muted-foreground">({formatBytes(d.fileSize)})</span>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => handleDownload(d.id, d.fileName)} aria-label="Download CV">
-                        <Download className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => handleDownload(d.id, d.fileName)} aria-label="Download CV">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Remove CV"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => {
+                            if (confirm(`Remove "${d.fileName}"?`)) deleteMutation.mutate(d.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -10,6 +10,7 @@ public interface ICandidateService
     Task<CandidateResponse> UpdateAsync(Guid id, UpdateCandidateRequest request);
     Task<CandidateDocumentResponse> UploadCvAsync(Guid candidateId, Guid userId, string fileName, string contentType, Stream fileStream);
     Task<(Stream FileStream, string ContentType, string FileName)> DownloadCvAsync(Guid candidateId, Guid documentId);
+    Task DeleteCvAsync(Guid candidateId, Guid documentId);
     Task<CandidateResponse> AdvanceStageAsync(Guid id, Guid userId, AdvanceCandidateStageRequest request);
     Task<CandidateResponse> RejectAsync(Guid id, Guid userId, RejectCandidateRequest request);
     Task<RecruitmentStatsResponse> GetStatsAsync();

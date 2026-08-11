@@ -13,6 +13,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.*" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.*" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.*" />
+    <PackageReference Include="PdfPig" Version="0.1.9" />
     <PackageReference Include="PdfSharpCore" Version="1.3.65" />
     <!-- PdfSharpCore 1.3.65 transitively pulls SixLabors.ImageSharp 1.0.4, which has multiple
          High/Moderate advisories per the NuGet vulnerability scan (2026-08-08). Direct

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using AIHelpdesk.Application.Interfaces;
 using AIHelpdesk.Contracts.Recruitment;
 using AIHelpdesk.Domain.Entities;
@@ -55,6 +54,15 @@ public class RecruitmentAIService : IRecruitmentAIService
             ?? throw new InvalidOperationException("Candidate has no CV uploaded");
 
         var cvText = await ExtractTextAsync(cv.FilePath, Path.GetExtension(cv.FileName));
+
+        // Feeding an empty document to the model invites it to fabricate a plausible-looking
+        // but entirely made-up summary instead of reporting that there was nothing to read
+        // (observed with scanned/image-only PDFs, which have no text layer to extract).
+        if (string.IsNullOrWhiteSpace(cvText))
+        {
+            _logger.LogWarning("No extractable text found in CV for candidate {CandidateId} ({FilePath})", candidateId, cv.FilePath);
+            return new CvSummarizeResponse([], null, null, "Could not extract readable text from this CV file. It may be a scanned image without a text layer.");
+        }
 
         try
         {
@@ -168,7 +176,7 @@ public class RecruitmentAIService : IRecruitmentAIService
         return results.OrderByDescending(r => r.MatchScore).ToList();
     }
 
-    private static async Task<string> ExtractTextAsync(string filePath, string extension)
+    private async Task<string> ExtractTextAsync(string filePath, string extension)
     {
         if (!File.Exists(filePath)) return string.Empty;
 
@@ -179,26 +187,27 @@ public class RecruitmentAIService : IRecruitmentAIService
         };
     }
 
-    private static async Task<string> ExtractPdfText(string filePath)
+    private Task<string> ExtractPdfText(string filePath)
     {
-        // Same lightweight best-effort extraction approach used by KnowledgeBaseService —
-        // not a full PDF parser (would need a dedicated library like PdfPig).
-        var bytes = await File.ReadAllBytesAsync(filePath);
-        var text = System.Text.Encoding.UTF8.GetString(bytes);
-
-        var result = new System.Text.StringBuilder();
-        var inText = false;
-        foreach (var line in text.Split('\n'))
+        // Real PDF parsing via PdfPig — the overwhelming majority of real-world PDFs (anything
+        // exported from Word, Google Docs, Canva, etc.) use compressed (FlateDecode) content
+        // streams, which a raw-bytes/regex scan for "(...) Tj" can never see since the text
+        // operators only exist after decompression. That previously meant real CVs silently
+        // extracted to an empty string, and the LLM would fabricate a plausible-sounding summary
+        // from nothing rather than reflect the candidate's actual CV content.
+        try
         {
-            if (line.Contains("BT")) inText = true;
-            if (inText && line.Contains("Tj"))
-            {
-                var match = Regex.Match(line, @"\((.*?)\)\s*Tj");
-                if (match.Success) result.AppendLine(match.Groups[1].Value);
-            }
-            if (line.Contains("ET")) inText = false;
+            using var document = UglyToad.PdfPig.PdfDocument.Open(filePath);
+            var text = new System.Text.StringBuilder();
+            foreach (var page in document.GetPages())
+                text.AppendLine(page.Text);
+            return Task.FromResult(text.ToString());
         }
-        return result.Length > 0 ? result.ToString() : string.Empty;
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse PDF {FilePath}", filePath);
+            return Task.FromResult(string.Empty);
+        }
     }
 
     private static string ExtractDocxText(string filePath)
