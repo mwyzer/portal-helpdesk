@@ -21,7 +21,10 @@ public class EmployeesController : ControllerBase
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet]
-    [Authorize(Roles = "Super Admin,HRD,Manager")]
+    // Secretary can't browse the Employees module itself (no menu access), but needs to read
+    // this list to populate assignee/participant pickers on Action Items and Meetings, both of
+    // which Secretary does have access to.
+    [Authorize(Roles = "Super Admin,HRD,Manager,Secretary")]
     public async Task<ActionResult<EmployeeListResponse>> GetEmployees(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,

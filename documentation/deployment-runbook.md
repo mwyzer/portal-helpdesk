@@ -93,6 +93,49 @@ backup taken before the deploy (§4) instead of just rolling back code.
 
 ---
 
+## 2a. Frontend Deploy (Vercel)
+
+Everything above (§1–2) covers the self-hosted Docker/Nginx stack. In the actual production
+setup, the **frontend is deployed separately to Vercel** (`frontend-flame-nine-53.vercel.app`
+as of 2026-08-12), while the **backend runs on Render** (see `render.yaml`) — Vercel only ever
+serves the static SPA build, it doesn't run the API.
+
+Deploys are handled by the `deploy-vercel` job in `.github/workflows/ci.yml`, which runs
+automatically on every push to `main` once the `frontend` CI job passes (PRs only get the CI
+checks, never a live deploy). It uses Vercel's documented CI pattern — `vercel pull` (fetches
+the project's configured Production env vars, e.g. `VITE_API_URL`) → `vercel build` → `vercel
+deploy --prebuilt` — rather than a bare `vercel --prod`, so the build has the same env vars a
+dashboard-triggered deploy would.
+
+**The Vercel project's own GitHub integration is intentionally disconnected** (`vercel git
+disconnect`, run 2026-08-12) so this workflow is the *only* thing that deploys it — leaving
+both connected would race and produce duplicate deployments on every push.
+
+Required GitHub Actions secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value | Notes |
+|---|---|---|
+| `VERCEL_TOKEN` | a personal access token from <https://vercel.com/account/tokens> | Create a dedicated CI token rather than reusing a personal login session; revoke and rotate independently if it ever leaks. |
+| `VERCEL_ORG_ID` | `team_41TIpBTsDMkU22sh9Y0BoiCp` | From `frontend/.vercel/project.json` (`.orgId`) — not secret, just an identifier, but kept alongside the token for convenience. |
+| `VERCEL_PROJECT_ID` | `prj_2pFxDQZLXmuBcAdIKaRS4E20QTIf` | From `frontend/.vercel/project.json` (`.projectId`). |
+
+**Vercel project settings that must be correct** (Vercel dashboard → project `frontend` →
+Settings): **Root Directory = `frontend`** (this is a monorepo — there's no `package.json` at
+the repo root, so the default `.` root directory fails to build) and the `VITE_API_URL`
+environment variable set for the Production environment to the Render backend's public origin
+(e.g. `https://aihelpdesk-api.onrender.com`, no trailing slash).
+
+To deploy manually without waiting for CI (e.g. to test a fix before it's committed):
+
+```bash
+cd frontend
+vercel pull --yes --environment=production
+vercel build --prod
+vercel deploy --prebuilt --prod
+```
+
+---
+
 ## 3. Monitoring & Health
 
 - `GET /api/health` — DB connectivity + disk usage; returns 503 if the DB is unreachable or

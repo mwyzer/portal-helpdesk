@@ -21,7 +21,7 @@ public class EscalationsController : ControllerBase
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet]
-    [Authorize(Roles = "Manager,Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD,Manager")]
     public async Task<ActionResult<PagedResult<EscalationResponse>>> GetEscalations(
         [FromQuery] Guid? departmentId = null,
         [FromQuery] int page = 1,
@@ -33,7 +33,7 @@ public class EscalationsController : ControllerBase
     }
 
     [HttpGet("pending")]
-    [Authorize(Roles = "Manager,Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD,Manager")]
     public async Task<ActionResult<IList<EscalationResponse>>> GetPending([FromQuery] Guid departmentId)
     {
         var result = await _service.GetPendingAsync(departmentId);
@@ -48,7 +48,7 @@ public class EscalationsController : ControllerBase
     }
 
     [HttpPost("{id}/accept")]
-    [Authorize(Roles = "Manager,Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD,Manager")]
     public async Task<IActionResult> Accept(Guid id)
     {
         await _service.AcceptAsync(id, GetUserId());
@@ -56,7 +56,7 @@ public class EscalationsController : ControllerBase
     }
 
     [HttpPost("{id}/resolve")]
-    [Authorize(Roles = "Manager,Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD,Manager")]
     public async Task<IActionResult> Resolve(Guid id)
     {
         await _service.ResolveAsync(id, GetUserId());
@@ -64,7 +64,7 @@ public class EscalationsController : ControllerBase
     }
 
     [HttpPost("{id}/decline")]
-    [Authorize(Roles = "Manager,Super Admin")]
+    [Authorize(Roles = "Super Admin,HRD,Manager")]
     public async Task<IActionResult> Decline(Guid id)
     {
         await _service.DeclineAsync(id, GetUserId());

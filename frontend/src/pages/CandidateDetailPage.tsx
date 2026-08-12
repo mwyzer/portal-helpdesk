@@ -136,11 +136,19 @@ export function CandidateDetailPage() {
         addToast({ title: 'Portal invite link generated', message: link, type: 'success' });
       }
     },
+    onError: async (error) => {
+      const message = await extractErrorMessage(error, 'Failed to generate portal invite');
+      addToast({ title: 'Portal invite failed', message, type: 'error' });
+    },
   });
 
   const summarizeMutation = useMutation({
     mutationFn: () => api.post(`/candidates/${id}/ai-summarize`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['candidate', id] }),
+    onError: async (error) => {
+      const message = await extractErrorMessage(error, 'Failed to generate summary');
+      addToast({ title: 'Summary generation failed', message, type: 'error' });
+    },
   });
 
   const handleDownload = async (documentId: string, fileName: string) => {
