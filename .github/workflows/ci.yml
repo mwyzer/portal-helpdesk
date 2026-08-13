@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   backend:
@@ -112,7 +113,7 @@ jobs:
     # The Vercel project's own GitHub integration is intentionally disconnected (see
     # `documentation/deployment-runbook.md`) so this job is the only thing that deploys it,
     # avoiding a duplicate deployment race between the two triggers.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     defaults:
       run:
         working-directory: frontend
