@@ -1,4 +1,3 @@
-using AIHelpdesk.Application.Interfaces;
 using AIHelpdesk.Domain.Common;
 using AIHelpdesk.Domain.Entities;
 using AIHelpdesk.Infrastructure.Data;
@@ -57,7 +56,6 @@ public class TicketSlaBackgroundService : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var notifications = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
         var now = DateTime.UtcNow;
         var candidates = await context.Tickets
@@ -96,13 +94,13 @@ public class TicketSlaBackgroundService : BackgroundService
                 });
 
                 var notifyUserId = ticket.AssignedAgentId ?? ticket.AssignedToId;
-                await notifications.CreateNotificationAsync(
+                context.Notifications.Add(NotificationService.BuildNotification(
                     notifyUserId,
                     "SLA Breached",
                     $"Ticket \"{ticket.Title}\" has breached its SLA deadline.",
                     "TicketSlaBreach",
                     "Ticket",
-                    ticket.Id);
+                    ticket.Id));
 
                 changed++;
             }

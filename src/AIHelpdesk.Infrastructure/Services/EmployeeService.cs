@@ -151,6 +151,15 @@ public class EmployeeService : IEmployeeService
         if (rows == null)
             return new EmployeeImportResult(0, 0, 0, errors);
 
+        // Name is not unique on Department or Position (only Department.Code is), so group
+        // instead of ToDictionaryAsync to avoid crashing the whole import on a duplicate name --
+        // matches the old per-row FirstOrDefaultAsync's "pick one match" behavior.
+        var departmentIdsByName = (await _context.Departments.Select(d => new { d.Id, d.Name }).ToListAsync())
+            .GroupBy(d => d.Name).ToDictionary(g => g.Key, g => g.First().Id);
+        var positionIdsByName = (await _context.Positions.Select(p => new { p.Id, p.Name }).ToListAsync())
+            .GroupBy(p => p.Name).ToDictionary(g => g.Key, g => g.First().Id);
+        var existingEmployeeNos = (await _context.Employees.Select(e => e.EmployeeNo).ToListAsync()).ToHashSet();
+
         foreach (var row in rows)
         {
             totalRows++;
@@ -173,9 +182,8 @@ public class EmployeeService : IEmployeeService
                 if (string.IsNullOrWhiteSpace(email))
                 { errors.Add(new EmployeeImportError(totalRows + 1, "Email is required")); continue; }
 
-                // Check duplicate employee number
-                var exists = await _context.Employees.AnyAsync(e => e.EmployeeNo == employeeNo);
-                if (exists)
+                // Check duplicate employee number (against existing data and rows already processed in this import)
+                if (existingEmployeeNos.Contains(employeeNo))
                 { errors.Add(new EmployeeImportError(totalRows + 1, $"Employee number '{employeeNo}' already exists")); continue; }
 
                 // Parse join date
@@ -186,20 +194,18 @@ public class EmployeeService : IEmployeeService
                 Guid? departmentId = null;
                 if (!string.IsNullOrWhiteSpace(departmentName))
                 {
-                    var dept = await _context.Departments.FirstOrDefaultAsync(d => d.Name == departmentName);
-                    if (dept == null)
+                    if (!departmentIdsByName.TryGetValue(departmentName, out var deptId))
                     { errors.Add(new EmployeeImportError(totalRows + 1, $"Department not found: '{departmentName}'")); continue; }
-                    departmentId = dept.Id;
+                    departmentId = deptId;
                 }
 
                 // Resolve position
                 Guid? positionId = null;
                 if (!string.IsNullOrWhiteSpace(positionName))
                 {
-                    var pos = await _context.Positions.FirstOrDefaultAsync(p => p.Name == positionName);
-                    if (pos == null)
+                    if (!positionIdsByName.TryGetValue(positionName, out var posId))
                     { errors.Add(new EmployeeImportError(totalRows + 1, $"Position not found: '{positionName}'")); continue; }
-                    positionId = pos.Id;
+                    positionId = posId;
                 }
 
                 var employee = new Employee
@@ -216,6 +222,7 @@ public class EmployeeService : IEmployeeService
                 };
 
                 _context.Employees.Add(employee);
+                existingEmployeeNos.Add(employeeNo);
                 successCount++;
             }
             catch (Exception ex)

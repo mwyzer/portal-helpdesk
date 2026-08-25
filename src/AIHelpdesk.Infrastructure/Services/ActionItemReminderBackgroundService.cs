@@ -1,4 +1,3 @@
-using AIHelpdesk.Application.Interfaces;
 using AIHelpdesk.Domain.Common;
 using AIHelpdesk.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -55,7 +54,6 @@ public class ActionItemReminderBackgroundService : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var notifications = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
         var now = DateTime.UtcNow;
         var overdueItems = await context.ActionItems
@@ -66,13 +64,13 @@ public class ActionItemReminderBackgroundService : BackgroundService
         {
             item.OverdueNotifiedAt = now;
 
-            await notifications.CreateNotificationAsync(
+            context.Notifications.Add(NotificationService.BuildNotification(
                 item.AssignedToId,
                 "Action Item Overdue",
                 $"Action item \"{item.Title}\" was due on {item.DueDate:dd MMM yyyy} and is now overdue.",
                 "ActionItemOverdue",
                 "ActionItem",
-                item.Id);
+                item.Id));
         }
 
         if (overdueItems.Count > 0)

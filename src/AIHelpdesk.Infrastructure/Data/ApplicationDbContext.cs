@@ -157,6 +157,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
             entity.HasOne(e => e.Meeting).WithMany(m => m.ActionItems).HasForeignKey(e => e.MeetingId).OnDelete(DeleteBehavior.SetNull);
             entity.HasOne(e => e.AssignedTo).WithMany().HasForeignKey(e => e.AssignedToId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.AssignedToId, e.Status, e.DueDate });
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
@@ -300,6 +301,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(e => e.RejectionReason).HasMaxLength(500);
             entity.HasOne(e => e.Employee).WithMany(e => e.LeaveRequests).HasForeignKey(e => e.EmployeeId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.LeaveType).WithMany().HasForeignKey(e => e.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.Status, e.EmployeeId });
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 
@@ -353,6 +355,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.HasIndex(e => e.Priority);
             entity.HasIndex(e => e.SLAStatus);
             entity.HasIndex(e => new { e.CategoryId, e.Status });
+            entity.HasIndex(e => new { e.AssignedAgentId, e.Status });
+            entity.HasIndex(e => new { e.DepartmentId, e.Status });
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
 

@@ -38,15 +38,22 @@ public class UserService : IUserService
             .Take(pageSize)
             .ToListAsync();
 
-        var items = new List<UserResponse>();
-        foreach (var user in users)
-        {
-            var roles = await _userManager.GetRolesAsync(user);
-            items.Add(new UserResponse(
-                user.Id, user.Email ?? "", user.FullName, user.NIK,
-                user.Department?.Name, user.Position?.Name,
-                user.IsActive, roles.ToList(), user.CreatedAt));
-        }
+        var userIds = users.Select(u => u.Id).ToList();
+        var rolesByUserId = (await (
+                from ur in _context.UserRoles
+                join r in _context.Roles on ur.RoleId equals r.Id
+                where userIds.Contains(ur.UserId)
+                select new { ur.UserId, r.Name }
+            ).ToListAsync())
+            .GroupBy(x => x.UserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Name!).ToList());
+
+        var items = users.Select(user => new UserResponse(
+            user.Id, user.Email ?? "", user.FullName, user.NIK,
+            user.Department?.Name, user.Position?.Name,
+            user.IsActive,
+            rolesByUserId.TryGetValue(user.Id, out var roles) ? roles : new List<string>(),
+            user.CreatedAt)).ToList();
 
         return new PagedResult<UserResponse>(items, total, page, pageSize);
     }

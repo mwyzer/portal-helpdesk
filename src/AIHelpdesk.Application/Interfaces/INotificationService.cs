@@ -9,4 +9,5 @@ public interface INotificationService
     Task MarkAsReadAsync(Guid id, Guid userId);
     Task MarkAllAsReadAsync(Guid userId);
     Task CreateNotificationAsync(Guid userId, string title, string body, string type, string? referenceType, Guid? referenceId);
+    Task CreateNotificationsAsync(IEnumerable<Guid> userIds, string title, string body, string type, string? referenceType, Guid? referenceId);
 }

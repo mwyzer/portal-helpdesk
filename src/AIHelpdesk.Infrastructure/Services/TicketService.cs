@@ -324,14 +324,11 @@ public class TicketService : ITicketService
         if (ticket.AssignedAgentId.HasValue) recipientIds.Add(ticket.AssignedAgentId.Value);
         recipientIds.Remove(userId);
 
-        foreach (var recipientId in recipientIds)
-        {
-            await _notificationService.CreateNotificationAsync(
-                recipientId,
-                "New Ticket Comment",
-                $"{author?.FullName ?? "Someone"} commented on \"{ticket.Title}\"",
-                "Info", "Ticket", ticket.Id);
-        }
+        await _notificationService.CreateNotificationsAsync(
+            recipientIds,
+            "New Ticket Comment",
+            $"{author?.FullName ?? "Someone"} commented on \"{ticket.Title}\"",
+            "Info", "Ticket", ticket.Id);
 
         return await GetByIdInternalAsync(id);
     }

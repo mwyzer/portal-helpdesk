@@ -74,10 +74,29 @@ public class NotificationService : INotificationService
 
     public async Task CreateNotificationAsync(Guid userId, string title, string body, string type, string? referenceType, Guid? referenceId)
     {
+        _context.Notifications.Add(BuildNotification(userId, title, body, type, referenceType, referenceId));
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task CreateNotificationsAsync(IEnumerable<Guid> userIds, string title, string body, string type, string? referenceType, Guid? referenceId)
+    {
+        var notifications = userIds
+            .Select(userId => BuildNotification(userId, title, body, type, referenceType, referenceId))
+            .ToList();
+
+        if (notifications.Count == 0)
+            return;
+
+        _context.Notifications.AddRange(notifications);
+        await _context.SaveChangesAsync();
+    }
+
+    internal static Notification BuildNotification(Guid userId, string title, string body, string type, string? referenceType, Guid? referenceId)
+    {
         if (!Enum.TryParse<Domain.Common.NotificationType>(type, out var notificationType))
             notificationType = Domain.Common.NotificationType.Info;
 
-        var notification = new Notification
+        return new Notification
         {
             UserId = userId,
             Title = title,
@@ -87,8 +106,5 @@ public class NotificationService : INotificationService
             ReferenceId = referenceId,
             IsRead = false
         };
-
-        _context.Notifications.Add(notification);
-        await _context.SaveChangesAsync();
     }
 }
