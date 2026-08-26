@@ -5,7 +5,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.31-alpine
 # Pull latest Alpine package patches at build time rather than trusting the base image tag's
 # own rebuild cadence -- caught real CRITICAL/HIGH CVEs (libssl3, libcrypto3, libxml2, etc.)
 # still present in the currently-published nginx:1.27-alpine layer as of a Trivy scan.
