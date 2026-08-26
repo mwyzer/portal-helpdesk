@@ -114,9 +114,12 @@ jobs:
     # `documentation/deployment-runbook.md`) so this job is the only thing that deploys it,
     # avoiding a duplicate deployment race between the two triggers.
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-    defaults:
-      run:
-        working-directory: frontend
+    # Deliberately NOT setting working-directory: frontend here, unlike the other jobs --
+    # the Vercel project's own "Root Directory" setting is already "frontend", so the CLI
+    # expects to run from the repo root and applies that offset itself. Combining both (cd
+    # into frontend/ AND the project's rootDirectory) made `vercel build` install/resolve
+    # node_modules one level too deep, producing spurious "Cannot find module 'zod'" etc.
+    # errors even though `npm run build` in the plain frontend job passed fine.
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
